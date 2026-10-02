@@ -40,6 +40,7 @@ export function createClassroomCourses(): Course[] {
       accent: "from-primary-dark via-primary to-[#7c83ff]",
       badge: "SEMANTIC SEO",
       unlockLevel: 1,
+      price: 49,
       lessons: [],
     },
     {
@@ -50,6 +51,7 @@ export function createClassroomCourses(): Course[] {
       accent: "from-primary-dark via-primary to-[#7c83ff]",
       badge: "AI SEO",
       unlockLevel: 1,
+      price: 59,
       lessons: [],
     },
     {
@@ -60,6 +62,7 @@ export function createClassroomCourses(): Course[] {
       accent: "from-primary-dark via-primary to-[#7c83ff]",
       badge: "AI TOOLS",
       unlockLevel: 1,
+      price: 79,
       lessons: [],
     },
     {
@@ -70,6 +73,7 @@ export function createClassroomCourses(): Course[] {
       accent: "from-primary-dark via-primary to-[#7c83ff]",
       badge: "N8N",
       unlockLevel: 1,
+      price: 69,
       lessons: [],
     },
     {
@@ -80,6 +84,7 @@ export function createClassroomCourses(): Course[] {
       accent: "from-primary-dark via-primary to-[#7c83ff]",
       badge: "META ADS",
       unlockLevel: 1,
+      price: 89,
       lessons: [],
     },
     {
@@ -90,6 +95,7 @@ export function createClassroomCourses(): Course[] {
       accent: "from-primary-dark via-primary to-[#7c83ff]",
       badge: "LEADS",
       unlockLevel: 1,
+      price: 99,
       lessons: [],
     },
   ];

@@ -23,6 +23,7 @@ import {
   inviteMember as inviteMemberAction,
   markNotificationsRead as markNotificationsReadAction,
   markThreadRead as markThreadReadAction,
+  purchaseCourse as purchaseCourseAction,
   rejectUser as rejectUserAction,
   releaseMemberLogin as releaseMemberLoginAction,
   saveCourse as saveCourseAction,
@@ -131,6 +132,7 @@ type AppContextValue = AppState & {
   createCommunity: (input: { name: string; description: string; isPrivate?: boolean }) => Promise<ActionResult>;
   switchCommunity: (communityId: string) => void;
   activeCommunity?: Community;
+  purchaseCourse: (courseId: string) => Promise<ActionResult>;
   userById: (id: string) => PublicUser | undefined;
 };
 
@@ -280,6 +282,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const upgradeFn = useCallback(() => run(() => upgradeAction()), [run]);
   const inviteMemberFn = useCallback((email: string) => run(() => inviteMemberAction(email)), [run]);
+  const purchaseCourseFn = useCallback(
+    (courseId: string) =>
+      run(async () => {
+        const result = await purchaseCourseAction(courseId);
+        if (result.ok) await refresh();
+        return result;
+      }),
+    [run, refresh],
+  );
   const createCommunityFn = useCallback(
     (input: { name: string; description: string; isPrivate?: boolean }) =>
       run(async () => {
@@ -332,6 +343,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       releaseMemberLogin: releaseMemberLoginFn,
       upgrade: upgradeFn,
       inviteMember: inviteMemberFn,
+      purchaseCourse: purchaseCourseFn,
       createCommunity: createCommunityFn,
       switchCommunity,
       activeCommunity,
@@ -366,6 +378,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       releaseMemberLoginFn,
       upgradeFn,
       inviteMemberFn,
+      purchaseCourseFn,
       createCommunityFn,
       switchCommunity,
       activeCommunity,

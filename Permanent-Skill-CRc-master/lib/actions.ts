@@ -82,6 +82,7 @@ function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string
     base.affiliateSignups = user.affiliateSignups;
     base.affiliateEarnings = user.affiliateEarnings;
     base.ipAddress = user.ipAddress || "127.0.0.1";
+    base.purchasedCourseIds = user.purchasedCourseIds || [];
   }
   if (viewer?.role === "admin") {
     base.hasActiveSession = activeUserIds?.has(user.id) ?? false;
@@ -976,4 +977,29 @@ export async function createCommunity(input: {
     d.communities.push(newCommunity);
   });
   return { ok: true, id };
+}
+
+export async function purchaseCourse(courseId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  const db = readDb();
+  const course = db.courses.find((c) => c.id === courseId);
+  if (!course) return { ok: false, error: "Course not found." };
+
+  await updateDb((d) => {
+    const u = d.users.find((x) => x.id === me.id);
+    if (!u) return;
+    u.purchasedCourseIds = u.purchasedCourseIds || [];
+    if (!u.purchasedCourseIds.includes(courseId)) {
+      u.purchasedCourseIds.push(courseId);
+    }
+    d.sales.push({
+      id: `sale-${token().slice(0, 8)}`,
+      userId: me.id,
+      amount: course.price || 49,
+      plan: course.title,
+      createdAt: new Date().toISOString(),
+    });
+  });
+  return { ok: true, id: courseId };
 }

@@ -6,10 +6,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
+  BookOpen,
   Check,
   ChevronDown,
   Compass,
   Globe,
+  GraduationCap,
   HelpCircle,
   LogOut,
   MessageCircle,
@@ -23,6 +25,7 @@ import {
 import { useApp } from "./AppProvider";
 import { Avatar } from "./ui";
 import { timeAgo } from "@/lib/format";
+import { getLevel } from "@/lib/levels";
 import { ChatDrawer } from "./ChatDrawer";
 
 const NAV = [
@@ -42,6 +45,7 @@ export function Header() {
     posts,
     notifications,
     messages,
+    courses,
     logout,
     markNotificationsRead,
     communities,
@@ -53,6 +57,17 @@ export function Header() {
   const [communitySearch, setCommunitySearch] = useState("");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
   const headerRef = useRef<HTMLElement>(null);
+
+  const userLevel = getLevel(user?.points || 0).level;
+  const myPurchasedCourses = useMemo(() => {
+    if (!courses || courses.length === 0) return [];
+    if (user?.role === "admin" || user?.isPremium) return courses;
+    return courses.filter((c) => {
+      const isPurchased = user?.purchasedCourseIds?.includes(c.id);
+      const isLevelUnlocked = c.unlockLevel <= 1 || userLevel >= c.unlockLevel;
+      return isPurchased || isLevelUnlocked;
+    });
+  }, [courses, user, userLevel]);
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -135,7 +150,7 @@ export function Header() {
           </button>
 
           {open === "community" && (
-            <div className="absolute left-4 top-[58px] z-50 w-[320px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
+            <div className="absolute left-4 top-[58px] z-50 w-[330px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
               <div className="p-2">
                 <div className="relative mb-2">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -160,8 +175,57 @@ export function Header() {
                 >
                   <Compass size={16} /> Discover communities
                 </Link>
+                <Link
+                  href="/all-courses"
+                  onClick={() => setOpen(null)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50 text-primary font-medium"
+                >
+                  <BookOpen size={16} /> All Courses (Catalog)
+                </Link>
               </div>
-              <div className="border-t border-zinc-100 p-2 space-y-1 max-h-[220px] overflow-y-auto">
+
+              {/* User's Purchased Courses Section */}
+              <div className="border-t border-zinc-100 p-2">
+                <div className="mb-1.5 flex items-center justify-between px-2 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                  <span>My Purchased Courses</span>
+                  <Link href="/all-courses" onClick={() => setOpen(null)} className="text-primary hover:underline lowercase font-normal">
+                    browse
+                  </Link>
+                </div>
+                {myPurchasedCourses.length > 0 ? (
+                  <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
+                    {myPurchasedCourses.map((c) => (
+                      <Link
+                        key={c.id}
+                        href={`/classroom/${c.slug}`}
+                        onClick={() => setOpen(null)}
+                        className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition"
+                      >
+                        <span className="truncate font-medium">{c.title}</span>
+                        <span className="ml-2 shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600">
+                          {c.badge}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg bg-zinc-50 p-2.5 text-center">
+                    <p className="text-xs text-zinc-500">No courses purchased yet.</p>
+                    <Link
+                      href="/all-courses"
+                      onClick={() => setOpen(null)}
+                      className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Plus size={13} /> Purchase a course
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-zinc-100 p-2 space-y-1 max-h-[160px] overflow-y-auto">
+                <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                  Communities
+                </div>
                 {filteredCommunities.map((c) => {
                   const isCurrent = (activeCommunity?.id || "comm-pss") === c.id;
                   return (
@@ -355,6 +419,12 @@ export function Header() {
               Admin
             </Link>
           )}
+          <Link
+            href="/all-courses"
+            className={`skool-nav-link whitespace-nowrap ${pathname.startsWith("/all-courses") ? "active" : ""}`}
+          >
+            All Courses
+          </Link>
         </nav>
       </header>
       <ChatDrawer userId={chatUserId} onClose={() => setChatUserId(null)} />

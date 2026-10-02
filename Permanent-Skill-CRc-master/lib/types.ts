@@ -38,6 +38,7 @@ export interface User {
   isPremium: boolean;
   language: string;
   ipAddress?: string;
+  purchasedCourseIds?: string[];
   phone?: string;
   notes?: string;
   application?: Application;
@@ -69,6 +70,7 @@ export interface PublicUser {
   isPremium: boolean;
   language?: string;
   ipAddress?: string;
+  purchasedCourseIds?: string[];
   phone?: string;
   notes?: string;
   loginCount?: number;
@@ -118,6 +120,7 @@ export interface Course {
   accent: string;
   badge: string;
   unlockLevel: number;
+  price?: number;
   lessons: Lesson[];
 }
 
