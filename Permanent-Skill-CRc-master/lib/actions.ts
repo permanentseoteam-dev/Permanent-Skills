@@ -915,20 +915,58 @@ export async function markNotificationsRead(): Promise<ActionResult> {
 
 export async function addReview(rating: number, body: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (!me) return { ok: false, error: "Please log in." };
-  if (!body.trim()) return { ok: false, error: "Write a short review." };
+  if (!me) return { ok: false, error: "Please log in first." };
+  if (!body.trim()) return { ok: false, error: "Please write a short review before submitting." };
   const now = new Date().toISOString();
+  const clampedRating = Math.min(5, Math.max(1, Math.round(rating)));
+
   await updateDb((db) => {
+    const user = db.users.find((u) => u.id === me.id);
+    if (user) award(user, 5);
+
+    const reviewId = `r-${token().slice(0, 8)}`;
     db.reviews.unshift({
-      id: `r-${token().slice(0, 8)}`,
+      id: reviewId,
       userId: me.id,
-      rating: Math.min(5, Math.max(1, rating)),
+      rating: clampedRating,
       body: body.trim(),
       createdAt: now,
     });
+
+    // Also sync to Community posts under "reviews"
+    const targetCommId = db.communities?.[0]?.id || "comm-students";
+    db.posts.unshift({
+      id: `p-${token().slice(0, 8)}`,
+      authorId: me.id,
+      category: "reviews",
+      title: `${clampedRating}★ Review: ${body.trim().slice(0, 60)}`,
+      body: body.trim(),
+      pinned: false,
+      likes: [],
+      createdAt: now,
+      communityId: targetCommId,
+    });
+
+    // Notify admins
+    const admins = db.users.filter((u) => u.role === "admin");
+    for (const admin of admins) {
+      if (admin.id !== me.id) {
+        db.notifications.unshift({
+          id: `n-${token().slice(0, 8)}`,
+          userId: admin.id,
+          actorId: me.id,
+          title: "New member review posted",
+          body: `${me.name} rated ${clampedRating}★: "${body.trim().slice(0, 60)}"`,
+          link: "/about",
+          read: false,
+          createdAt: now,
+        });
+      }
+    }
   });
   return { ok: true };
 }
+
 
 export async function updateProfile(input: {
   name?: string;
