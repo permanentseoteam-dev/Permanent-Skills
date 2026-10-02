@@ -1055,10 +1055,13 @@ export async function saveCourse(input: {
   id?: string;
   title: string;
   description: string;
-  unlockLevel: number;
+  unlockLevel?: number;
+  badge?: string;
+  price?: number;
+  isPremiumOnly?: boolean;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   if (!input.title.trim()) return { ok: false, error: "Course title is required." };
   const id = input.id || `course-${token().slice(0, 8)}`;
   await updateDb((db) => {
@@ -1066,7 +1069,10 @@ export async function saveCourse(input: {
     if (existing) {
       existing.title = input.title.trim();
       existing.description = input.description.trim();
-      existing.unlockLevel = input.unlockLevel || 1;
+      if (input.unlockLevel !== undefined) existing.unlockLevel = input.unlockLevel;
+      if (input.badge !== undefined) existing.badge = input.badge.trim().toUpperCase();
+      if (input.price !== undefined) existing.price = input.price;
+      if (input.isPremiumOnly !== undefined) existing.isPremiumOnly = input.isPremiumOnly;
       return;
     }
     db.courses.push({
@@ -1075,13 +1081,26 @@ export async function saveCourse(input: {
       title: input.title.trim(),
       description: input.description.trim(),
       accent: "from-[#0b1b4a] via-[#5051F9] to-[#7c83ff]",
-      badge: input.title.trim().slice(0, 18).toUpperCase(),
+      badge: input.badge?.trim().toUpperCase() || input.title.trim().slice(0, 18).toUpperCase(),
       unlockLevel: input.unlockLevel || 1,
+      price: input.price || 49,
+      isPremiumOnly: Boolean(input.isPremiumOnly),
       lessons: [],
     });
   });
   return { ok: true, id };
 }
+
+export async function deleteCourse(courseId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  await updateDb((db) => {
+    db.courses = db.courses.filter((c) => c.id !== courseId);
+    db.progress = db.progress.filter((p) => p.courseId !== courseId);
+  });
+  return { ok: true };
+}
+
 
 export async function saveLesson(input: {
   courseId: string;

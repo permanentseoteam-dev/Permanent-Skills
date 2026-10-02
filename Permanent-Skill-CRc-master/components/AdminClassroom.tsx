@@ -1,10 +1,30 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Pencil, Plus, Trash2, Upload } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Crown,
+  Eye,
+  Film,
+  Layers,
+  Lock,
+  Pencil,
+  Play,
+  Plus,
+  Sparkles,
+  Trash2,
+  Upload,
+  Video,
+  X,
+} from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Card, Field, PrimaryButton, inputClass } from "@/components/ui";
-import type { Lesson } from "@/lib/types";
+import { Card, Field, Modal, PrimaryButton, inputClass } from "@/components/ui";
+import { toEmbed } from "@/lib/video";
+import type { Course, Lesson } from "@/lib/types";
 
 const emptyLesson = {
   module: "",
@@ -16,20 +36,44 @@ const emptyLesson = {
 };
 
 export function AdminClassroom() {
-  const { courses, saveCourse, saveLesson, deleteLesson } = useApp();
+  const { courses, saveCourse, deleteCourse, saveLesson, deleteLesson } = useApp();
   const [courseId, setCourseId] = useState(courses[0]?.id || "");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyLesson);
-  const [courseForm, setCourseForm] = useState({ title: "", description: "", unlockLevel: 1 });
-  const [showCourse, setShowCourse] = useState(false);
+
+  // Course creation / edit state
+  const [showCourseModal, setShowCourseModal] = useState(false);
+  const [isEditingCourse, setIsEditingCourse] = useState(false);
+  const [courseForm, setCourseForm] = useState({
+    title: "",
+    description: "",
+    unlockLevel: 1,
+    badge: "",
+    price: 49,
+    isPremiumOnly: false,
+  });
+
   const [busy, setBusy] = useState(false);
   const [fileName, setFileName] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const course = courses.find((c) => c.id === courseId) || courses[0];
+
   const modules = useMemo(() => {
     if (!course) return [];
     return [...new Set(course.lessons.map((l) => l.module).filter(Boolean))];
+  }, [course]);
+
+  // Group lessons by module
+  const lessonsByModule = useMemo(() => {
+    if (!course) return {};
+    const grouped: Record<string, Lesson[]> = {};
+    for (const l of course.lessons) {
+      const mod = l.module || "General Lessons";
+      if (!grouped[mod]) grouped[mod] = [];
+      grouped[mod].push(l);
+    }
+    return grouped;
   }, [course]);
 
   useEffect(() => {
@@ -43,7 +87,7 @@ export function AdminClassroom() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function startEdit(lesson: Lesson) {
+  function startEditLesson(lesson: Lesson) {
     setEditingId(lesson.id);
     setForm({
       module: lesson.module,
@@ -54,7 +98,7 @@ export function AdminClassroom() {
       notes: lesson.notes,
     });
     setFileName("");
-    setMessage("");
+    setMessage(null);
   }
 
   function resetLessonForm() {
@@ -63,129 +107,268 @@ export function AdminClassroom() {
     setFileName("");
   }
 
+  function openCreateCourse() {
+    setIsEditingCourse(false);
+    setCourseForm({
+      title: "",
+      description: "",
+      unlockLevel: 1,
+      badge: "NEW COURSE",
+      price: 49,
+      isPremiumOnly: false,
+    });
+    setShowCourseModal(true);
+  }
+
+  function openEditCourse() {
+    if (!course) return;
+    setIsEditingCourse(true);
+    setCourseForm({
+      title: course.title,
+      description: course.description,
+      unlockLevel: course.unlockLevel || 1,
+      badge: course.badge || "",
+      price: course.price || 49,
+      isPremiumOnly: Boolean(course.isPremiumOnly),
+    });
+    setShowCourseModal(true);
+  }
+
   async function onUpload(file: File) {
     setBusy(true);
-    setMessage("Uploading video...");
+    setMessage({ type: "success", text: "Uploading video file..." });
     const data = new FormData();
     data.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: data });
-    const json = await res.json();
-    setBusy(false);
-    if (!json.ok) {
-      setMessage(json.error || "Upload failed.");
-      return;
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: data });
+      const json = await res.json();
+      setBusy(false);
+      if (!json.ok) {
+        setMessage({ type: "error", text: json.error || "Upload failed." });
+        return;
+      }
+      set("videoUrl", json.url);
+      setFileName(file.name);
+      setMessage({ type: "success", text: "✓ Video uploaded! Save the lesson to publish." });
+    } catch {
+      setBusy(false);
+      setMessage({ type: "error", text: "Upload request failed. Check server connection." });
     }
-    set("videoUrl", json.url);
-    setFileName(file.name);
-    setMessage("Video uploaded. Save the lesson to publish it.");
   }
 
   async function onSaveLesson() {
     if (!course) return;
+    if (!form.title.trim()) {
+      setMessage({ type: "error", text: "Lesson title is required." });
+      return;
+    }
+
     setBusy(true);
+    setMessage(null);
     const result = await saveLesson({
       courseId: course.id,
       lessonId: editingId || undefined,
-      module: form.module,
-      title: form.title,
-      videoTitle: form.videoTitle || form.title,
-      videoUrl: form.videoUrl,
-      duration: form.duration,
-      notes: form.notes,
-    });
-    setBusy(false);
-    setMessage(result.ok ? "Lesson saved. Members can watch it in Classroom." : result.error || "Could not save.");
-    if (result.ok) resetLessonForm();
-  }
-
-  async function onSaveCourse() {
-    setBusy(true);
-    const result = await saveCourse({
-      title: courseForm.title,
-      description: courseForm.description,
-      unlockLevel: Number(courseForm.unlockLevel) || 1,
+      module: form.module.trim() || "Module 1",
+      title: form.title.trim(),
+      videoTitle: form.videoTitle.trim() || form.title.trim(),
+      videoUrl: form.videoUrl.trim(),
+      duration: form.duration.trim(),
+      notes: form.notes.trim(),
     });
     setBusy(false);
     if (result.ok) {
-      setMessage("Course created. Add a video below.");
-      setShowCourse(false);
-      setCourseForm({ title: "", description: "", unlockLevel: 1 });
-      if (result.id) setCourseId(result.id);
+      setMessage({
+        type: "success",
+        text: editingId ? "✓ Lesson updated successfully." : "✓ New lesson added to course.",
+      });
+      resetLessonForm();
     } else {
-      setMessage(result.error || "Could not create course.");
+      setMessage({ type: "error", text: result.error || "Could not save lesson." });
     }
   }
 
-  return (
-    <div className="space-y-5">
-      <div className="flex flex-wrap items-center gap-3">
-        <select
-          className={`${inputClass} relative z-10 max-w-sm`}
-          value={course?.id || ""}
-          onChange={(e) => {
-            setCourseId(e.target.value);
-            resetLessonForm();
-          }}
-        >
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.title}
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => setShowCourse(!showCourse)}
-          className="inline-flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary/5"
-        >
-          <Plus size={16} /> New course
-        </button>
-      </div>
+  async function onSaveCourse() {
+    if (!courseForm.title.trim()) {
+      setMessage({ type: "error", text: "Course title is required." });
+      return;
+    }
+    setBusy(true);
+    const result = await saveCourse({
+      id: isEditingCourse && course ? course.id : undefined,
+      title: courseForm.title.trim(),
+      description: courseForm.description.trim(),
+      unlockLevel: Number(courseForm.unlockLevel) || 1,
+      badge: courseForm.badge.trim().toUpperCase() || undefined,
+      price: Number(courseForm.price) || 49,
+      isPremiumOnly: courseForm.isPremiumOnly,
+    });
+    setBusy(false);
+    if (result.ok) {
+      setShowCourseModal(false);
+      if (result.id) setCourseId(result.id);
+      setMessage({
+        type: "success",
+        text: isEditingCourse ? "✓ Course settings updated." : "✓ New course created.",
+      });
+    } else {
+      setMessage({ type: "error", text: result.error || "Could not save course." });
+    }
+  }
 
-      {showCourse && (
-        <Card className="space-y-3 p-5">
-          <h3 className="font-semibold">New course</h3>
-          <Field label="Course title">
-            <input className={inputClass} value={courseForm.title} onChange={(e) => setCourseForm((s) => ({ ...s, title: e.target.value }))} />
-          </Field>
-          <Field label="Description">
-            <textarea className={`${inputClass} min-h-[70px]`} value={courseForm.description} onChange={(e) => setCourseForm((s) => ({ ...s, description: e.target.value }))} />
-          </Field>
-          <Field label="Unlock at level">
-            <input
-              type="number"
-              min={1}
-              max={9}
-              className={inputClass}
-              value={courseForm.unlockLevel}
-              onChange={(e) => setCourseForm((s) => ({ ...s, unlockLevel: Number(e.target.value) }))}
-            />
-          </Field>
-          <PrimaryButton disabled={busy} onClick={onSaveCourse}>
-            Create course
-          </PrimaryButton>
-        </Card>
+  async function handleDeleteCourse() {
+    if (!course) return;
+    if (confirm(`Are you sure you want to delete "${course.title}" and all its lessons? This cannot be undone.`)) {
+      setBusy(true);
+      const res = await deleteCourse(course.id);
+      setBusy(false);
+      if (res.ok) {
+        setMessage({ type: "success", text: "✓ Course deleted." });
+      } else {
+        setMessage({ type: "error", text: res.error || "Could not delete course." });
+      }
+    }
+  }
+
+  const videoEmbed = form.videoUrl ? toEmbed(form.videoUrl) : null;
+
+  return (
+    <div className="space-y-6">
+      {/* SECTION 1: COURSE SELECTOR & MANAGEMENT BAR */}
+      <Card className="p-5 border border-zinc-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <BookOpen size={20} />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                Active Course
+              </label>
+              <select
+                className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-sm font-bold text-zinc-900 outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
+                value={course?.id || ""}
+                onChange={(e) => {
+                  setCourseId(e.target.value);
+                  resetLessonForm();
+                }}
+              >
+                {courses.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.title} ({c.lessons.length} lessons) — Level {c.unlockLevel || 1}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+            {course && (
+              <>
+                <button
+                  type="button"
+                  onClick={openEditCourse}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 shadow-2xs transition"
+                  title="Edit course title, description, or level"
+                >
+                  <Pencil size={13} /> Edit Course
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteCourse}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/60 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100/80 shadow-2xs transition"
+                  title="Delete Course"
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
+              </>
+            )}
+
+            <PrimaryButton onClick={openCreateCourse} className="rounded-xl px-3.5 py-2 text-xs font-bold gap-1.5 shadow-sm">
+              <Plus size={14} /> New Course
+            </PrimaryButton>
+          </div>
+        </div>
+
+        {course && (
+          <div className="mt-4 pt-3 border-t border-zinc-100 flex flex-wrap items-center gap-3 text-xs text-zinc-600">
+            <span className="rounded-md bg-zinc-900 text-white px-2 py-0.5 text-[10px] font-black uppercase">
+              {course.badge || "COURSE"}
+            </span>
+            <span>Level {course.unlockLevel || 1} Requirement</span>
+            <span>•</span>
+            <span>{course.lessons.length} Total Lessons</span>
+            <span>•</span>
+            <span>{course.isPremiumOnly ? "👑 VIP Only" : "🌐 All Members"}</span>
+            {course.price && <span>• ${course.price} standalone price</span>}
+          </div>
+        )}
+      </Card>
+
+      {/* Global Action Feedback Message */}
+      {message && (
+        <div
+          className={`rounded-2xl p-4 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs ${
+            message.type === "success"
+              ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+              : "bg-red-50 text-red-800 border border-red-200"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {message.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+            <span>{message.text}</span>
+          </div>
+          <button onClick={() => setMessage(null)} className="text-zinc-400 hover:text-zinc-600">
+            <X size={14} />
+          </button>
+        </div>
       )}
 
-      <Card className="relative overflow-visible p-5">
-        <h3 className="mb-4 text-lg font-semibold">{editingId ? "Edit video lesson" : "Add video lesson"}</h3>
-        <div className="grid gap-3 md:grid-cols-2">
-          <Field label="Module / section">
+      {/* SECTION 2: LESSON EDITOR FORM */}
+      <Card className="p-6 space-y-4 border border-zinc-200 shadow-sm">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Video size={16} />
+            </span>
+            <h3 className="text-base font-black text-zinc-900">
+              {editingId ? "Edit Video Lesson" : `Add Lesson to ${course?.title || "Course"}`}
+            </h3>
+          </div>
+
+          {editingId && (
+            <button
+              type="button"
+              onClick={resetLessonForm}
+              className="text-xs font-bold text-zinc-500 hover:text-zinc-800"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Module Selector & Quick Pills */}
+          <Field label="Module / Section Name *">
             <input
               className={inputClass}
-              placeholder="e.g. Foundations"
+              placeholder="e.g. Module 1: Foundations"
               value={form.module}
               onChange={(e) => set("module", e.target.value)}
-              autoComplete="off"
             />
             {modules.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-bold text-zinc-400">Existing:</span>
                 {modules.map((name) => (
                   <button
                     key={name}
                     type="button"
                     onClick={() => set("module", name)}
-                    className={`rounded-full px-2.5 py-1 text-xs ${
-                      form.module === name ? "bg-primary text-white" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold transition ${
+                      form.module === name
+                        ? "bg-zinc-900 text-white shadow-2xs"
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                     }`}
                   >
                     {name}
@@ -194,30 +377,50 @@ export function AdminClassroom() {
               </div>
             )}
           </Field>
-          <Field label="Duration">
-            <input className={inputClass} placeholder="e.g. 12 min" value={form.duration} onChange={(e) => set("duration", e.target.value)} />
-          </Field>
-          <Field label="Video title">
-            <input className={inputClass} placeholder="Part 1: Research" value={form.title} onChange={(e) => set("title", e.target.value)} />
-          </Field>
-          <Field label="Display title (optional)">
-            <input className={inputClass} placeholder="Shown above the player" value={form.videoTitle} onChange={(e) => set("videoTitle", e.target.value)} />
-          </Field>
-        </div>
-        <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <Field label="Video URL (YouTube, Vimeo, or MP4 link)">
+
+          <Field label="Lesson Duration">
             <input
               className={inputClass}
-              placeholder="https://youtube.com/watch?v=..."
-              value={form.videoUrl}
-              onChange={(e) => set("videoUrl", e.target.value)}
-              autoComplete="off"
+              placeholder="e.g. 14 min or 22:45"
+              value={form.duration}
+              onChange={(e) => set("duration", e.target.value)}
             />
           </Field>
-          <Field label="Or upload a video file">
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-dashed border-zinc-300 px-3 py-2.5 text-sm text-zinc-600 hover:border-primary hover:text-primary">
-              <Upload size={16} />
-              {fileName || "Choose MP4 / WebM / MOV"}
+
+          <Field label="Lesson Title *">
+            <input
+              className={inputClass}
+              placeholder="e.g. Setting Up High-Yield Topic Clusters"
+              value={form.title}
+              onChange={(e) => set("title", e.target.value)}
+            />
+          </Field>
+
+          <Field label="Display Title (Optional header label)">
+            <input
+              className={inputClass}
+              placeholder="e.g. Part 1: Strategic Architecture"
+              value={form.videoTitle}
+              onChange={(e) => set("videoTitle", e.target.value)}
+            />
+          </Field>
+        </div>
+
+        {/* Video Source Configuration */}
+        <div className="grid gap-4 sm:grid-cols-2 pt-1">
+          <Field label="Video URL (YouTube, Vimeo, or MP4 URL)">
+            <input
+              className={inputClass}
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={form.videoUrl}
+              onChange={(e) => set("videoUrl", e.target.value)}
+            />
+          </Field>
+
+          <Field label="Or Upload Direct Video File">
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-2.5 text-xs font-semibold text-zinc-600 hover:border-primary hover:bg-primary/5 hover:text-primary transition">
+              <Upload size={15} />
+              {fileName || "Upload MP4 / WebM / MOV File"}
               <input
                 type="file"
                 accept="video/mp4,video/webm,video/ogg,video/quicktime"
@@ -230,59 +433,245 @@ export function AdminClassroom() {
             </label>
           </Field>
         </div>
-        <div className="mt-3">
-          <Field label="Video notes">
-            <textarea
-              className={`${inputClass} min-h-[140px]`}
-              placeholder={"Lesson notes members will see under the video.\nUse - for bullets and [label](https://link) for links."}
-              value={form.notes}
-              onChange={(e) => set("notes", e.target.value)}
-            />
-          </Field>
-        </div>
-        <div className="mt-4 flex gap-2">
-          <PrimaryButton disabled={busy} onClick={onSaveLesson}>
-            {busy ? "Saving..." : editingId ? "Update lesson" : "Add lesson"}
-          </PrimaryButton>
+
+        {/* Live Video Preview Box */}
+        {videoEmbed && (
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-950 p-3 space-y-2">
+            <div className="flex items-center justify-between text-xs text-zinc-300 px-1">
+              <span className="font-bold flex items-center gap-1 text-amber-400">
+                <Play size={12} fill="currentColor" /> Live Video Preview
+              </span>
+              <span className="text-[11px] font-mono text-zinc-400">{form.videoUrl}</span>
+            </div>
+            <div className="relative aspect-video w-full max-w-lg mx-auto overflow-hidden rounded-xl bg-black shadow-md">
+              <iframe
+                src={videoEmbed.src}
+                className="h-full w-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Lesson Preview"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Lesson Notes Textarea */}
+        <Field label="Lesson Notes, Resources & Downloads">
+          <textarea
+            className={`${inputClass} min-h-[120px] font-mono text-xs`}
+            placeholder={
+              "Detailed notes shown under the video player.\n\nUse:\n• Bullet items starting with '- '\n• Clickable links: [Resource Link](https://...)\n• PASSWORD: secret-access-code\n• IMPORTANT: Actionable notice text"
+            }
+            value={form.notes}
+            onChange={(e) => set("notes", e.target.value)}
+          />
+        </Field>
+
+        {/* Form Action Footer */}
+        <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
           {editingId && (
-            <button type="button" onClick={resetLessonForm} className="rounded-lg px-4 py-2 text-sm text-zinc-500">
+            <button
+              type="button"
+              onClick={resetLessonForm}
+              className="rounded-xl px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition"
+            >
               Cancel
             </button>
           )}
+
+          <PrimaryButton disabled={busy} onClick={onSaveLesson} className="rounded-xl px-5 py-2.5 text-xs font-bold gap-1.5 shadow-sm">
+            {busy ? "Saving Lesson..." : editingId ? "Save Lesson Changes" : "Publish Lesson (+3 pts)"}
+          </PrimaryButton>
         </div>
-        {message && <p className="mt-3 text-sm text-primary">{message}</p>}
       </Card>
 
-      <Card>
-        <div className="border-b border-zinc-100 px-5 py-3 font-semibold">Lessons in {course?.title}</div>
-        {course?.lessons.length === 0 && <p className="p-5 text-sm text-zinc-500">No lessons yet. Add a video above.</p>}
-        {course?.lessons.map((lesson) => (
-          <div key={lesson.id} className="flex items-start justify-between gap-3 border-b border-zinc-100 px-5 py-3 last:border-0">
-            <div>
-              {lesson.module ? (
-                <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">{lesson.module}</p>
-              ) : null}
-              <p className="font-medium">{lesson.title}</p>
-              <p className="text-xs text-zinc-500">{lesson.duration || "No duration"} · {lesson.videoUrl ? "Video attached" : "No video"}</p>
-            </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => startEdit(lesson)} className="rounded-lg p-2 text-zinc-500 hover:bg-zinc-100" title="Edit">
-                <Pencil size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (course && confirm("Delete this lesson?")) deleteLesson(course.id, lesson.id);
-                }}
-                className="rounded-lg p-2 text-red-500 hover:bg-red-50"
-                title="Delete"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
+      {/* SECTION 3: COURSE LESSONS DIRECTORY & MODULE BREAKDOWN */}
+      <Card className="p-6 space-y-4 border border-zinc-200 shadow-sm">
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+          <div>
+            <h3 className="text-base font-black text-zinc-900">
+              Curriculum in {course?.title}
+            </h3>
+            <p className="text-xs text-zinc-500">
+              {course?.lessons.length || 0} total lessons across {Object.keys(lessonsByModule).length} modules
+            </p>
           </div>
-        ))}
+        </div>
+
+        {!course?.lessons || course.lessons.length === 0 ? (
+          <div className="p-8 text-center text-zinc-400 border border-dashed border-zinc-200 rounded-2xl">
+            <Film size={28} className="mx-auto text-zinc-300 mb-2" />
+            <p className="text-sm font-bold text-zinc-700">No lessons added yet</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Use the lesson editor above to publish your first video.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {Object.entries(lessonsByModule).map(([modName, modLessons]) => (
+              <div key={modName} className="rounded-2xl border border-zinc-200/80 bg-zinc-50/40 p-4 space-y-2">
+                <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2">
+                  <span className="text-xs font-black uppercase tracking-wider text-zinc-800 flex items-center gap-1.5">
+                    <Layers size={13} className="text-primary" /> {modName}
+                  </span>
+                  <span className="text-[11px] font-semibold text-zinc-500">
+                    {modLessons.length} {modLessons.length === 1 ? "lesson" : "lessons"}
+                  </span>
+                </div>
+
+                <div className="divide-y divide-zinc-100">
+                  {modLessons.map((lesson, idx) => (
+                    <div
+                      key={lesson.id}
+                      className="flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl transition gap-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs font-bold text-zinc-900">
+                            {idx + 1}. {lesson.title}
+                          </span>
+                          {lesson.duration && (
+                            <span className="rounded-full bg-zinc-100 px-2 py-0.2 text-[10px] font-semibold text-zinc-600 border border-zinc-200">
+                              {lesson.duration}
+                            </span>
+                          )}
+                          {lesson.videoUrl ? (
+                            <span className="rounded-full bg-emerald-50 px-2 py-0.2 text-[10px] font-bold text-emerald-700 border border-emerald-200">
+                              Video Ready
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.2 text-[10px] font-bold text-amber-700 border border-amber-200">
+                              Draft
+                            </span>
+                          )}
+                        </div>
+                        {lesson.notes && (
+                          <p className="mt-0.5 text-[11px] text-zinc-500 line-clamp-1 truncate">
+                            {lesson.notes}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => startEditLesson(lesson)}
+                          className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition"
+                          title="Edit Lesson"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (course && confirm(`Delete "${lesson.title}"?`)) {
+                              deleteLesson(course.id, lesson.id);
+                            }
+                          }}
+                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition"
+                          title="Delete Lesson"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
+
+      {/* CREATE / EDIT COURSE MODAL */}
+      <Modal
+        open={showCourseModal}
+        onClose={() => setShowCourseModal(false)}
+        title={isEditingCourse ? "Edit Course Settings" : "Create New Course"}
+        wide
+      >
+        <div className="space-y-4">
+          <Field label="Course Title *">
+            <input
+              className={inputClass}
+              placeholder="e.g. AI Autonomous Agents Architecture"
+              value={courseForm.title}
+              onChange={(e) => setCourseForm((f) => ({ ...f, title: e.target.value }))}
+            />
+          </Field>
+
+          <Field label="Course Description">
+            <textarea
+              className={inputClass}
+              rows={3}
+              placeholder="Summary of skills and modules taught in this course..."
+              value={courseForm.description}
+              onChange={(e) => setCourseForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Field label="Unlock Level (1-9)">
+              <input
+                type="number"
+                min={1}
+                max={9}
+                className={inputClass}
+                value={courseForm.unlockLevel}
+                onChange={(e) => setCourseForm((f) => ({ ...f, unlockLevel: Number(e.target.value) || 1 }))}
+              />
+            </Field>
+
+            <Field label="Category Badge">
+              <input
+                className={inputClass}
+                placeholder="e.g. MASTERCLASS"
+                value={courseForm.badge}
+                onChange={(e) => setCourseForm((f) => ({ ...f, badge: e.target.value }))}
+              />
+            </Field>
+
+            <Field label="Standalone Price ($)">
+              <input
+                type="number"
+                min={0}
+                className={inputClass}
+                value={courseForm.price}
+                onChange={(e) => setCourseForm((f) => ({ ...f, price: Number(e.target.value) || 49 }))}
+              />
+            </Field>
+          </div>
+
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={courseForm.isPremiumOnly}
+                onChange={(e) => setCourseForm((f) => ({ ...f, isPremiumOnly: e.target.checked }))}
+                className="h-4 w-4 rounded-md border-zinc-300 text-primary"
+              />
+              <div className="flex items-center gap-1.5">
+                <Crown size={14} className="text-amber-500" />
+                <span className="text-xs font-bold text-zinc-900">VIP / Premium Only Course</span>
+              </div>
+            </label>
+            <p className="text-[11px] text-zinc-500 mt-1 pl-6.5">
+              Requires active VIP membership or individual purchase to watch lessons.
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-zinc-100 pt-3">
+            <button
+              type="button"
+              onClick={() => setShowCourseModal(false)}
+              className="rounded-xl px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition"
+            >
+              Cancel
+            </button>
+            <PrimaryButton disabled={busy} onClick={onSaveCourse} className="rounded-xl px-5 py-2.5 text-xs font-bold">
+              {busy ? "Saving..." : isEditingCourse ? "Save Course Changes" : "Create Course"}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

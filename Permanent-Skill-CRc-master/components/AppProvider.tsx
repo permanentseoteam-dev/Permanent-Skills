@@ -21,6 +21,7 @@ import {
   createMember as createMemberAction,
   createPost as createPostAction,
   deletePost as deletePostAction,
+  deleteCourse as deleteCourseAction,
   deleteLesson as deleteLessonAction,
   getAppState,
   heartbeat,
@@ -118,7 +119,8 @@ type AppContextValue = AppState & {
   deleteComment: (commentId: string) => Promise<ActionResult>;
   togglePin: (postId: string) => Promise<ActionResult>;
   completeLesson: (courseId: string, lessonId: string) => Promise<ActionResult>;
-  saveCourse: (input: { id?: string; title: string; description: string; unlockLevel: number }) => Promise<ActionResult>;
+  saveCourse: (input: { id?: string; title: string; description: string; unlockLevel?: number; badge?: string; price?: number; isPremiumOnly?: boolean }) => Promise<ActionResult>;
+  deleteCourse: (courseId: string) => Promise<ActionResult>;
   saveLesson: (input: {
     courseId: string;
     lessonId?: string;
@@ -271,10 +273,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const saveCourseFn = useCallback(
-    (input: { id?: string; title: string; description: string; unlockLevel: number }) =>
+    (input: { id?: string; title: string; description: string; unlockLevel?: number; badge?: string; price?: number; isPremiumOnly?: boolean }) =>
       run(() => saveCourseAction(input)),
     [run],
   );
+  const deleteCourseFn = useCallback((courseId: string) => run(() => deleteCourseAction(courseId)), [run]);
   const saveLessonFn = useCallback(
     (input: {
       courseId: string;
@@ -403,6 +406,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       togglePin: togglePinFn,
       completeLesson: completeLessonFn,
       saveCourse: saveCourseFn,
+      deleteCourse: deleteCourseFn,
       saveLesson: saveLessonFn,
       deleteLesson: deleteLessonFn,
       saveProject: saveProjectFn,
@@ -447,6 +451,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       togglePinFn,
       completeLessonFn,
       saveCourseFn,
+      deleteCourseFn,
       saveLessonFn,
       deleteLessonFn,
       saveProjectFn,
