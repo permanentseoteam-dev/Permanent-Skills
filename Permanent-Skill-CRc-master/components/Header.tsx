@@ -58,7 +58,12 @@ export function Header() {
   const [communitySearch, setCommunitySearch] = useState("");
   const [chatSearch, setChatSearch] = useState("");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
-  const menuContainerRef = useRef<HTMLDivElement>(null);
+
+  const communityRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const bellRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const userLevel = getLevel(user?.points || 0).level;
   const myPurchasedCourses = useMemo(() => {
@@ -85,15 +90,32 @@ export function Header() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  // Handle mousedown outside menu container
+  // Handle outside clicks/taps for each active dropdown
   useEffect(() => {
-    function onMouseDown(e: MouseEvent) {
-      if (open && menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
+    function onPointerDown(e: MouseEvent | TouchEvent) {
+      if (!open) return;
+      const target = e.target as Node | null;
+      if (!target) return;
+
+      if (open === "community" && communityRef.current && !communityRef.current.contains(target)) {
+        setOpen(null);
+      } else if (open === "chat" && chatRef.current && !chatRef.current.contains(target)) {
+        setOpen(null);
+      } else if (open === "bell" && bellRef.current && !bellRef.current.contains(target)) {
+        setOpen(null);
+      } else if (open === "user" && userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setOpen(null);
+      } else if (open === "search" && searchRef.current && !searchRef.current.contains(target)) {
         setOpen(null);
       }
     }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
   }, [open]);
 
   const unreadNotes = notifications.filter((n) => !n.read).length;
@@ -155,17 +177,8 @@ export function Header() {
 
   return (
     <>
-      {/* Invisible backdrop to guarantee clicking anywhere on any white area / background dismisses open popups */}
-      {open !== null && (
-        <div
-          className="fixed inset-0 z-40 bg-transparent cursor-default select-none"
-          onClick={() => setOpen(null)}
-          aria-hidden="true"
-        />
-      )}
-
       <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white isolate shadow-xs">
-        <div ref={menuContainerRef} className="relative flex h-14 w-full items-center gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="relative flex h-14 w-full items-center gap-3 px-4 sm:px-6 lg:px-8">
           {/* Logo - Click to scroll smoothly to top of the current page */}
           <button
             onClick={() => {
@@ -193,136 +206,138 @@ export function Header() {
             )}
           </button>
 
-          {/* Community Switcher Dropdown Trigger */}
-          <button
-            onClick={() => setOpen(open === "community" ? null : "community")}
-            className="flex min-w-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-zinc-100/80 shrink-0 cursor-pointer"
-            aria-label="Community menu and courses"
-            title="Select community or courses"
-          >
-            <span className="truncate max-w-[150px] sm:max-w-[220px] font-bold text-sm text-zinc-900">
-              {activeCommunity?.name || "Permanent Skill Strategy"}
-            </span>
-            <ChevronDown
-              size={15}
-              className={`shrink-0 text-zinc-500 transition-transform duration-200 ${
-                open === "community" ? "rotate-180 text-primary" : ""
-              }`}
-            />
-          </button>
+          {/* Community Switcher Dropdown */}
+          <div ref={communityRef} className="relative shrink-0">
+            <button
+              onClick={() => setOpen(open === "community" ? null : "community")}
+              className="flex min-w-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-zinc-100/80 shrink-0 cursor-pointer"
+              aria-label="Community menu and courses"
+              title="Select community or courses"
+            >
+              <span className="truncate max-w-[150px] sm:max-w-[220px] font-bold text-sm text-zinc-900">
+                {activeCommunity?.name || "Permanent Skill Strategy"}
+              </span>
+              <ChevronDown
+                size={15}
+                className={`shrink-0 text-zinc-500 transition-transform duration-200 ${
+                  open === "community" ? "rotate-180 text-primary" : ""
+                }`}
+              />
+            </button>
 
-          {open === "community" && (
-            <div className="absolute left-4 sm:left-6 lg:left-8 top-[58px] z-50 w-[340px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
-              <div className="p-2">
-                <div className="relative mb-2">
-                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input
-                    value={communitySearch}
-                    onChange={(e) => setCommunitySearch(e.target.value)}
-                    className="w-full rounded-lg bg-zinc-100 py-2 pl-8 pr-3 text-sm outline-none"
-                    placeholder="Search"
-                  />
-                </div>
-                <Link
-                  href="/create-community"
-                  onClick={() => setOpen(null)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
-                >
-                  <Plus size={16} /> Create a community
-                </Link>
-                <Link
-                  href="/discover"
-                  onClick={() => setOpen(null)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
-                >
-                  <Compass size={16} /> Discover communities
-                </Link>
-                <Link
-                  href="/all-courses"
-                  onClick={() => setOpen(null)}
-                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50 text-primary font-medium"
-                >
-                  <BookOpen size={16} /> All Courses (Catalog)
-                </Link>
-              </div>
-
-              {/* User's Purchased Courses Section */}
-              <div className="border-t border-zinc-100 p-2">
-                <div className="mb-1.5 flex items-center justify-between px-2 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                  <span>My Purchased Courses</span>
-                  <Link href="/all-courses" onClick={() => setOpen(null)} className="text-primary hover:underline lowercase font-normal">
-                    browse
+            {open === "community" && (
+              <div className="absolute left-0 top-full mt-2 z-50 w-[340px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                <div className="p-2">
+                  <div className="relative mb-2">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      value={communitySearch}
+                      onChange={(e) => setCommunitySearch(e.target.value)}
+                      className="w-full rounded-lg bg-zinc-100 py-2 pl-8 pr-3 text-sm outline-none"
+                      placeholder="Search"
+                    />
+                  </div>
+                  <Link
+                    href="/create-community"
+                    onClick={() => setOpen(null)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
+                  >
+                    <Plus size={16} /> Create a community
+                  </Link>
+                  <Link
+                    href="/discover"
+                    onClick={() => setOpen(null)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
+                  >
+                    <Compass size={16} /> Discover communities
+                  </Link>
+                  <Link
+                    href="/all-courses"
+                    onClick={() => setOpen(null)}
+                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50 text-primary font-medium"
+                  >
+                    <BookOpen size={16} /> All Courses (Catalog)
                   </Link>
                 </div>
-                {myPurchasedCourses.length > 0 ? (
-                  <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
-                    {myPurchasedCourses.map((c) => (
-                      <Link
-                        key={c.id}
-                        href={`/classroom/${c.slug}`}
-                        onClick={() => setOpen(null)}
-                        className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition"
-                      >
-                        <span className="truncate font-medium">{c.title}</span>
-                        <span className="ml-2 shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600">
-                          {c.badge}
-                        </span>
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-lg bg-zinc-50 p-2.5 text-center">
-                    <p className="text-xs text-zinc-500">No courses purchased yet.</p>
-                    <Link
-                      href="/all-courses"
-                      onClick={() => setOpen(null)}
-                      className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                    >
-                      <Plus size={13} /> Purchase a course
+
+                {/* User's Purchased Courses Section */}
+                <div className="border-t border-zinc-100 p-2">
+                  <div className="mb-1.5 flex items-center justify-between px-2 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                    <span>My Purchased Courses</span>
+                    <Link href="/all-courses" onClick={() => setOpen(null)} className="text-primary hover:underline lowercase font-normal">
+                      browse
                     </Link>
                   </div>
-                )}
-              </div>
-
-              <div className="border-t border-zinc-100 p-2 space-y-1 max-h-[160px] overflow-y-auto">
-                <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                  Communities
-                </div>
-                {filteredCommunities.map((c) => {
-                  const isCurrent = (activeCommunity?.id || "comm-pss") === c.id;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => {
-                        switchCommunity(c.id);
-                        setOpen(null);
-                      }}
-                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
-                        isCurrent
-                          ? "bg-[#5051F9]/10 text-primary"
-                          : "text-zinc-700 hover:bg-zinc-50"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        {c.icon ? (
-                          <Image src={c.icon} alt="" width={22} height={22} className="h-6 w-6 object-contain" />
-                        ) : (
-                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-200 text-xs font-bold text-zinc-700">
-                            {c.name.slice(0, 2).toUpperCase()}
+                  {myPurchasedCourses.length > 0 ? (
+                    <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
+                      {myPurchasedCourses.map((c) => (
+                        <Link
+                          key={c.id}
+                          href={`/classroom/${c.slug}`}
+                          onClick={() => setOpen(null)}
+                          className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition"
+                        >
+                          <span className="truncate font-medium">{c.title}</span>
+                          <span className="ml-2 shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600">
+                            {c.badge}
                           </span>
-                        )}
-                        <span className="truncate">{c.name}</span>
-                      </div>
-                      {isCurrent && <Check size={16} className="text-primary shrink-0 ml-2" />}
-                    </button>
-                  );
-                })}
+                        </Link>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg bg-zinc-50 p-2.5 text-center">
+                      <p className="text-xs text-zinc-500">No courses purchased yet.</p>
+                      <Link
+                        href="/all-courses"
+                        onClick={() => setOpen(null)}
+                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                      >
+                        <Plus size={13} /> Purchase a course
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-zinc-100 p-2 space-y-1 max-h-[160px] overflow-y-auto">
+                  <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                    Communities
+                  </div>
+                  {filteredCommunities.map((c) => {
+                    const isCurrent = (activeCommunity?.id || "comm-pss") === c.id;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => {
+                          switchCommunity(c.id);
+                          setOpen(null);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+                          isCurrent
+                            ? "bg-[#5051F9]/10 text-primary"
+                            : "text-zinc-700 hover:bg-zinc-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {c.icon ? (
+                            <Image src={c.icon} alt="" width={22} height={22} className="h-6 w-6 object-contain" />
+                          ) : (
+                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-200 text-xs font-bold text-zinc-700">
+                              {c.name.slice(0, 2).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="truncate">{c.name}</span>
+                        </div>
+                        {isCurrent && <Check size={16} className="text-primary shrink-0 ml-2" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Search Bar */}
-          <div className="relative mx-auto hidden w-full max-w-xl md:block">
+          <div ref={searchRef} className="relative mx-auto hidden w-full max-w-xl md:block">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               value={query}
@@ -330,7 +345,9 @@ export function Header() {
                 setQuery(e.target.value);
                 setOpen("search");
               }}
-              onFocus={() => setOpen("search")}
+              onFocus={() => {
+                if (query.trim().length >= 2) setOpen("search");
+              }}
               placeholder={pathname === "/members" ? "Search members" : "Search"}
               className="w-full rounded-full bg-zinc-100 py-2.5 pl-9 pr-4 text-sm outline-none ring-primary/30 focus:bg-white focus:ring-2"
             />
@@ -361,228 +378,234 @@ export function Header() {
           {/* Top Right 3 Icons: Chats, Notifications, User Profile */}
           <div className="ml-auto flex items-center gap-2 shrink-0">
             {/* 1. Chat Icon */}
-            <button
-              onClick={() => setOpen(open === "chat" ? null : "chat")}
-              className={`relative rounded-full p-2 transition-colors hover:bg-zinc-100 ${
-                open === "chat" ? "bg-zinc-100 text-primary" : "text-zinc-700"
-              }`}
-              aria-label="Chats"
-            >
-              <MessageCircle size={22} className="stroke-[1.8]" />
-              {unreadChats > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
-                  {unreadChats}
-                </span>
+            <div ref={chatRef} className="relative">
+              <button
+                onClick={() => setOpen(open === "chat" ? null : "chat")}
+                className={`relative rounded-full p-2 transition-colors hover:bg-zinc-100 ${
+                  open === "chat" ? "bg-zinc-100 text-primary" : "text-zinc-700"
+                }`}
+                aria-label="Chats"
+              >
+                <MessageCircle size={22} className="stroke-[1.8]" />
+                {unreadChats > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                    {unreadChats}
+                  </span>
+                )}
+              </button>
+
+              {/* Chat Dropdown Menu */}
+              {open === "chat" && (
+                <div className="absolute right-0 top-full mt-2 z-50 w-[360px] sm:w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                  <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-zinc-900">Chats</h3>
+                      {unreadChats > 0 && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                          {unreadChats} new
+                        </span>
+                      )}
+                    </div>
+                    <Link
+                      href="/messages"
+                      onClick={() => setOpen(null)}
+                      className="text-xs font-semibold text-primary hover:underline"
+                    >
+                      All Messages
+                    </Link>
+                  </div>
+
+                  {/* Quick Search Contacts */}
+                  <div className="p-2 border-b border-zinc-100">
+                    <div className="relative">
+                      <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        value={chatSearch}
+                        onChange={(e) => setChatSearch(e.target.value)}
+                        placeholder="Search member to chat..."
+                        className="w-full rounded-lg bg-zinc-100 py-1.5 pl-7 pr-3 text-xs outline-none focus:bg-white focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="max-h-[380px] overflow-y-auto divide-y divide-zinc-50">
+                    {/* Active Threads */}
+                    {threads.length > 0 && !chatSearch && (
+                      <div>
+                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-50/80">
+                          Recent Conversations
+                        </div>
+                        {threads.map(([otherId, last]) => {
+                          const person = users.find((u) => u.id === otherId);
+                          const unread = messages.some((m) => m.senderId === otherId && m.receiverId === user?.id && !m.read);
+                          const unreadCount = messages.filter((m) => m.senderId === otherId && !m.read && m.receiverId === user?.id).length;
+                          return (
+                            <button
+                              key={otherId}
+                              onClick={() => {
+                                setChatUserId(otherId);
+                                void markThreadRead(otherId);
+                                setOpen(null);
+                              }}
+                              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${
+                                unread ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
+                              }`}
+                            >
+                              <Avatar user={person} size={40} />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="truncate text-sm font-semibold text-zinc-900">
+                                    {person?.name || "Member"}
+                                    {unread && (
+                                      <span className="ml-1.5 text-xs font-bold text-primary">({unreadCount})</span>
+                                    )}
+                                  </p>
+                                  <span className="text-[11px] text-zinc-400 shrink-0">{timeAgo(last.createdAt)}</span>
+                                </div>
+                                <p className={`truncate text-xs mt-0.5 ${unread ? "font-semibold text-zinc-900" : "text-zinc-500"}`}>
+                                  {last.body}
+                                </p>
+                              </div>
+                              {unread && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* All Members / Search Results */}
+                    {availableMembers.length > 0 && (
+                      <div>
+                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-50/80">
+                          {chatSearch ? "Matching Members" : "Start New Chat"}
+                        </div>
+                        {availableMembers.slice(0, 6).map((member) => (
+                          <button
+                            key={member.id}
+                            onClick={() => {
+                              setChatUserId(member.id);
+                              void markThreadRead(member.id);
+                              setOpen(null);
+                            }}
+                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-zinc-50"
+                          >
+                            <Avatar user={member} size={34} />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-zinc-900">{member.name}</p>
+                              <p className="truncate text-xs text-zinc-400">@{member.username}</p>
+                            </div>
+                            <span className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
+                              Chat
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {threads.length === 0 && availableMembers.length === 0 && (
+                      <div className="px-4 py-8 text-center text-sm text-zinc-500">
+                        No members available for chat.
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
 
             {/* 2. Notifications / Bell Icon */}
-            <button
-              onClick={() => setOpen(open === "bell" ? null : "bell")}
-              className={`relative rounded-full p-2 transition-colors hover:bg-zinc-100 ${
-                open === "bell" ? "bg-zinc-100 text-primary" : "text-zinc-700"
-              }`}
-              aria-label="Notifications"
-            >
-              <Bell size={22} className="stroke-[1.8]" />
-              {unreadNotes > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
-                  {unreadNotes > 99 ? "99+" : unreadNotes}
-                </span>
-              )}
-            </button>
-
-            {/* 3. User Profile Avatar */}
-            <button
-              onClick={() => setOpen(open === "user" ? null : "user")}
-              className={`ml-1 rounded-full p-0.5 ring-2 transition-colors ${
-                open === "user" ? "ring-primary" : "ring-transparent hover:ring-zinc-300"
-              }`}
-              aria-label="User Profile Menu"
-            >
-              <Avatar user={user} size={36} />
-            </button>
-          </div>
-
-          {/* Chat Dropdown Menu */}
-          {open === "chat" && (
-            <div className="absolute right-16 top-[58px] z-50 w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
-              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-zinc-900">Chats</h3>
-                  {unreadChats > 0 && (
-                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
-                      {unreadChats} new
-                    </span>
-                  )}
-                </div>
-                <Link
-                  href="/messages"
-                  onClick={() => setOpen(null)}
-                  className="text-xs font-semibold text-primary hover:underline"
-                >
-                  All Messages
-                </Link>
-              </div>
-
-              {/* Quick Search Contacts */}
-              <div className="p-2 border-b border-zinc-100">
-                <div className="relative">
-                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input
-                    value={chatSearch}
-                    onChange={(e) => setChatSearch(e.target.value)}
-                    placeholder="Search member to chat..."
-                    className="w-full rounded-lg bg-zinc-100 py-1.5 pl-7 pr-3 text-xs outline-none focus:bg-white focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              </div>
-
-              <div className="max-h-[380px] overflow-y-auto divide-y divide-zinc-50">
-                {/* Active Threads */}
-                {threads.length > 0 && !chatSearch && (
-                  <div>
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-50/80">
-                      Recent Conversations
-                    </div>
-                    {threads.map(([otherId, last]) => {
-                      const person = users.find((u) => u.id === otherId);
-                      const unread = messages.some((m) => m.senderId === otherId && m.receiverId === user?.id && !m.read);
-                      const unreadCount = messages.filter((m) => m.senderId === otherId && !m.read && m.receiverId === user?.id).length;
-                      return (
-                        <button
-                          key={otherId}
-                          onClick={() => {
-                            setChatUserId(otherId);
-                            void markThreadRead(otherId);
-                            setOpen(null);
-                          }}
-                          className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${
-                            unread ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
-                          }`}
-                        >
-                          <Avatar user={person} size={40} />
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="truncate text-sm font-semibold text-zinc-900">
-                                {person?.name || "Member"}
-                                {unread && (
-                                  <span className="ml-1.5 text-xs font-bold text-primary">({unreadCount})</span>
-                                )}
-                              </p>
-                              <span className="text-[11px] text-zinc-400 shrink-0">{timeAgo(last.createdAt)}</span>
-                            </div>
-                            <p className={`truncate text-xs mt-0.5 ${unread ? "font-semibold text-zinc-900" : "text-zinc-500"}`}>
-                              {last.body}
-                            </p>
-                          </div>
-                          {unread && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
-                        </button>
-                      );
-                    })}
-                  </div>
+            <div ref={bellRef} className="relative">
+              <button
+                onClick={() => setOpen(open === "bell" ? null : "bell")}
+                className={`relative rounded-full p-2 transition-colors hover:bg-zinc-100 ${
+                  open === "bell" ? "bg-zinc-100 text-primary" : "text-zinc-700"
+                }`}
+                aria-label="Notifications"
+              >
+                <Bell size={22} className="stroke-[1.8]" />
+                {unreadNotes > 0 && (
+                  <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                    {unreadNotes > 99 ? "99+" : unreadNotes}
+                  </span>
                 )}
+              </button>
 
-                {/* All Members / Search Results */}
-                {availableMembers.length > 0 && (
-                  <div>
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-50/80">
-                      {chatSearch ? "Matching Members" : "Start New Chat"}
-                    </div>
-                    {availableMembers.slice(0, 6).map((member) => (
-                      <button
-                        key={member.id}
-                        onClick={() => {
-                          setChatUserId(member.id);
-                          void markThreadRead(member.id);
-                          setOpen(null);
-                        }}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-zinc-50"
-                      >
-                        <Avatar user={member} size={34} />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-zinc-900">{member.name}</p>
-                          <p className="truncate text-xs text-zinc-400">@{member.username}</p>
-                        </div>
-                        <span className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
-                          Chat
+              {/* Notifications Dropdown Menu */}
+              {open === "bell" && (
+                <div className="absolute right-0 top-full mt-2 z-50 w-[360px] sm:w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                  <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-zinc-900">Notifications</h3>
+                      {unreadNotes > 0 && (
+                        <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                          {unreadNotes} new
                         </span>
+                      )}
+                    </div>
+                    {unreadNotes > 0 && (
+                      <button
+                        onClick={() => markNotificationsRead()}
+                        className="text-xs font-semibold text-primary hover:underline"
+                      >
+                        Mark all as read
                       </button>
+                    )}
+                  </div>
+                  <div className="max-h-[420px] overflow-y-auto divide-y divide-zinc-50">
+                    {notifications.length === 0 && (
+                      <div className="px-4 py-10 text-center text-sm text-zinc-500">
+                        <Bell size={28} className="mx-auto mb-2 text-zinc-300" />
+                        You are all caught up
+                      </div>
+                    )}
+                    {notifications.map((n) => (
+                      <Link
+                        key={n.id}
+                        href={n.link || "/community"}
+                        onClick={async () => {
+                          setOpen(null);
+                          await markNotificationsRead();
+                        }}
+                        className={`flex items-start gap-3 px-4 py-3 transition ${
+                          !n.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
+                        }`}
+                      >
+                        <Avatar user={users.find((u) => u.id === n.actorId) || user} size={36} />
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-sm ${!n.read ? "font-semibold text-zinc-900" : "font-medium text-zinc-800"}`}>
+                            {n.title}
+                          </p>
+                          <p className="truncate text-xs text-zinc-500 mt-0.5">{n.body}</p>
+                          <p className="text-[10px] text-zinc-400 mt-1">{timeAgo(n.createdAt)}</p>
+                        </div>
+                        {!n.read && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
+                      </Link>
                     ))}
                   </div>
-                )}
-
-                {threads.length === 0 && availableMembers.length === 0 && (
-                  <div className="px-4 py-8 text-center text-sm text-zinc-500">
-                    No members available for chat.
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Notifications Dropdown Menu */}
-          {open === "bell" && (
-            <div className="absolute right-12 top-[58px] z-50 w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
-              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-zinc-900">Notifications</h3>
-                  {unreadNotes > 0 && (
-                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
-                      {unreadNotes} new
-                    </span>
-                  )}
                 </div>
-                {unreadNotes > 0 && (
-                  <button
-                    onClick={() => markNotificationsRead()}
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    Mark all as read
-                  </button>
-                )}
-              </div>
-              <div className="max-h-[420px] overflow-y-auto divide-y divide-zinc-50">
-                {notifications.length === 0 && (
-                  <div className="px-4 py-10 text-center text-sm text-zinc-500">
-                    <Bell size={28} className="mx-auto mb-2 text-zinc-300" />
-                    You are all caught up
-                  </div>
-                )}
-                {notifications.map((n) => (
-                  <Link
-                    key={n.id}
-                    href={n.link || "/community"}
-                    onClick={async () => {
-                      setOpen(null);
-                      await markNotificationsRead();
-                    }}
-                    className={`flex items-start gap-3 px-4 py-3 transition ${
-                      !n.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
-                    }`}
-                  >
-                    <Avatar user={users.find((u) => u.id === n.actorId) || user} size={36} />
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-sm ${!n.read ? "font-semibold text-zinc-900" : "font-medium text-zinc-800"}`}>
-                        {n.title}
-                      </p>
-                      <p className="truncate text-xs text-zinc-500 mt-0.5">{n.body}</p>
-                      <p className="text-[10px] text-zinc-400 mt-1">{timeAgo(n.createdAt)}</p>
-                    </div>
-                    {!n.read && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
-                  </Link>
-                ))}
-              </div>
+              )}
             </div>
-          )}
 
-          {/* User Profile Dropdown Menu */}
-          {open === "user" && user && (
-            <UserMenu
-              onClose={() => setOpen(null)}
-              onLogout={logout}
-            />
-          )}
+            {/* 3. User Profile Avatar */}
+            <div ref={userMenuRef} className="relative">
+              <button
+                onClick={() => setOpen(open === "user" ? null : "user")}
+                className={`ml-1 rounded-full p-0.5 ring-2 transition-colors ${
+                  open === "user" ? "ring-primary" : "ring-transparent hover:ring-zinc-300"
+                }`}
+                aria-label="User Profile Menu"
+              >
+                <Avatar user={user} size={36} />
+              </button>
+
+              {/* User Profile Dropdown Menu */}
+              {open === "user" && user && (
+                <UserMenu
+                  onClose={() => setOpen(null)}
+                  onLogout={logout}
+                />
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Main Navigation Row - Full Width */}
@@ -633,7 +656,7 @@ function UserMenu({
   const roleLabel = user?.role === "admin" ? "Admin" : user?.isPremium ? "Premium Member" : "Team Member";
 
   return (
-    <div className="absolute right-4 top-[58px] z-50 w-[270px] overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+    <div className="absolute right-0 top-full mt-2 z-50 w-[270px] overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
       <div className="border-b border-zinc-100 px-4 py-2.5">
         <p className="truncate text-sm font-semibold text-zinc-900">{user?.name}</p>
         <p className="truncate text-xs text-zinc-500">{user?.email}</p>

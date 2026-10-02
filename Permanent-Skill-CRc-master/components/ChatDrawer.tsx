@@ -31,15 +31,20 @@ export function ChatDrawer({ userId, onClose }: { userId: string | null; onClose
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
 
-  // Outside click listener to dismiss chat drawer when clicking on side/white area
+  // Outside click/tap listener to dismiss chat drawer when clicking on side/white area
   useEffect(() => {
-    function onMouseDown(e: MouseEvent) {
-      if (drawerRef.current && !drawerRef.current.contains(e.target as Node)) {
+    function onPointerDown(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null;
+      if (drawerRef.current && target && !drawerRef.current.contains(target)) {
         onClose();
       }
     }
-    document.addEventListener("mousedown", onMouseDown);
-    return () => document.removeEventListener("mousedown", onMouseDown);
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+    };
   }, [onClose]);
 
   // Handle ESC key to go back / dismiss
@@ -61,18 +66,10 @@ export function ChatDrawer({ userId, onClose }: { userId: string | null; onClose
   }
 
   return (
-    <>
-      {/* Invisible backdrop to dismiss / go back on side click anywhere */}
-      <div
-        className="fixed inset-0 z-[65] bg-transparent cursor-default select-none"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      <div
-        ref={drawerRef}
-        className="fixed bottom-4 right-4 z-[70] flex h-[520px] w-[380px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150"
-      >
+    <div
+      ref={drawerRef}
+      className="fixed bottom-4 right-4 z-[70] flex h-[520px] w-[380px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-150"
+    >
         <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
           <div className="flex items-center gap-2">
             <button
@@ -128,6 +125,5 @@ export function ChatDrawer({ userId, onClose }: { userId: string | null; onClose
           </button>
         </form>
       </div>
-    </>
-  );
-}
+    );
+  }
