@@ -11,7 +11,6 @@ import {
   ChevronDown,
   Compass,
   Globe,
-  GraduationCap,
   HelpCircle,
   LogOut,
   MessageCircle,
@@ -39,6 +38,7 @@ const NAV = [
 
 export function Header() {
   const pathname = usePathname();
+  const router = useRouter();
   const {
     user,
     users,
@@ -48,6 +48,7 @@ export function Header() {
     courses,
     logout,
     markNotificationsRead,
+    markThreadRead,
     communities,
     activeCommunity,
     switchCommunity,
@@ -55,8 +56,9 @@ export function Header() {
   const [open, setOpen] = useState<null | "community" | "user" | "chat" | "bell" | "search">(null);
   const [query, setQuery] = useState("");
   const [communitySearch, setCommunitySearch] = useState("");
+  const [chatSearch, setChatSearch] = useState("");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
-  const headerRef = useRef<HTMLElement>(null);
+  const menuContainerRef = useRef<HTMLDivElement>(null);
 
   const userLevel = getLevel(user?.points || 0).level;
   const myPurchasedCourses = useMemo(() => {
@@ -69,13 +71,30 @@ export function Header() {
     });
   }, [courses, user, userLevel]);
 
+  // Close open popups when route changes
   useEffect(() => {
-    function onClick(e: MouseEvent) {
-      if (headerRef.current && !headerRef.current.contains(e.target as Node)) setOpen(null);
+    setOpen(null);
+  }, [pathname]);
+
+  // Handle ESC key to dismiss any open popup
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(null);
     }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, []);
+
+  // Handle mousedown outside menu container
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (open && menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
+        setOpen(null);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [open]);
 
   const unreadNotes = notifications.filter((n) => !n.read).length;
   const unreadChats = new Set(
@@ -91,6 +110,19 @@ export function Header() {
     }
     return [...map.entries()];
   }, [messages, user]);
+
+  const availableMembers = useMemo(() => {
+    if (!user) return [];
+    const q = chatSearch.trim().toLowerCase();
+    const otherUsers = users.filter((u) => u.id !== user.id && u.status !== "pending");
+    if (!q) return otherUsers;
+    return otherUsers.filter(
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.username.toLowerCase().includes(q) ||
+        Boolean(u.email?.toLowerCase().includes(q))
+    );
+  }, [users, user, chatSearch]);
 
   const searchHits = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -123,8 +155,18 @@ export function Header() {
 
   return (
     <>
-      <header ref={headerRef} className="sticky top-0 z-50 border-b border-zinc-200 bg-white">
-        <div className="mx-auto flex max-w-[1180px] items-center gap-3 px-4 py-2.5">
+      {/* Invisible backdrop to guarantee clicking anywhere on any white area / background dismisses open popups */}
+      {open !== null && (
+        <div
+          className="fixed inset-0 z-40 bg-transparent cursor-default select-none"
+          onClick={() => setOpen(null)}
+          aria-hidden="true"
+        />
+      )}
+
+      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white">
+        <div ref={menuContainerRef} className="relative mx-auto flex max-w-[1180px] items-center gap-3 px-4 py-2.5">
+          {/* Community Switcher Dropdown */}
           <button
             onClick={() => setOpen(open === "community" ? null : "community")}
             className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 hover:bg-zinc-50"
@@ -259,6 +301,7 @@ export function Header() {
             </div>
           )}
 
+          {/* Search Bar */}
           <div className="relative mx-auto hidden w-full max-w-xl md:block">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
@@ -295,107 +338,225 @@ export function Header() {
             )}
           </div>
 
-          <div className="ml-auto flex items-center gap-1">
+          {/* Top Right 3 Icons: Chats, Notifications, User Profile */}
+          <div className="ml-auto flex items-center gap-2">
+            {/* 1. Chat Icon */}
             <button
               onClick={() => setOpen(open === "chat" ? null : "chat")}
-              className="relative rounded-full p-2 hover:bg-zinc-100"
+              className={`relative rounded-full p-2 transition hover:bg-zinc-100 ${
+                open === "chat" ? "bg-zinc-100 text-primary" : "text-zinc-700"
+              }`}
               aria-label="Chats"
             >
-              <MessageCircle size={22} className="text-zinc-600" />
+              <MessageCircle size={22} className="stroke-[1.8]" />
               {unreadChats > 0 && (
-                <span className="absolute right-0.5 top-0.5 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
                   {unreadChats}
                 </span>
               )}
             </button>
+
+            {/* 2. Notifications / Bell Icon */}
             <button
               onClick={() => setOpen(open === "bell" ? null : "bell")}
-              className="relative rounded-full p-2 hover:bg-zinc-100"
+              className={`relative rounded-full p-2 transition hover:bg-zinc-100 ${
+                open === "bell" ? "bg-zinc-100 text-primary" : "text-zinc-700"
+              }`}
               aria-label="Notifications"
             >
-              <Bell size={22} className="text-zinc-600" />
+              <Bell size={22} className="stroke-[1.8]" />
               {unreadNotes > 0 && (
-                <span className="absolute right-0.5 top-0.5 min-w-[18px] rounded-full bg-red-500 px-1 text-center text-[10px] font-bold text-white">
+                <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
                   {unreadNotes > 99 ? "99+" : unreadNotes}
                 </span>
               )}
             </button>
-            <button onClick={() => setOpen(open === "user" ? null : "user")} className="ml-1">
+
+            {/* 3. User Profile Avatar */}
+            <button
+              onClick={() => setOpen(open === "user" ? null : "user")}
+              className={`ml-1 rounded-full ring-2 transition ${
+                open === "user" ? "ring-primary" : "ring-transparent hover:ring-zinc-300"
+              }`}
+              aria-label="User Profile Menu"
+            >
               <Avatar user={user} size={36} />
             </button>
           </div>
 
+          {/* Chat Dropdown Menu */}
           {open === "chat" && (
-            <div className="absolute right-16 top-[58px] z-50 w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
-              <div className="flex items-center justify-between px-4 py-3">
-                <h3 className="font-semibold">Chats</h3>
-                <Link href="/messages" onClick={() => setOpen(null)} className="text-sm text-primary">
-                  All
+            <div className="absolute right-16 top-[58px] z-50 w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-zinc-900">Chats</h3>
+                  {unreadChats > 0 && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                      {unreadChats} new
+                    </span>
+                  )}
+                </div>
+                <Link
+                  href="/messages"
+                  onClick={() => setOpen(null)}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  All Messages
                 </Link>
               </div>
-              <div className="max-h-[420px] overflow-y-auto">
-                {threads.length === 0 && <p className="px-4 py-8 text-center text-sm text-zinc-500">No messages yet</p>}
-                {threads.map(([otherId, last]) => {
-                  const person = users.find((u) => u.id === otherId);
-                  const unread = messages.some((m) => m.senderId === otherId && m.receiverId === user?.id && !m.read);
-                  return (
-                    <button
-                      key={otherId}
-                      onClick={() => {
-                        setChatUserId(otherId);
-                        setOpen(null);
-                      }}
-                      className="flex w-full items-start gap-3 px-4 py-3 text-left hover:bg-zinc-50"
-                    >
-                      <Avatar user={person} size={40} />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="truncate text-sm font-semibold">
-                            {person?.name}
-                            {unread && <span className="ml-1 text-primary">({messages.filter((m) => m.senderId === otherId && !m.read && m.receiverId === user?.id).length})</span>}
-                          </p>
-                          <span className="text-xs text-zinc-400">{timeAgo(last.createdAt)}</span>
+
+              {/* Quick Search Contacts */}
+              <div className="p-2 border-b border-zinc-100">
+                <div className="relative">
+                  <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                  <input
+                    value={chatSearch}
+                    onChange={(e) => setChatSearch(e.target.value)}
+                    placeholder="Search member to chat..."
+                    className="w-full rounded-lg bg-zinc-100 py-1.5 pl-7 pr-3 text-xs outline-none focus:bg-white focus:ring-1 focus:ring-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="max-h-[380px] overflow-y-auto divide-y divide-zinc-50">
+                {/* Active Threads */}
+                {threads.length > 0 && !chatSearch && (
+                  <div>
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-50/80">
+                      Recent Conversations
+                    </div>
+                    {threads.map(([otherId, last]) => {
+                      const person = users.find((u) => u.id === otherId);
+                      const unread = messages.some((m) => m.senderId === otherId && m.receiverId === user?.id && !m.read);
+                      const unreadCount = messages.filter((m) => m.senderId === otherId && !m.read && m.receiverId === user?.id).length;
+                      return (
+                        <button
+                          key={otherId}
+                          onClick={() => {
+                            setChatUserId(otherId);
+                            void markThreadRead(otherId);
+                            setOpen(null);
+                          }}
+                          className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${
+                            unread ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
+                          }`}
+                        >
+                          <Avatar user={person} size={40} />
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="truncate text-sm font-semibold text-zinc-900">
+                                {person?.name || "Member"}
+                                {unread && (
+                                  <span className="ml-1.5 text-xs font-bold text-primary">({unreadCount})</span>
+                                )}
+                              </p>
+                              <span className="text-[11px] text-zinc-400 shrink-0">{timeAgo(last.createdAt)}</span>
+                            </div>
+                            <p className={`truncate text-xs mt-0.5 ${unread ? "font-semibold text-zinc-900" : "text-zinc-500"}`}>
+                              {last.body}
+                            </p>
+                          </div>
+                          {unread && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* All Members / Search Results */}
+                {availableMembers.length > 0 && (
+                  <div>
+                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-400 bg-zinc-50/80">
+                      {chatSearch ? "Matching Members" : "Start New Chat"}
+                    </div>
+                    {availableMembers.slice(0, 6).map((member) => (
+                      <button
+                        key={member.id}
+                        onClick={() => {
+                          setChatUserId(member.id);
+                          void markThreadRead(member.id);
+                          setOpen(null);
+                        }}
+                        className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-zinc-50"
+                      >
+                        <Avatar user={member} size={34} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-zinc-900">{member.name}</p>
+                          <p className="truncate text-xs text-zinc-400">@{member.username}</p>
                         </div>
-                        <p className="truncate text-sm text-zinc-500">{last.body}</p>
-                      </div>
-                      {unread && <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary" />}
-                    </button>
-                  );
-                })}
+                        <span className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
+                          Chat
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {threads.length === 0 && availableMembers.length === 0 && (
+                  <div className="px-4 py-8 text-center text-sm text-zinc-500">
+                    No members available for chat.
+                  </div>
+                )}
               </div>
             </div>
           )}
 
+          {/* Notifications Dropdown Menu */}
           {open === "bell" && (
-            <div className="absolute right-12 top-[58px] z-50 w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
-              <div className="flex items-center justify-between px-4 py-3">
-                <h3 className="font-semibold">Notifications</h3>
-                <button onClick={() => markNotificationsRead()} className="text-sm text-primary">
-                  Mark all as read
-                </button>
+            <div className="absolute right-12 top-[58px] z-50 w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-zinc-900">Notifications</h3>
+                  {unreadNotes > 0 && (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-[11px] font-bold text-red-600">
+                      {unreadNotes} new
+                    </span>
+                  )}
+                </div>
+                {unreadNotes > 0 && (
+                  <button
+                    onClick={() => markNotificationsRead()}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    Mark all as read
+                  </button>
+                )}
               </div>
-              <div className="max-h-[420px] overflow-y-auto">
-                {notifications.length === 0 && <p className="px-4 py-8 text-center text-sm text-zinc-500">You are all caught up</p>}
+              <div className="max-h-[420px] overflow-y-auto divide-y divide-zinc-50">
+                {notifications.length === 0 && (
+                  <div className="px-4 py-10 text-center text-sm text-zinc-500">
+                    <Bell size={28} className="mx-auto mb-2 text-zinc-300" />
+                    You are all caught up
+                  </div>
+                )}
                 {notifications.map((n) => (
                   <Link
                     key={n.id}
-                    href={n.link}
-                    onClick={() => setOpen(null)}
-                    className="flex items-start gap-3 px-4 py-3 hover:bg-zinc-50"
+                    href={n.link || "/community"}
+                    onClick={async () => {
+                      setOpen(null);
+                      await markNotificationsRead();
+                    }}
+                    className={`flex items-start gap-3 px-4 py-3 transition ${
+                      !n.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
+                    }`}
                   >
                     <Avatar user={users.find((u) => u.id === n.actorId) || user} size={36} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium">{n.title}</p>
-                      <p className="truncate text-sm text-zinc-500">{n.body}</p>
-                      <p className="text-xs text-zinc-400">{timeAgo(n.createdAt)}</p>
+                      <p className={`text-sm ${!n.read ? "font-semibold text-zinc-900" : "font-medium text-zinc-800"}`}>
+                        {n.title}
+                      </p>
+                      <p className="truncate text-xs text-zinc-500 mt-0.5">{n.body}</p>
+                      <p className="text-[10px] text-zinc-400 mt-1">{timeAgo(n.createdAt)}</p>
                     </div>
-                    {!n.read && <span className="mt-2 h-2.5 w-2.5 rounded-full bg-primary" />}
+                    {!n.read && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
                   </Link>
                 ))}
               </div>
             </div>
           )}
 
+          {/* User Profile Dropdown Menu */}
           {open === "user" && user && (
             <UserMenu
               onClose={() => setOpen(null)}
@@ -404,6 +565,7 @@ export function Header() {
           )}
         </div>
 
+        {/* Main Navigation Row */}
         <nav className="mx-auto flex max-w-[1180px] items-center gap-1 overflow-x-auto px-3">
           {NAV.map((item) => (
             <Link
@@ -448,63 +610,86 @@ function UserMenu({
     router.push(href);
   }
 
+  const roleLabel = user?.role === "admin" ? "Admin" : user?.isPremium ? "Premium Member" : "Team Member";
+
   return (
-    <div className="absolute right-4 top-[58px] z-50 w-[260px] overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-xl">
-      <p className="truncate px-4 py-2 text-sm font-medium text-zinc-700">{user?.email}</p>
-      <button onClick={() => go(`/profile/${user?.id}`)} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-        <UserRound size={16} /> Profile
-      </button>
-      <button onClick={() => go("/settings")} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-        <Settings size={16} /> Settings
-      </button>
-      <button onClick={() => go("/affiliates")} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-        <Sparkles size={16} /> Affiliates
-      </button>
-      <button onClick={() => setLangOpen(!langOpen)} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-        <Globe size={16} /> Language
-      </button>
-      {langOpen && (
-        <div className="px-3 pb-2">
-          {["English", "Arabic", "Spanish", "French"].map((lang) => (
-            <button
-              key={lang}
-              onClick={() => {
-                updateProfile({ language: lang });
-                setLangOpen(false);
-                onClose();
-              }}
-              className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm hover:bg-zinc-50"
-            >
-              {lang}
-              {user?.language === lang && <Check size={14} className="text-primary" />}
-            </button>
-          ))}
+    <div className="absolute right-4 top-[58px] z-50 w-[270px] overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+      <div className="border-b border-zinc-100 px-4 py-2.5">
+        <p className="truncate text-sm font-semibold text-zinc-900">{user?.name}</p>
+        <p className="truncate text-xs text-zinc-500">{user?.email}</p>
+        <div className="mt-1.5 flex items-center gap-1.5">
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
+            {roleLabel}
+          </span>
+          <span className="text-[10px] text-zinc-400">
+            {user?.points || 0} pts
+          </span>
         </div>
-      )}
-      <button onClick={() => go("/help")} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-        <HelpCircle size={16} /> Help center
-      </button>
-      <button onClick={() => go("/create-community")} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-        <Plus size={16} /> Create a community
-      </button>
-      <button onClick={() => go("/discover")} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-        <Compass size={16} /> Discover communities
-      </button>
-      {user?.role === "admin" && (
-        <button onClick={() => go("/admin")} className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50">
-          <Shield size={16} /> Admin
+      </div>
+
+      <div className="py-1">
+        <button onClick={() => go(`/profile/${user?.id}`)} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <UserRound size={16} className="text-zinc-500" /> Profile
         </button>
-      )}
-      <button
-        onClick={async () => {
-          onClose();
-          await onLogout();
-          router.push("/login");
-        }}
-        className="flex w-full items-center gap-2 px-4 py-2 text-sm hover:bg-zinc-50"
-      >
-        <LogOut size={16} /> Log out
-      </button>
+        <button onClick={() => go("/settings")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <Settings size={16} className="text-zinc-500" /> Settings
+        </button>
+        <button onClick={() => go("/affiliates")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <Sparkles size={16} className="text-zinc-500" /> Affiliates
+        </button>
+        <button onClick={() => setLangOpen(!langOpen)} className="flex w-full items-center justify-between px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <span className="flex items-center gap-2.5">
+            <Globe size={16} className="text-zinc-500" /> Language
+          </span>
+          <span className="text-xs text-zinc-400">{user?.language || "English"}</span>
+        </button>
+        {langOpen && (
+          <div className="bg-zinc-50 px-3 py-1.5 space-y-0.5">
+            {["English", "Arabic", "Spanish", "French"].map((lang) => (
+              <button
+                key={lang}
+                onClick={() => {
+                  updateProfile({ language: lang });
+                  setLangOpen(false);
+                  onClose();
+                }}
+                className="flex w-full items-center justify-between rounded-md px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-200/60"
+              >
+                {lang}
+                {user?.language === lang && <Check size={13} className="text-primary" />}
+              </button>
+            ))}
+          </div>
+        )}
+        <button onClick={() => go("/help")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <HelpCircle size={16} className="text-zinc-500" /> Help center
+        </button>
+        <button onClick={() => go("/create-community")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <Plus size={16} className="text-zinc-500" /> Create a community
+        </button>
+        <button onClick={() => go("/discover")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <Compass size={16} className="text-zinc-500" /> Discover communities
+        </button>
+        {user?.role === "admin" && (
+          <button onClick={() => go("/admin")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5">
+            <Shield size={16} /> Admin panel
+          </button>
+        )}
+      </div>
+
+      <div className="border-t border-zinc-100 pt-1">
+        <button
+          onClick={async () => {
+            onClose();
+            await onLogout();
+            router.push("/login");
+          }}
+          className="flex w-full items-center gap-2.5 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+        >
+          <LogOut size={16} /> Log out
+        </button>
+      </div>
     </div>
   );
 }
+
