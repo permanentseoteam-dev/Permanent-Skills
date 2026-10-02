@@ -28,12 +28,29 @@ body {
   background: #5051f933;
 }
 
+header nav {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+header nav::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 .skool-nav-link {
   position: relative;
-  padding: 0.9rem 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+  padding: 0 0.85rem;
   font-size: 0.925rem;
   color: #52525b;
   font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
 }
 
 .skool-nav-link:hover {
@@ -54,6 +71,7 @@ body {
   height: 3px;
   border-radius: 999px 999px 0 0;
   background: #5051f9;
+  pointer-events: none;
 }
 
 .course-shine {

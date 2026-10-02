@@ -164,12 +164,12 @@ export function Header() {
         />
       )}
 
-      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white">
-        <div ref={menuContainerRef} className="relative mx-auto flex max-w-[1180px] items-center gap-3 px-4 py-2.5">
+      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white isolate">
+        <div ref={menuContainerRef} className="relative mx-auto flex h-14 max-w-[1180px] items-center gap-3 px-4">
           {/* Community Switcher Dropdown */}
           <button
             onClick={() => setOpen(open === "community" ? null : "community")}
-            className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 hover:bg-zinc-50"
+            className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-50 shrink-0"
           >
             {activeCommunity?.icon ? (
               <Image
@@ -339,11 +339,11 @@ export function Header() {
           </div>
 
           {/* Top Right 3 Icons: Chats, Notifications, User Profile */}
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-2 shrink-0">
             {/* 1. Chat Icon */}
             <button
               onClick={() => setOpen(open === "chat" ? null : "chat")}
-              className={`relative rounded-full p-2 transition hover:bg-zinc-100 ${
+              className={`relative rounded-full p-2 transition-colors hover:bg-zinc-100 ${
                 open === "chat" ? "bg-zinc-100 text-primary" : "text-zinc-700"
               }`}
               aria-label="Chats"
@@ -359,7 +359,7 @@ export function Header() {
             {/* 2. Notifications / Bell Icon */}
             <button
               onClick={() => setOpen(open === "bell" ? null : "bell")}
-              className={`relative rounded-full p-2 transition hover:bg-zinc-100 ${
+              className={`relative rounded-full p-2 transition-colors hover:bg-zinc-100 ${
                 open === "bell" ? "bg-zinc-100 text-primary" : "text-zinc-700"
               }`}
               aria-label="Notifications"
@@ -375,7 +375,7 @@ export function Header() {
             {/* 3. User Profile Avatar */}
             <button
               onClick={() => setOpen(open === "user" ? null : "user")}
-              className={`ml-1 rounded-full ring-2 transition ${
+              className={`ml-1 rounded-full p-0.5 ring-2 transition-colors ${
                 open === "user" ? "ring-primary" : "ring-transparent hover:ring-zinc-300"
               }`}
               aria-label="User Profile Menu"
@@ -566,7 +566,7 @@ export function Header() {
         </div>
 
         {/* Main Navigation Row */}
-        <nav className="mx-auto flex max-w-[1180px] items-center gap-1 overflow-x-auto px-3">
+        <nav className="mx-auto flex h-11 max-w-[1180px] items-center gap-1 overflow-x-auto px-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {NAV.map((item) => (
             <Link
               key={item.href}
