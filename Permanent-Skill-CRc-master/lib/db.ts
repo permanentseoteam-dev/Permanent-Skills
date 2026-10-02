@@ -72,6 +72,10 @@ function migrate(db: Database) {
       changed = true;
     }
   }
+  if (!db.projects || db.projects.length === 0) {
+    db.projects = createSeed().projects;
+    changed = true;
+  }
   if (changed) persist(db);
 }
 

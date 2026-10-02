@@ -31,6 +31,8 @@ import {
   releaseMemberLogin as releaseMemberLoginAction,
   saveCourse as saveCourseAction,
   saveLesson as saveLessonAction,
+  saveProject as saveProjectAction,
+  deleteProject as deleteProjectAction,
   sendMessage as sendMessageAction,
   submitApplication,
   toggleLike as toggleLikeAction,
@@ -85,6 +87,7 @@ const empty: AppState = {
   courses: [],
   progress: [],
   events: [],
+  projects: [],
   messages: [],
   notifications: [],
   reviews: [],
@@ -122,6 +125,22 @@ type AppContextValue = AppState & {
     videoTitle: string;
   }) => Promise<ActionResult>;
   deleteLesson: (courseId: string, lessonId: string) => Promise<ActionResult>;
+  saveProject: (input: {
+    id?: string;
+    title: string;
+    description: string;
+    version?: string;
+    leadId: string;
+    leadName?: string;
+    memberIds: string[];
+    mentionedUsernames?: string[];
+    progress: number;
+    status: "active" | "completed" | "paused";
+    meetSyncTime?: string;
+    meetRoom?: string;
+    meetUrl?: string;
+  }) => Promise<ActionResult>;
+  deleteProject: (projectId: string) => Promise<ActionResult>;
   sendMessage: (receiverId: string, body: string) => Promise<ActionResult>;
   markThreadRead: (otherId: string) => Promise<ActionResult>;
   markNotificationsRead: () => Promise<ActionResult>;
@@ -262,6 +281,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (courseId: string, lessonId: string) => run(() => deleteLessonAction(courseId, lessonId)),
     [run],
   );
+  const saveProjectFn = useCallback(
+    (input: {
+      id?: string;
+      title: string;
+      description: string;
+      version?: string;
+      leadId: string;
+      leadName?: string;
+      memberIds: string[];
+      mentionedUsernames?: string[];
+      progress: number;
+      status: "active" | "completed" | "paused";
+      meetSyncTime?: string;
+      meetRoom?: string;
+      meetUrl?: string;
+    }) => run(() => saveProjectAction(input)),
+    [run],
+  );
+  const deleteProjectFn = useCallback((projectId: string) => run(() => deleteProjectAction(projectId)), [run]);
   const sendMessageFn = useCallback(
     (receiverId: string, body: string) => run(() => sendMessageAction(receiverId, body)),
     [run],
@@ -342,6 +380,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveCourse: saveCourseFn,
       saveLesson: saveLessonFn,
       deleteLesson: deleteLessonFn,
+      saveProject: saveProjectFn,
+      deleteProject: deleteProjectFn,
       sendMessage: sendMessageFn,
       markThreadRead: markThreadReadFn,
       markNotificationsRead: markNotificationsReadFn,
@@ -380,6 +420,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveCourseFn,
       saveLessonFn,
       deleteLessonFn,
+      saveProjectFn,
+      deleteProjectFn,
       sendMessageFn,
       markThreadReadFn,
       markNotificationsReadFn,

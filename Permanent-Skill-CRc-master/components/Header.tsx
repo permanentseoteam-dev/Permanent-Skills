@@ -31,7 +31,7 @@ import { ChatDrawer } from "./ChatDrawer";
 const NAV = [
   { href: "/community", label: "Community" },
   { href: "/classroom", label: "Classroom" },
-  { href: "/calendar", label: "Calendar" },
+  { href: "/calendar", label: "Meet" },
   { href: "/members", label: "Members" },
   { href: "/leaderboards", label: "Leaderboards" },
   { href: "/about", label: "About" },

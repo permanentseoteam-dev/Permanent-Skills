@@ -14,6 +14,7 @@ import type {
   Community,
   Lesson,
   PostCategory,
+  Project,
   PublicUser,
   Role,
   Status,
@@ -158,6 +159,7 @@ export async function getAppState(): Promise<AppState> {
     courses: [],
     progress: [],
     events: [],
+    projects: [],
     messages: [],
     notifications: [],
     reviews: [],
@@ -206,6 +208,7 @@ export async function getAppState(): Promise<AppState> {
     courses: db.courses,
     progress: db.progress.filter((p) => p.userId === me.id || me.role === "admin"),
     events: db.events,
+    projects: db.projects || [],
     messages: db.messages.filter((m) => m.senderId === me.id || m.receiverId === me.id),
     notifications: db.notifications.filter((n) => n.userId === me.id),
     reviews: db.reviews,
@@ -1087,4 +1090,93 @@ export async function purchaseCourse(courseId: string): Promise<ActionResult> {
     });
   });
   return { ok: true, id: courseId };
+}
+
+export async function saveProject(input: {
+  id?: string;
+  title: string;
+  description: string;
+  version?: string;
+  leadId: string;
+  leadName?: string;
+  memberIds: string[];
+  mentionedUsernames?: string[];
+  progress: number;
+  status: "active" | "completed" | "paused";
+  meetSyncTime?: string;
+  meetRoom?: string;
+  meetUrl?: string;
+}): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Project title is required." };
+
+  const id = input.id || `proj-${token().slice(0, 8)}`;
+  const now = new Date().toISOString();
+
+  await updateDb((db) => {
+    db.projects = db.projects || [];
+    const lead = db.users.find((u) => u.id === input.leadId);
+    const leadName = lead?.name || input.leadName || me.name;
+
+    const project: Project = {
+      id,
+      title,
+      description: input.description.trim(),
+      version: input.version?.trim() || "v1.0.0",
+      leadId: input.leadId || me.id,
+      leadName,
+      memberIds: Array.from(new Set([input.leadId || me.id, ...(input.memberIds || [])])),
+      mentionedUsernames: input.mentionedUsernames || [],
+      progress: Math.min(100, Math.max(0, input.progress ?? 0)),
+      status: input.status || "active",
+      meetSyncTime: input.meetSyncTime?.trim() || "Sprint Sync: Today, 3:00 PM",
+      meetRoom: input.meetRoom?.trim() || "Nexus Meet #room-general",
+      meetUrl: input.meetUrl?.trim() || "https://meet.google.com/new",
+      createdAt: now,
+      createdBy: me.id,
+    };
+
+    const idx = db.projects.findIndex((p) => p.id === id);
+    if (idx >= 0) {
+      db.projects[idx] = { ...db.projects[idx], ...project, createdAt: db.projects[idx].createdAt };
+    } else {
+      db.projects.unshift(project);
+    }
+
+    // Notify mentioned members and added team members
+    const notifyUserIds = new Set<string>();
+    for (const mId of project.memberIds) {
+      if (mId !== me.id) notifyUserIds.add(mId);
+    }
+    for (const uname of project.mentionedUsernames || []) {
+      const u = db.users.find((x) => x.username.toLowerCase() === uname.toLowerCase());
+      if (u && u.id !== me.id) notifyUserIds.add(u.id);
+    }
+
+    for (const uid of notifyUserIds) {
+      db.notifications.unshift({
+        id: `n-${token().slice(0, 8)}`,
+        userId: uid,
+        actorId: me.id,
+        title: "Added to project",
+        body: `${me.name} mentioned and added you to "${project.title}"`,
+        link: "/calendar",
+        read: false,
+        createdAt: now,
+      });
+    }
+  });
+
+  return { ok: true, id };
+}
+
+export async function deleteProject(projectId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  await updateDb((db) => {
+    db.projects = (db.projects || []).filter((p) => p.id !== projectId);
+  });
+  return { ok: true };
 }

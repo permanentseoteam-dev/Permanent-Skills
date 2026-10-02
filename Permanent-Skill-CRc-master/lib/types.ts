@@ -131,6 +131,25 @@ export interface Progress {
   completedLessonIds: string[];
 }
 
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  version?: string;
+  leadId: string;
+  leadName?: string;
+  memberIds: string[];
+  mentionedUsernames?: string[];
+  progress: number;
+  status: "active" | "completed" | "paused";
+  thumbnail?: string;
+  meetSyncTime?: string;
+  meetRoom?: string;
+  meetUrl?: string;
+  createdAt: string;
+  createdBy: string;
+}
+
 export interface CalendarEvent {
   id: string;
   title: string;
@@ -209,6 +228,7 @@ export interface Database {
   courses: Course[];
   progress: Progress[];
   events: CalendarEvent[];
+  projects: Project[];
   messages: Message[];
   notifications: Notification[];
   reviews: Review[];
@@ -225,6 +245,7 @@ export interface AppState {
   courses: Course[];
   progress: Progress[];
   events: CalendarEvent[];
+  projects: Project[];
   messages: Message[];
   notifications: Notification[];
   reviews: Review[];
