@@ -809,7 +809,8 @@ export async function completeLesson(courseId: string, lessonId: string): Promis
     if (!user) return;
     if (course.unlockLevel > 1) {
       const level = getLevel(user.points).level;
-      if (level < course.unlockLevel && !user.isPremium && user.role !== "admin") return;
+      const isPurchased = user.purchasedCourseIds?.includes(courseId);
+      if (level < course.unlockLevel && !user.isPremium && user.role !== "admin" && !isPurchased) return;
     }
     let row = db.progress.find((p) => p.userId === me.id && p.courseId === courseId);
     if (!row) {

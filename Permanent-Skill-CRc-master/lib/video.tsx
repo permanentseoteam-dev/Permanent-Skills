@@ -1,3 +1,14 @@
+export function getVideoThumbnail(url?: string): string | null {
+  if (!url?.trim()) return null;
+  const match = url.trim().match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{6,})/i,
+  );
+  if (match) {
+    return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+  }
+  return null;
+}
+
 export function toEmbed(url?: string) {
   if (!url?.trim()) return null;
   const value = url.trim();

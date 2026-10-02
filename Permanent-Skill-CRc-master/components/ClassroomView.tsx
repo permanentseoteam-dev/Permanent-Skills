@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Check, Lock, Play } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { getLevel } from "@/lib/levels";
-import { renderNotes, toEmbed } from "@/lib/video";
+import { getVideoThumbnail, renderNotes, toEmbed } from "@/lib/video";
 import type { Course, Lesson } from "@/lib/types";
 
 interface ClassroomViewProps {
@@ -33,6 +33,18 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     defaultCourse?.id || null
   );
 
+  // Sync selected course when initialCourseSlug changes from navigation
+  useEffect(() => {
+    if (initialCourseSlug) {
+      const found = availableCourses.find((c) => c.slug === initialCourseSlug);
+      if (found) {
+        setSelectedCourseId(found.id);
+        setActiveLessonId(null);
+        setPlaying(false);
+      }
+    }
+  }, [initialCourseSlug, availableCourses]);
+
   const activeCourse = useMemo(() => {
     return (
       availableCourses.find((c) => c.id === selectedCourseId) ||
@@ -47,11 +59,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   const locked = useMemo(() => {
     if (!activeCourse || !user) return false;
     const level = getLevel(user.points).level;
+    const isPurchased = user.purchasedCourseIds?.includes(activeCourse.id);
     return (
       activeCourse.unlockLevel > 1 &&
       level < activeCourse.unlockLevel &&
       !user.isPremium &&
-      user.role !== "admin"
+      user.role !== "admin" &&
+      !isPurchased
     );
   }, [activeCourse, user]);
 
@@ -190,7 +204,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
       ) : (
         <div className="grid gap-7 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
           {/* Left Sidebar */}
-          <aside className="space-y-6">
+          <aside className="order-2 lg:order-1 space-y-6">
             {/* Pill Progress Bar styled with Site Brand Colors */}
             <div
               className="relative h-8 w-full overflow-hidden rounded-full bg-[#e2e4e9] flex items-center shadow-inner"
@@ -234,7 +248,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         <button
                           key={item.id}
                           onClick={() => handleSelectLesson(item.id)}
-                          className={`group flex w-full items-center justify-between text-left transition-all ${
+                          className={`group flex w-full items-center justify-between text-left transition-all cursor-pointer ${
                             isActive
                               ? "rounded-xl bg-zinc-100 px-4 py-2.5 font-bold text-zinc-950 shadow-xs border border-zinc-200"
                               : "rounded-xl px-4 py-2.5 text-[14.5px] font-medium text-zinc-800 hover:bg-white hover:text-[#5051f9] hover:shadow-xs"
@@ -269,7 +283,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           </aside>
 
           {/* Right Main Card */}
-          <main className="rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm md:p-8">
+          <main className="order-1 lg:order-2 rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm md:p-8">
             {activeLesson ? (
               <div>
                 {/* Header: Lesson Title + Circular Completion Checkmark Button */}
@@ -291,7 +305,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         ? "Completed! Click to unmark"
                         : "Click to mark as completed"
                     }
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all ${
+                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer ${
                       isCurrentCompleted
                         ? "border-2 border-[#5051f9] bg-[#5051f9] text-white shadow-sm hover:bg-[#3d3ee6] hover:border-[#3d3ee6] hover:scale-105"
                         : "border-2 border-zinc-400 text-zinc-400 hover:border-[#5051f9] hover:text-[#5051f9] hover:scale-105"
@@ -327,23 +341,30 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                       </div>
                     )
                   ) : (
-                    /* Video Preview Overlay matching user's screenshot */
+                    /* Dynamic Video Preview Overlay */
                     <div
                       onClick={() => setPlaying(true)}
-                      className="relative h-full w-full cursor-pointer select-none bg-zinc-900"
+                      className="relative h-full w-full cursor-pointer select-none bg-zinc-950 overflow-hidden"
                     >
-                      {/* Background Visual Frame / Thumbnail */}
-                      <img
-                        src="/founder-welcome.png"
-                        alt={activeLesson.title}
-                        className="h-full w-full object-cover object-right"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = "none";
-                        }}
-                      />
+                      {getVideoThumbnail(activeLesson.videoUrl) ? (
+                        <img
+                          src={getVideoThumbnail(activeLesson.videoUrl)!}
+                          alt={activeLesson.title}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-[#5051f9]/20 flex flex-col items-center justify-center p-6 text-center">
+                          <span className="rounded-full bg-[#5051f9]/20 px-3 py-1 text-xs font-bold text-[#5051f9] ring-1 ring-[#5051f9]/30 mb-2">
+                            {activeCourse.badge || "LESSON"}
+                          </span>
+                          <h2 className="max-w-md text-lg font-bold text-white line-clamp-2">
+                            {activeLesson.title}
+                          </h2>
+                        </div>
+                      )}
 
                       {/* Subtle Vignette */}
-                      <div className="absolute inset-0 bg-black/20 transition group-hover:bg-black/10" />
+                      <div className="absolute inset-0 bg-black/25 transition group-hover:bg-black/15" />
 
                       {/* Center Play Button Overlay */}
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -381,7 +402,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         handleSelectLesson(activeCourse.lessons[currentIndex - 1].id);
                       }
                     }}
-                    className="text-sm font-semibold text-zinc-500 hover:text-zinc-900 disabled:opacity-30 disabled:pointer-events-none transition"
+                    className="text-sm font-semibold text-zinc-500 hover:text-zinc-900 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                   >
                     ← Previous
                   </button>
@@ -397,7 +418,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         handleSelectLesson(activeCourse.lessons[currentIndex + 1].id);
                       }
                     }}
-                    className="text-sm font-bold text-[#5051f9] hover:text-[#3d3ee6] disabled:opacity-30 disabled:pointer-events-none transition"
+                    className="text-sm font-bold text-[#5051f9] hover:text-[#3d3ee6] disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                   >
                     Next →
                   </button>
