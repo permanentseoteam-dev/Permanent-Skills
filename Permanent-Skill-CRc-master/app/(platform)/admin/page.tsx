@@ -425,14 +425,14 @@ export default function AdminPage() {
       {tab === "manager" && (
         <div className="space-y-6">
           {/* Overview & Responsibilities Banner */}
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white p-6 shadow-sm">
+          <Card className="p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-blue-900 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-blue-100 shadow-xs border border-blue-400/40">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-white shadow-xs">
                     <span className="text-[10px]">★</span> Manager Role
                   </span>
-                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
+                  <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                     Delegated Operations
                   </span>
                 </div>
@@ -445,18 +445,18 @@ export default function AdminPage() {
               </div>
 
               <div className="shrink-0">
-                <div className="rounded-xl border border-blue-100 bg-white p-3.5 shadow-xs text-center">
+                <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 shadow-xs text-center">
                   <p className="text-xs font-medium text-zinc-500">Active Managers</p>
-                  <p className="text-2xl font-black text-blue-900">{managerUsers.length}</p>
+                  <p className="text-2xl font-black text-zinc-900">{managerUsers.length}</p>
                 </div>
               </div>
             </div>
 
             {/* Responsibilities Matrix */}
-            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-4 border-t border-blue-100/80">
-              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
-                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
-                  <UserCheck size={15} className="text-blue-600" />
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-4 border-t border-zinc-100">
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-zinc-900">
+                  <UserCheck size={15} className="text-primary" />
                   <span>Student & Member Management</span>
                 </div>
                 <p className="text-xs text-zinc-600">
@@ -464,9 +464,9 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
-                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
-                  <MessageSquare size={15} className="text-blue-600" />
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-zinc-900">
+                  <MessageSquare size={15} className="text-primary" />
                   <span>Comments & Discussion Moderation</span>
                 </div>
                 <p className="text-xs text-zinc-600">
@@ -474,9 +474,9 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
-                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
-                  <Sparkles size={15} className="text-blue-600" />
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-zinc-900">
+                  <Sparkles size={15} className="text-primary" />
                   <span>Verified ★ Manager Favicon Badge</span>
                 </div>
                 <p className="text-xs text-zinc-600">
@@ -484,9 +484,9 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
-                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
-                  <Users size={15} className="text-blue-600" />
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-zinc-900">
+                  <Users size={15} className="text-primary" />
                   <span>Multi-Community Leadership</span>
                 </div>
                 <p className="text-xs text-zinc-600">
@@ -494,9 +494,9 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
-                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
-                  <Clock size={15} className="text-blue-600" />
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-zinc-900">
+                  <Clock size={15} className="text-primary" />
                   <span>Application Review Workflow</span>
                 </div>
                 <p className="text-xs text-zinc-600">
@@ -504,9 +504,9 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
-                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
-                  <ShieldCheck size={15} className="text-blue-600" />
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/50 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-zinc-900">
+                  <ShieldCheck size={15} className="text-primary" />
                   <span>Safeguarded Superuser Scope</span>
                 </div>
                 <p className="text-xs text-zinc-600">
@@ -514,14 +514,14 @@ export default function AdminPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </Card>
 
           {/* Dedicated Empty Manager Login Credentials Section */}
           <Card className="p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
                 <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
-                  <Key size={18} className="text-blue-600" />
+                  <Key size={18} className="text-primary" />
                   <span>{managerEditingId ? "Edit Manager Credentials" : "Manager Login Credentials"}</span>
                 </h3>
                 <p className="text-xs text-zinc-500 mt-0.5">
@@ -532,7 +532,7 @@ export default function AdminPage() {
               {managerEditingId && (
                 <button
                   onClick={resetManagerForm}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
                 >
                   <RotateCcw size={12} /> Reset to empty form
                 </button>
@@ -540,10 +540,10 @@ export default function AdminPage() {
             </div>
 
             {/* Info notice about empty state */}
-            <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/60 p-3.5 flex items-start gap-2.5 text-xs text-blue-900">
-              <AlertCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
+            <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-3.5 flex items-start gap-2.5 text-xs text-zinc-800">
+              <AlertCircle size={16} className="text-primary shrink-0 mt-0.5" />
               <div>
-                <span className="font-semibold">Setup Notice:</span> Manager credentials are prepped and empty below. You can fill out the email, username, and password fields now or later whenever ready to activate or update manager access.
+                <span className="font-semibold text-zinc-900">Setup Notice:</span> Manager credentials are prepped and empty below. You can fill out the email, username, and password fields now or later whenever ready to activate or update manager access.
               </div>
             </div>
 
@@ -644,7 +644,7 @@ export default function AdminPage() {
 
               <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100">
                 <div className="flex items-center gap-2 text-xs text-zinc-500">
-                  <Shield size={14} className="text-blue-600" />
+                  <Shield size={14} className="text-primary" />
                   <span>Role is automatically locked to <strong className="text-zinc-800">★ Manager</strong></span>
                 </div>
 
@@ -659,7 +659,7 @@ export default function AdminPage() {
                   <PrimaryButton
                     disabled={managerBusy}
                     onClick={onSaveManager}
-                    className="gap-1.5 text-xs py-2 bg-blue-900 hover:bg-blue-800 ring-blue-900"
+                    className="gap-1.5 text-xs py-2"
                   >
                     <Check size={14} />
                     {managerBusy
