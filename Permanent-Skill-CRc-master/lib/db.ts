@@ -62,7 +62,30 @@ function migrate(db: Database) {
   const seedCourses = createClassroomCourses();
   for (const course of db.courses) {
     const match = seedCourses.find((c) => c.id === course.id);
-    if (match && match.lessons.length > 0) {
+    if (match) {
+      if (
+        course.title !== match.title ||
+        course.description !== match.description ||
+        course.unlockLevel !== match.unlockLevel ||
+        course.watermark !== match.watermark ||
+        course.glowColor !== match.glowColor ||
+        course.isPremiumOnly !== match.isPremiumOnly
+      ) {
+        course.title = match.title;
+        course.slug = match.slug;
+        course.description = match.description;
+        course.unlockLevel = match.unlockLevel;
+        course.isPremiumOnly = match.isPremiumOnly;
+        course.watermark = match.watermark;
+        course.glowColor = match.glowColor;
+        course.accent = match.accent;
+        course.badge = match.badge;
+        course.bannerBrand = match.bannerBrand;
+        course.bannerSubtitle = match.bannerSubtitle;
+        course.bannerTitle = match.bannerTitle;
+        course.price = match.price;
+        changed = true;
+      }
       if (!course.lessons || course.lessons.length === 0 || course.lessons.length < match.lessons.length) {
         course.lessons = match.lessons;
         changed = true;

@@ -9,6 +9,7 @@ import {
   Check,
   ChevronLeft,
   FileText,
+  Flame,
   Lock,
   MessageSquare,
   Play,
@@ -67,14 +68,14 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
   const locked = useMemo(() => {
     if (!activeCourse || !user) return false;
+    if (user.role === "admin") return false;
+    if (user.isPremium) return false;
+    if (user.purchasedCourseIds?.includes(activeCourse.id)) return false;
+    if (activeCourse.isPremiumOnly) return true;
     const level = getLevel(user.points).level;
-    const isPurchased = user.purchasedCourseIds?.includes(activeCourse.id);
     return (
       activeCourse.unlockLevel > 1 &&
-      level < activeCourse.unlockLevel &&
-      !user.isPremium &&
-      user.role !== "admin" &&
-      !isPurchased
+      level < activeCourse.unlockLevel
     );
   }, [activeCourse, user]);
 
@@ -135,13 +136,105 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     completeLesson(activeCourse.id, activeLesson.id);
   }
 
-  // 1. PRIMARY VIEW: Classroom Course / Module Cards Grid (Store Theme)
+  // Helper to render course banner matching Reference Image 1
+  function renderCourseBanner(course: Course) {
+    const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
+    const isPremiumOnly = !!course.isPremiumOnly;
+    const glow = course.glowColor || "yellow";
+    const watermark = course.watermark || `> ${course.slug}_`;
+
+    if (isLevel1 || glow === "yellow") {
+      return (
+        <div
+          className="relative h-44 sm:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(0,0,0,0.22) 1.5px, transparent 1.5px)",
+            backgroundSize: "12px 12px",
+          }}
+        >
+          {/* Terminal Watermark behind */}
+          <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-black/35 tracking-tight pointer-events-none select-none">
+            {watermark}
+          </div>
+
+          {/* Center Black Lock Badge */}
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
+              <Lock size={20} className="stroke-[2.5]" />
+            </div>
+            <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+              Unlock at Level 1
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // Glow Configurations
+    let glowBg = "bg-emerald-500/25";
+    let ringBorder = "border-emerald-400/90 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]";
+    let lockIcon = <Lock size={20} className="stroke-[2.5]" />;
+
+    if (glow === "green") {
+      glowBg = "bg-emerald-500/25";
+      ringBorder = "border-emerald-400/90 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]";
+    } else if (glow === "blue") {
+      glowBg = "bg-sky-500/25";
+      ringBorder = "border-sky-400/90 text-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.4)]";
+    } else if (glow === "orange") {
+      glowBg = "bg-orange-500/30";
+      ringBorder = "border-orange-400/90 text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.45)]";
+      lockIcon = <Flame size={20} className="stroke-[2.5]" />;
+    } else if (glow === "red") {
+      glowBg = "bg-rose-500/25";
+      ringBorder = "border-rose-400/90 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]";
+    } else if (glow === "purple") {
+      glowBg = "bg-purple-500/30";
+      ringBorder = "border-purple-400/90 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.45)]";
+    }
+
+    return (
+      <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
+        {/* Radial Glow */}
+        <div className={`absolute h-28 w-28 rounded-full ${glowBg} blur-2xl pointer-events-none`} />
+
+        {/* Terminal Watermark behind */}
+        <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-white/10 tracking-tight pointer-events-none select-none">
+          {watermark}
+        </div>
+
+        {/* Center Glowing Lock Badge */}
+        <div className="relative z-10 flex flex-col items-center justify-center text-center">
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
+          >
+            {lockIcon}
+          </div>
+
+          <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+            {isPremiumOnly
+              ? "Unlock with Premium"
+              : `Unlock at Level ${course.unlockLevel}`}
+          </span>
+
+          {!isPremiumOnly && (
+            <span className="text-[10.5px] text-zinc-400 font-medium">
+              or Upgrade to Premium
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // 1. PRIMARY VIEW: Classroom Course / Module Cards Grid (Exact Match to Reference Image 1)
   if (!activeCourse) {
     return (
       <div className="space-y-6">
-        {/* Module Cards Grid matching Store Theme */}
+        {/* Module Cards Grid matching Reference Image */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {availableCourses.map((course, idx) => {
+          {availableCourses.map((course) => {
             const cRow = progress.find(
               (p) => p.courseId === course.id && p.userId === user?.id
             );
@@ -155,18 +248,11 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
             const userLevel = getLevel(user?.points || 0).level;
             const isPurchased = user?.purchasedCourseIds?.includes(course.id);
             const isCourseLocked =
-              course.unlockLevel > 1 &&
+              (course.isPremiumOnly || course.unlockLevel > 1) &&
               userLevel < course.unlockLevel &&
               !user?.isPremium &&
               user?.role !== "admin" &&
               !isPurchased;
-
-            const bannerBrand = course.bannerBrand || "PSS ACADEMY";
-            const bannerSubtitle =
-              course.bannerSubtitle || `MODULE ${idx + 1}.`;
-            const bannerTitle =
-              course.bannerTitle ||
-              course.title.replace(/^Module\s*\d+:\s*/i, "");
 
             return (
               <div
@@ -176,86 +262,33 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                   setActiveLessonId(null);
                   setPlaying(false);
                 }}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-primary/40 cursor-pointer"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-zinc-400 cursor-pointer"
               >
-                {/* Store Theme Dark Card Banner with Blurple & Indigo Glow */}
-                <div className="relative h-48 w-full overflow-hidden bg-gradient-to-br from-[#121324] via-[#1a1b35] to-[#25284e] p-4 flex flex-col justify-between select-none">
-                  {/* Subtle decorative radial gradients */}
-                  <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-primary/25 blur-2xl pointer-events-none" />
-                  <div className="absolute -bottom-10 -left-10 h-32 w-32 rounded-full bg-[#7c83ff]/20 blur-2xl pointer-events-none" />
-                  
-                  {/* Top brand header & Status pill */}
-                  <div className="relative z-10 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 backdrop-blur-xs border border-white/10 text-xs font-bold text-white">
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      <span className="tracking-wide text-[11px]">{bannerBrand}</span>
-                    </div>
-
-                    {isCourseLocked ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-0.5 text-[10.5px] font-bold text-amber-300 backdrop-blur-xs border border-amber-500/30">
-                        <Lock size={10} /> {course.price ? formatMoney(course.price) : "Locked"}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-300 backdrop-blur-xs border border-emerald-500/30">
-                        <ShieldCheck size={11} /> Unlocked
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Center Module Number & Bold Title */}
-                  <div className="relative z-10 my-auto flex flex-col items-center justify-center px-2 text-center">
-                    <span className="text-xs md:text-sm font-bold uppercase tracking-widest text-[#7c83ff] mb-1">
-                      {bannerSubtitle}
-                    </span>
-                    <h2 className="text-lg md:text-xl font-black uppercase tracking-wide text-white drop-shadow-md line-clamp-2">
-                      {bannerTitle}
-                    </h2>
-                  </div>
-
-                  {/* Bottom indicator space */}
-                  <div className="relative z-10 flex items-center justify-between text-[10px] font-mono text-white/50">
-                    <span>{cTotal} lessons</span>
-                    <span>{cPct}% completed</span>
-                  </div>
-                </div>
+                {/* Course Banner matching Reference Image 1 */}
+                {renderCourseBanner(course)}
 
                 {/* Card Body */}
-                <div className="flex flex-1 flex-col justify-between p-5">
+                <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
                   <div>
-                    <h3 className="text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1">
+                    <h3 className="text-[15px] sm:text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1">
                       {course.title}
                     </h3>
-                    <p className="mt-1 text-xs md:text-sm text-zinc-600 line-clamp-2 leading-relaxed min-h-[38px]">
+                    <p className="mt-1 text-xs sm:text-[13px] text-zinc-600 line-clamp-2 leading-relaxed min-h-[36px]">
                       {course.description}
                     </p>
                   </div>
 
-                  {/* Store Theme Pill Progress Bar */}
-                  <div className="mt-5 space-y-2">
-                    <div className="relative h-6 w-full overflow-hidden rounded-full bg-zinc-100 border border-zinc-200/80 flex items-center shadow-inner">
-                      {cPct > 0 ? (
-                        <>
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-primary via-[#6366f1] to-[#7c83ff] transition-all duration-500 flex items-center shadow-xs"
-                            style={{ width: `${Math.max(cPct, 14)}%` }}
-                          />
-                          <span className="absolute left-3 text-[11.5px] font-extrabold text-white drop-shadow-xs">
-                            {cPct}%
-                          </span>
-                        </>
-                      ) : (
-                        <span className="absolute left-3 text-[11.5px] font-extrabold text-zinc-500">
-                          0%
-                        </span>
+                  {/* Clean Pill Progress Bar matching Reference Image */}
+                  <div className="mt-4">
+                    <div className="relative h-5 w-full overflow-hidden rounded-full bg-[#e5e7eb] flex items-center shadow-inner">
+                      {cPct > 0 && (
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-primary via-[#6366f1] to-[#7c83ff] transition-all duration-500"
+                          style={{ width: `${cPct}%` }}
+                        />
                       )}
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1">
-                      <span className="text-zinc-500 font-medium">
-                        {cDone} of {cTotal} lessons done
-                      </span>
-                      <span className="text-primary font-bold flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
-                        {cPct > 0 ? "Continue" : "Start"} <ArrowRight size={12} />
+                      <span className="absolute left-3 text-[11px] font-bold text-zinc-700">
+                        {cPct}%
                       </span>
                     </div>
                   </div>

@@ -128,6 +128,9 @@ export interface Course {
   bannerSubtitle?: string;
   bannerTitle?: string;
   thumbnail?: string;
+  watermark?: string;
+  isPremiumOnly?: boolean;
+  glowColor?: "yellow" | "green" | "blue" | "orange" | "red" | "purple";
 }
 
 export interface Progress {

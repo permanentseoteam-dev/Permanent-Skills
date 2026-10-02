@@ -102,70 +102,62 @@ export function WordDocumentNotes({ lessonId, lessonTitle }: WordDocumentNotesPr
 
   return (
     <div className="overflow-hidden rounded-xl border border-zinc-300/90 bg-[#f3f4f6] shadow-sm select-none">
-      {/* 1. Word Application Title Bar */}
-      <div className="flex items-center justify-between bg-[#004b87] px-3 py-1.5 text-white">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-6 w-6 items-center justify-center rounded bg-[#185abd] text-xs font-black shadow-xs">
-            W
-          </div>
-          <span className="text-xs font-semibold tracking-tight truncate max-w-[200px] sm:max-w-md">
-            Document1 - Word ({lessonTitle})
-          </span>
+      {/* 1. Word Ribbon Menu Tabs & Action Buttons */}
+      <div className="flex items-center justify-between bg-[#f3f4f6] px-2 pt-1 border-b border-zinc-200 text-xs">
+        <div className="flex items-center gap-1 overflow-x-auto">
+          {["File", "Home", "Insert", "Draw", "Design", "Layout", "References", "Review", "View", "Help"].map(
+            (tab) => {
+              const isActive = activeTab === tab;
+              return (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1 text-xs font-medium transition cursor-pointer whitespace-nowrap ${
+                    isActive
+                      ? "border-b-2 border-[#185abd] bg-white font-bold text-zinc-900 shadow-2xs rounded-t"
+                      : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60 rounded"
+                  }`}
+                >
+                  {tab}
+                </button>
+              );
+            }
+          )}
         </div>
 
-        <div className="hidden md:flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded bg-white/10 px-2.5 py-0.5 text-xs text-white/90">
-            <Search size={12} />
-            <span className="text-[11px]">Search</span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
+        {/* Action Buttons: Save, Download, Copy */}
+        <div className="flex items-center gap-1.5 pb-1 shrink-0">
           <button
             type="button"
             onClick={handleSave}
-            className="flex items-center gap-1 rounded bg-white/15 hover:bg-white/25 px-2 py-0.5 text-[11px] font-semibold text-white transition cursor-pointer"
+            className="flex items-center gap-1 rounded bg-white hover:bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition shadow-2xs cursor-pointer"
+            title="Save Notes"
           >
-            {saved ? <Check size={12} className="text-emerald-300" /> : <Save size={12} />}
+            {saved ? <Check size={12} className="text-emerald-600" /> : <Save size={12} />}
             <span>{saved ? "Saved" : "Save"}</span>
           </button>
 
           <button
             type="button"
             onClick={handleDownload}
-            className="flex items-center gap-1 rounded bg-white/15 hover:bg-white/25 px-2 py-0.5 text-[11px] font-semibold text-white transition cursor-pointer"
-            title="Download Notes"
+            className="flex items-center gap-1 rounded bg-white hover:bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition shadow-2xs cursor-pointer"
+            title="Download Notes (.txt)"
           >
             <Download size={12} />
+            <span className="hidden sm:inline">Export</span>
           </button>
 
-          <div className="h-5 w-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
-            <User size={12} />
-          </div>
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="flex items-center gap-1 rounded bg-white hover:bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition shadow-2xs cursor-pointer"
+            title="Copy all notes to clipboard"
+          >
+            {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+            <span className="hidden sm:inline">Copy</span>
+          </button>
         </div>
-      </div>
-
-      {/* 2. Word Ribbon Menu Tabs */}
-      <div className="flex items-center gap-1 bg-[#f3f4f6] px-2 pt-1 border-b border-zinc-200 text-xs">
-        {["File", "Home", "Insert", "Draw", "Design", "Layout", "References", "Review", "View", "Help"].map(
-          (tab) => {
-            const isActive = activeTab === tab;
-            return (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`px-3 py-1 text-xs font-medium transition cursor-pointer ${
-                  isActive
-                    ? "border-b-2 border-[#185abd] bg-white font-bold text-zinc-900 shadow-2xs rounded-t"
-                    : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60 rounded"
-                }`}
-              >
-                {tab}
-              </button>
-            );
-          }
-        )}
       </div>
 
       {/* 3. Word Ribbon Toolbar (Home Tab) */}
