@@ -2,9 +2,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, ChevronLeft, Lock, Play, ShieldCheck, Sparkles } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Check,
+  ChevronLeft,
+  FileText,
+  Lock,
+  MessageSquare,
+  Play,
+  ShieldCheck,
+  Sparkles,
+} from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { WordDocumentNotes } from "@/components/WordDocumentNotes";
+import { LessonComments } from "@/components/LessonComments";
 import { getLevel } from "@/lib/levels";
 import { getVideoThumbnail, renderNotes, toEmbed } from "@/lib/video";
 import type { Course, Lesson } from "@/lib/types";
@@ -17,6 +30,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   const { courses, progress, user, completeLesson } = useApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [activeBottomTab, setActiveBottomTab] = useState<"overview" | "word-notes" | "comments">("overview");
 
   // Available courses
   const availableCourses = courses.length > 0 ? courses : [];
@@ -395,9 +409,9 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           </aside>
 
           {/* Right Main Card */}
-          <main className="order-1 lg:order-2 rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm md:p-8">
+          <main className="order-1 lg:order-2 rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm md:p-8 space-y-8">
             {activeLesson ? (
-              <div>
+              <div className="space-y-8">
                 {/* Header: Lesson Title + Circular Completion Checkmark Button */}
                 <div className="flex items-center justify-between gap-4 pb-5 border-b border-zinc-100">
                   <h1 className="text-xl font-bold tracking-tight text-zinc-900 md:text-2xl">
@@ -428,7 +442,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                 </div>
 
                 {/* 16:9 Video Player Container */}
-                <div className="mt-6 relative aspect-video w-full overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-200 shadow-inner group">
+                <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-200 shadow-inner group">
                   {playing ? (
                     embed?.type === "file" ? (
                       <video
@@ -493,20 +507,76 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                   )}
                 </div>
 
-                {/* Lesson Description & Notes */}
-                {activeLesson.notes && (
-                  <div className="mt-8 border-t border-zinc-100 pt-6">
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#5051f9] mb-3">
-                      Lesson Notes & Compounding Action Plan
-                    </h3>
-                    <div className="prose max-w-none text-[15.5px] leading-relaxed text-zinc-700">
-                      {renderNotes(activeLesson.notes)}
+                {/* Bottom Section Navigator Tabs */}
+                <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setActiveBottomTab("overview")}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                      activeBottomTab === "overview"
+                        ? "bg-[#5051f9] text-white shadow-xs"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                    }`}
+                  >
+                    <BookOpen size={14} /> Lesson Overview & Swipe Files
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveBottomTab("word-notes")}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                      activeBottomTab === "word-notes"
+                        ? "bg-[#004b87] text-white shadow-xs"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                    }`}
+                  >
+                    <FileText size={14} /> Word Document Notes
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveBottomTab("comments")}
+                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                      activeBottomTab === "comments"
+                        ? "bg-[#5051f9] text-white shadow-xs"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
+                    }`}
+                  >
+                    <MessageSquare size={14} /> Discussion & Comments
+                  </button>
+                </div>
+
+                {/* 1. SECTION 1: Lesson Description & Notes matching Image 1 */}
+                {activeBottomTab === "overview" && (
+                  <div className="space-y-4 rounded-2xl border border-zinc-200/90 bg-white p-6 md:p-8 shadow-xs">
+                    <div className="prose max-w-none text-[15px] leading-relaxed text-zinc-800">
+                      {renderNotes(activeLesson.notes || "No notes provided for this lesson.")}
                     </div>
                   </div>
                 )}
 
+                {/* 2. SECTION 2: Word Document Notes Sheet matching Image 2 */}
+                {activeBottomTab === "word-notes" && (
+                  <div className="space-y-2">
+                    <WordDocumentNotes
+                      lessonId={activeLesson.id}
+                      lessonTitle={activeLesson.title}
+                    />
+                  </div>
+                )}
+
+                {/* 3. SECTION 3: Lesson Comments with Admin & Manager Moderation */}
+                {activeBottomTab === "comments" && (
+                  <div>
+                    <LessonComments
+                      lessonId={activeLesson.id}
+                      lessonTitle={activeLesson.title}
+                    />
+                  </div>
+                )}
+
                 {/* Previous / Next Navigation */}
-                <div className="mt-8 flex items-center justify-between border-t border-zinc-100 pt-5">
+                <div className="flex items-center justify-between border-t border-zinc-100 pt-6">
                   <button
                     disabled={currentIndex <= 0}
                     onClick={() => {
@@ -516,7 +586,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                     }}
                     className="text-sm font-semibold text-zinc-500 hover:text-zinc-900 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                   >
-                    ← Previous
+                    ← Previous Lesson
                   </button>
 
                   <div className="text-xs font-bold text-zinc-400">
@@ -532,7 +602,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                     }}
                     className="text-sm font-bold text-[#5051f9] hover:text-[#3d3ee6] disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                   >
-                    Next →
+                    Next Lesson →
                   </button>
                 </div>
               </div>

@@ -59,7 +59,7 @@ export function createClassroomCourses(): Course[] {
           videoTitle: "1.1 Introduction and Course Overview",
           duration: "4:12",
           videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-          notes: "High-level roadmap of the system, setting up your workspace, and understanding core compounding mechanics.\n\n- Entity search fundamentals\n- Topical authority vs isolated keywords\n- Compounding content infrastructure",
+          notes: "Welcome everyone, it's Arturs here.\n\nI'm the founder of VEX Media, and over the past 7 years, my team and I have worked with 200+ ecommerce brands and helped generate over $200M in email-attributed revenue.\n\nI created this course because most email marketing content online is either outdated, overly theoretical, or created by people who don't actually do this at scale.\n\nThis course is different.\n\nEverything inside comes directly from the systems, strategies and processes we use every day with real ecommerce brands. We'll cover the full picture: technical setup and deliverability, email design and copywriting, flows, segmentation, campaign strategy, planning, testing and more.\n\nMy goal is simple: by the end of this course, you should understand how to build and run a complete email marketing system for an ecommerce brand.\n\nA few recommendations before you start:\n• Go through the course in order. The modules build on each other.\n• Don't just watch. Implement what you learn.\n• Use the PDFs, tutorials and swipe files alongside the videos. There is a Figma link below every video with slides and swipe files - make sure to check it.\n• Ask questions in the community when something isn't clear.\n\nThis is a practical course. The more you implement, the more valuable it becomes.\n\nWhat's the catch? Simple, I hope our free stuff is so good that you consider hiring us for your email marketing needs when the time is right.\n\nEnjoy!\n\nFigma file with slides, swipe files:\nhttps://www.figma.com/design/iHCcLJ1IZnbXRu1avHdCDE/VEX-%7C-Ecommerce-Email-Marketing-Course?node-id=2-3342&t=zpMZougXQTdYNj8J-1\nPASSWORD: VEX",
         },
         {
           id: "l-eem-1-2",
@@ -983,6 +983,10 @@ export function createSeed(): Database {
     { id: "c6", postId: "p-welcome", authorId: "u-noah", body: "Glad to be here. Starting the classroom tonight.", createdAt: daysAgo(20), status: "approved" },
     { id: "c7", postId: "p-chat-1", authorId: "u-admin", body: "Ship the 8, interlink tightly, then add. Waiting for a magic number usually delays learning.", createdAt: hoursAgo(18), status: "approved" },
     { id: "c8", postId: "p-win-2", authorId: "u-amira", body: "Love this. Case studies are underrated authority assets.", createdAt: daysAgo(1), status: "approved" },
+    { id: "c-les-1", postId: "l-eem-1-1", authorId: "u-admin", body: "Welcome to Module 1! Make sure to grab the Figma swipe files linked above and review the course roadmap.", createdAt: hoursAgo(5), status: "approved" },
+    { id: "c-les-2", postId: "l-eem-1-1", authorId: "u-ayaan", body: "The breakdown of why owned audience assets compound faster than paid ads was super clear.", createdAt: hoursAgo(3), status: "approved" },
+    { id: "c-les-3", postId: "l-eem-1-1", authorId: "u-priya", body: "Just accessed the Figma swipe files. The password worked immediately. Excited for the deliverability breakdown!", createdAt: hoursAgo(1), status: "approved" },
+    { id: "c-les-4", postId: "l-eem-1-1", authorId: "u-member", body: "Can we apply these same segmentation principles to B2B eCommerce stores as well?", createdAt: hoursAgo(0.5), status: "pending" },
   ];
 
   const courses: Course[] = createClassroomCourses();

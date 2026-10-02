@@ -29,23 +29,56 @@ export function renderNotes(notes: string) {
   const lines = notes.split("\n");
   return lines.map((line, i) => {
     const trimmed = line.trim();
-    if (!trimmed) return <div key={i} className="h-3" />;
-    if (trimmed.startsWith("IMPORTANT:")) {
+    if (!trimmed) return <div key={i} className="h-4" />;
+
+    // Bold heading lines matching Image 1
+    if (
+      trimmed.startsWith("Welcome everyone") ||
+      trimmed.startsWith("A few recommendations") ||
+      trimmed.startsWith("What's the catch?") ||
+      trimmed.startsWith("PASSWORD:") ||
+      trimmed.startsWith("IMPORTANT:") ||
+      trimmed.startsWith("Figma file with slides")
+    ) {
+      if (trimmed.startsWith("What's the catch?")) {
+        return (
+          <p key={i} className="text-zinc-800 font-normal leading-relaxed">
+            <strong className="font-bold text-zinc-900">What&apos;s the catch?</strong>{" "}
+            {linkify(trimmed.replace(/^What's the catch\?\s*/i, ""))}
+          </p>
+        );
+      }
+      if (trimmed.startsWith("PASSWORD:")) {
+        return (
+          <p key={i} className="text-zinc-900 font-bold tracking-wide">
+            {trimmed}
+          </p>
+        );
+      }
+      if (trimmed.startsWith("IMPORTANT:")) {
+        return (
+          <p key={i} className="font-semibold text-zinc-900">
+            <span className="font-bold">IMPORTANT:</span> {linkify(trimmed.replace(/^IMPORTANT:\s*/i, ""))}
+          </p>
+        );
+      }
       return (
-        <p key={i} className="font-semibold text-zinc-900">
-          <span className="font-bold">IMPORTANT:</span> {linkify(trimmed.replace(/^IMPORTANT:\s*/i, ""))}
+        <p key={i} className="font-bold text-zinc-900 text-[15px] leading-snug">
+          {linkify(trimmed)}
         </p>
       );
     }
+
     if (trimmed.startsWith("- ") || trimmed.startsWith("• ")) {
       return (
-        <li key={i} className="ml-5 list-disc text-zinc-700">
-          {linkify(trimmed.slice(2))}
+        <li key={i} className="ml-5 list-disc text-zinc-800 leading-relaxed pl-1 my-1">
+          {linkify(trimmed.replace(/^[-•]\s*/, ""))}
         </li>
       );
     }
+
     return (
-      <p key={i} className="text-zinc-700">
+      <p key={i} className="text-zinc-800 leading-relaxed">
         {linkify(trimmed)}
       </p>
     );
@@ -58,14 +91,14 @@ function linkify(text: string) {
     const md = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
     if (md) {
       return (
-        <a key={i} href={md[2]} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+        <a key={i} href={md[2]} target="_blank" rel="noreferrer" className="font-semibold text-[#3b82f6] hover:underline break-all">
           {md[1]}
         </a>
       );
     }
     if (/^https?:\/\//.test(part)) {
       return (
-        <a key={i} href={part} target="_blank" rel="noreferrer" className="font-medium text-primary hover:underline">
+        <a key={i} href={part} target="_blank" rel="noreferrer" className="font-semibold text-[#3b82f6] hover:underline break-all">
           {part}
         </a>
       );
