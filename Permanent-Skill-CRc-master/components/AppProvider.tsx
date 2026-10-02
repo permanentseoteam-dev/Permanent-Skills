@@ -10,6 +10,9 @@ import {
 } from "react";
 import {
   addComment as addCommentAction,
+  approveComment as approveCommentAction,
+  rejectComment as rejectCommentAction,
+  deleteComment as deleteCommentAction,
   addReview as addReviewAction,
   approveUser as approveUserAction,
   changePassword as changePasswordAction,
@@ -102,6 +105,9 @@ type AppContextValue = AppState & {
   createPost: (title: string, body: string, category: PostCategory) => Promise<ActionResult>;
   toggleLike: (postId: string) => Promise<ActionResult>;
   addComment: (postId: string, body: string) => Promise<ActionResult>;
+  approveComment: (commentId: string) => Promise<ActionResult>;
+  rejectComment: (commentId: string) => Promise<ActionResult>;
+  deleteComment: (commentId: string) => Promise<ActionResult>;
   togglePin: (postId: string) => Promise<ActionResult>;
   completeLesson: (courseId: string, lessonId: string) => Promise<ActionResult>;
   saveCourse: (input: { id?: string; title: string; description: string; unlockLevel: number }) => Promise<ActionResult>;
@@ -226,6 +232,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const toggleLikeFn = useCallback((postId: string) => run(() => toggleLikeAction(postId)), [run]);
   const addCommentFn = useCallback((postId: string, body: string) => run(() => addCommentAction(postId, body)), [run]);
+  const approveCommentFn = useCallback((commentId: string) => run(() => approveCommentAction(commentId)), [run]);
+  const rejectCommentFn = useCallback((commentId: string) => run(() => rejectCommentAction(commentId)), [run]);
+  const deleteCommentFn = useCallback((commentId: string) => run(() => deleteCommentAction(commentId)), [run]);
   const togglePinFn = useCallback((postId: string) => run(() => togglePinAction(postId)), [run]);
   const completeLessonFn = useCallback(
     (courseId: string, lessonId: string) => run(() => completeLessonAction(courseId, lessonId)),
@@ -325,6 +334,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createPost: createPostFn,
       toggleLike: toggleLikeFn,
       addComment: addCommentFn,
+      approveComment: approveCommentFn,
+      rejectComment: rejectCommentFn,
+      deleteComment: deleteCommentFn,
       togglePin: togglePinFn,
       completeLesson: completeLessonFn,
       saveCourse: saveCourseFn,
@@ -360,6 +372,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       createPostFn,
       toggleLikeFn,
       addCommentFn,
+      approveCommentFn,
+      rejectCommentFn,
+      deleteCommentFn,
       togglePinFn,
       completeLessonFn,
       saveCourseFn,

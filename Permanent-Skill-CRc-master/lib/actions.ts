@@ -199,7 +199,10 @@ export async function getAppState(): Promise<AppState> {
     user: publicUser(me, me, activeUserIds),
     users: visibleUsers.map((u) => publicUser(u, me, activeUserIds)),
     posts: db.posts,
-    comments: db.comments,
+    comments:
+      me.role === "admin"
+        ? db.comments
+        : db.comments.filter((c) => c.status === "approved" || !c.status || c.authorId === me.id),
     courses: db.courses,
     progress: db.progress.filter((p) => p.userId === me.id || me.role === "admin"),
     events: db.events,
@@ -651,18 +654,23 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
   if (!me) return { ok: false, error: "Please log in." };
   if (!body.trim()) return { ok: false, error: "Comment cannot be empty." };
   const now = new Date().toISOString();
+  const isAdmin = me.role === "admin";
+  const status: Status = isAdmin ? "approved" : "pending";
+
   await updateDb((db) => {
     const user = db.users.find((u) => u.id === me.id);
-    if (user) award(user, 2);
+    if (user && isAdmin) award(user, 2);
     db.comments.push({
       id: `c-${token().slice(0, 8)}`,
       postId,
       authorId: me.id,
       body: body.trim(),
       createdAt: now,
+      status,
     });
+
     const post = db.posts.find((p) => p.id === postId);
-    if (post && post.authorId !== me.id) {
+    if (isAdmin && post && post.authorId !== me.id) {
       db.notifications.unshift({
         id: `n-${token().slice(0, 8)}`,
         userId: post.authorId,
@@ -673,7 +681,84 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
         read: false,
         createdAt: now,
       });
+    } else if (!isAdmin) {
+      const admins = db.users.filter((u) => u.role === "admin");
+      for (const admin of admins) {
+        db.notifications.unshift({
+          id: `n-${token().slice(0, 8)}`,
+          userId: admin.id,
+          actorId: me.id,
+          title: "Comment pending approval",
+          body: `${me.name}: "${body.trim().slice(0, 60)}"`,
+          link: "/admin",
+          read: false,
+          createdAt: now,
+        });
+      }
     }
+  });
+  return { ok: true, message: isAdmin ? "Comment posted." : "Comment submitted and pending admin approval." };
+}
+
+export async function approveComment(commentId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  const now = new Date().toISOString();
+
+  await updateDb((db) => {
+    const comment = db.comments.find((c) => c.id === commentId);
+    if (!comment) return;
+    comment.status = "approved";
+
+    const author = db.users.find((u) => u.id === comment.authorId);
+    if (author) award(author, 2);
+
+    db.notifications.unshift({
+      id: `n-${token().slice(0, 8)}`,
+      userId: comment.authorId,
+      actorId: me.id,
+      title: "Comment approved",
+      body: "Your comment was approved by the admin and is now visible to the community.",
+      link: "/community",
+      read: false,
+      createdAt: now,
+    });
+
+    const post = db.posts.find((p) => p.id === comment.postId);
+    if (post && post.authorId !== comment.authorId) {
+      db.notifications.unshift({
+        id: `n-${token().slice(0, 8)}`,
+        userId: post.authorId,
+        actorId: comment.authorId,
+        title: `${author?.name || "A member"} commented`,
+        body: comment.body.slice(0, 80),
+        link: "/community",
+        read: false,
+        createdAt: now,
+      });
+    }
+  });
+  return { ok: true };
+}
+
+export async function rejectComment(commentId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  await updateDb((db) => {
+    const comment = db.comments.find((c) => c.id === commentId);
+    if (comment) comment.status = "rejected";
+  });
+  return { ok: true };
+}
+
+export async function deleteComment(commentId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in." };
+  await updateDb((db) => {
+    const comment = db.comments.find((c) => c.id === commentId);
+    if (!comment) return;
+    if (me.role !== "admin" && comment.authorId !== me.id) return;
+    db.comments = db.comments.filter((c) => c.id !== commentId);
   });
   return { ok: true };
 }

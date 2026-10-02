@@ -100,6 +100,7 @@ export interface Comment {
   authorId: string;
   body: string;
   createdAt: string;
+  status?: Status;
 }
 
 export interface Lesson {
@@ -237,6 +238,7 @@ export interface AppState {
 export interface ActionResult {
   ok: boolean;
   error?: string;
+  message?: string;
   id?: string;
   next?: string;
 }

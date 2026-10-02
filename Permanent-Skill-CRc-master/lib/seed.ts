@@ -1,6 +1,7 @@
 import { hashPassword } from "./password";
 import type {
   CalendarEvent,
+  Comment,
   Community,
   Course,
   Database,
@@ -541,15 +542,15 @@ export function createSeed(): Database {
     },
   ];
 
-  const comments = [
-    { id: "c1", postId: "p-replay", authorId: "u-ayaan", body: "The section on rented vs owned attention was excellent.", createdAt: hoursAgo(14) },
-    { id: "c2", postId: "p-replay", authorId: "u-priya", body: "Can we get the offer worksheet from the call in Toolkit?", createdAt: hoursAgo(12) },
-    { id: "c3", postId: "p-replay", authorId: "u-james", body: "Watching with my team tomorrow. Thank you.", createdAt: hoursAgo(10) },
-    { id: "c4", postId: "p-win", authorId: "u-admin", body: "This is the compounding we talk about. Document the pages that converted.", createdAt: daysAgo(12) },
-    { id: "c5", postId: "p-win", authorId: "u-sofia", body: "Congrats James. Which cluster was the first client from?", createdAt: daysAgo(12) },
-    { id: "c6", postId: "p-welcome", authorId: "u-noah", body: "Glad to be here. Starting the classroom tonight.", createdAt: daysAgo(20) },
-    { id: "c7", postId: "p-chat-1", authorId: "u-admin", body: "Ship the 8, interlink tightly, then add. Waiting for a magic number usually delays learning.", createdAt: hoursAgo(18) },
-    { id: "c8", postId: "p-win-2", authorId: "u-amira", body: "Love this. Case studies are underrated authority assets.", createdAt: daysAgo(1) },
+  const comments: Comment[] = [
+    { id: "c1", postId: "p-replay", authorId: "u-ayaan", body: "The section on rented vs owned attention was excellent.", createdAt: hoursAgo(14), status: "approved" },
+    { id: "c2", postId: "p-replay", authorId: "u-priya", body: "Can we get the offer worksheet from the call in Toolkit?", createdAt: hoursAgo(12), status: "approved" },
+    { id: "c3", postId: "p-replay", authorId: "u-james", body: "Watching with my team tomorrow. Thank you.", createdAt: hoursAgo(10), status: "approved" },
+    { id: "c4", postId: "p-win", authorId: "u-admin", body: "This is the compounding we talk about. Document the pages that converted.", createdAt: daysAgo(12), status: "approved" },
+    { id: "c5", postId: "p-win", authorId: "u-sofia", body: "Congrats James. Which cluster was the first client from?", createdAt: daysAgo(12), status: "approved" },
+    { id: "c6", postId: "p-welcome", authorId: "u-noah", body: "Glad to be here. Starting the classroom tonight.", createdAt: daysAgo(20), status: "approved" },
+    { id: "c7", postId: "p-chat-1", authorId: "u-admin", body: "Ship the 8, interlink tightly, then add. Waiting for a magic number usually delays learning.", createdAt: hoursAgo(18), status: "approved" },
+    { id: "c8", postId: "p-win-2", authorId: "u-amira", body: "Love this. Case studies are underrated authority assets.", createdAt: daysAgo(1), status: "approved" },
   ];
 
   const courses: Course[] = createClassroomCourses();

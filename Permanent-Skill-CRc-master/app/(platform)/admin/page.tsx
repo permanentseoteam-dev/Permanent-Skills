@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Plus } from "lucide-react";
+import { Check, Clock, MessageSquare, Pencil, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import { AdminClassroom } from "@/components/AdminClassroom";
 import { Avatar, Card, Field, Modal, PrimaryButton, inputClass } from "@/components/ui";
@@ -38,6 +39,8 @@ export default function AdminPage() {
   const {
     user,
     users,
+    posts,
+    comments,
     stats,
     sales,
     approveUser,
@@ -45,14 +48,19 @@ export default function AdminPage() {
     createMember,
     updateMember,
     releaseMemberLogin,
+    approveComment,
+    rejectComment,
+    deleteComment,
   } = useApp();
-  const [tab, setTab] = useState<"pending" | "members" | "sales" | "classroom">("pending");
+  const [tab, setTab] = useState<"pending" | "members" | "comments" | "sales" | "classroom">("pending");
   const [editor, setEditor] = useState<"create" | PublicUser | null>(null);
   const [form, setForm] = useState<MemberForm>(emptyForm);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
   const pending = users.filter((u) => u.status === "pending");
+  const pendingComments = comments.filter((c) => c.status === "pending");
+  const approvedComments = comments.filter((c) => c.status === "approved" || !c.status);
   const members = users;
 
   if (user?.role !== "admin") {
@@ -127,17 +135,29 @@ export default function AdminPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <StatCard label="Total users" value={String(stats?.totalUsers ?? 0)} />
         <StatCard label="Total sales" value={formatMoney(stats?.totalSales ?? 0)} />
-        <StatCard label="Total logins" value={String(stats?.totalLogins ?? 0)} />
         <StatCard label="Pending applications" value={String(stats?.pendingCount ?? pending.length)} />
+        <StatCard label="Pending comments" value={String(pendingComments.length)} />
       </div>
-      <div className="flex gap-2">
-        {(["pending", "members", "sales", "classroom"] as const).map((t) => (
+      <div className="flex gap-2 flex-wrap">
+        {(
+          [
+            { id: "pending", label: `Pending Apps (${pending.length})` },
+            { id: "members", label: "Members" },
+            { id: "comments", label: `Comments Moderation ${pendingComments.length > 0 ? `(${pendingComments.length})` : ""}` },
+            { id: "sales", label: "Sales" },
+            { id: "classroom", label: "Classroom" },
+          ] as const
+        ).map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`rounded-full px-3 py-1.5 text-sm capitalize ${tab === t ? "bg-zinc-900 text-white" : "bg-white ring-1 ring-zinc-200"}`}
+            key={t.id}
+            onClick={() => setTab(t.id as typeof tab)}
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${
+              tab === t.id
+                ? "bg-zinc-900 text-white shadow-sm"
+                : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50"
+            }`}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
@@ -243,6 +263,124 @@ export default function AdminPage() {
                 ))}
               </tbody>
             </table>
+          </Card>
+        </div>
+      )}
+
+      {tab === "comments" && (
+        <div className="space-y-6">
+          <Card className="p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                  <span>Pending Comments</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${pendingComments.length > 0 ? "bg-amber-100 text-amber-800" : "bg-zinc-100 text-zinc-600"}`}>
+                    {pendingComments.length}
+                  </span>
+                </h2>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Comments written by members must be approved by an admin before they become visible to the community.
+                </p>
+              </div>
+            </div>
+
+            {pendingComments.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-200 p-8 text-center">
+                <Check size={28} className="mx-auto text-emerald-500 mb-2" />
+                <p className="text-sm font-medium text-zinc-800">All caught up!</p>
+                <p className="text-xs text-zinc-500 mt-1">There are no pending comments awaiting approval right now.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingComments.map((c) => {
+                  const author = users.find((u) => u.id === c.authorId);
+                  const post = posts.find((p) => p.id === c.postId);
+                  return (
+                    <div key={c.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50/40 p-4">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <Avatar user={author} size={38} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-semibold text-sm text-zinc-900">{author?.name || "Member"}</span>
+                            <span className="text-xs text-zinc-500">({author?.email})</span>
+                            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800 flex items-center gap-1">
+                              <Clock size={10} /> {timeAgo(c.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-500 mt-0.5">
+                            on post: <span className="font-medium text-zinc-700">&ldquo;{post?.title || "Community Post"}&rdquo;</span>
+                          </p>
+                          <div className="mt-2 rounded-lg bg-white p-3 text-sm text-zinc-800 shadow-sm border border-amber-100/60 break-words">
+                            {c.body}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                        <button
+                          onClick={() => approveComment(c.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-700 shadow-sm transition"
+                        >
+                          <Check size={14} /> Approve
+                        </button>
+                        <button
+                          onClick={() => rejectComment(c.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-red-100 px-3.5 py-2 text-xs font-semibold text-red-700 hover:bg-red-200 transition"
+                        >
+                          <X size={14} /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          <Card className="p-5">
+            <h2 className="text-base font-bold text-zinc-900 mb-1">Approved Comments History</h2>
+            <p className="text-xs text-zinc-500 mb-4">All currently published comments in the community.</p>
+
+            {approvedComments.length === 0 ? (
+              <p className="text-sm text-zinc-500">No approved comments yet.</p>
+            ) : (
+              <div className="divide-y divide-zinc-100 max-h-[400px] overflow-y-auto pr-1">
+                {approvedComments.map((c) => {
+                  const author = users.find((u) => u.id === c.authorId);
+                  const post = posts.find((p) => p.id === c.postId);
+                  return (
+                    <div key={c.id} className="flex items-start justify-between gap-3 py-3">
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        <Avatar user={author} size={30} />
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-semibold text-zinc-800">{author?.name}</span>
+                            <span className="text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
+                            <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                              Approved
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-500 truncate">
+                            Post: &ldquo;{post?.title || "Community Post"}&rdquo;
+                          </p>
+                          <p className="text-xs text-zinc-700 mt-1 bg-zinc-50 p-2 rounded-lg break-words">
+                            {c.body}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => deleteComment(c.id)}
+                        className="p-1.5 text-zinc-400 hover:text-red-500 rounded-md hover:bg-zinc-100 transition"
+                        title="Delete comment"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
         </div>
       )}

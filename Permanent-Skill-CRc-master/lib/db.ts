@@ -66,6 +66,12 @@ function migrate(db: Database) {
       changed = true;
     }
   }
+  for (const comment of db.comments || []) {
+    if (!comment.status) {
+      comment.status = "approved";
+      changed = true;
+    }
+  }
   if (changed) persist(db);
 }
 
