@@ -191,92 +191,80 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
         <div className="grid gap-7 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
           {/* Left Sidebar */}
           <aside className="space-y-6">
-            <div>
-              {/* Module 1: Introduction Title matching reference */}
-              <h2 className="text-xl font-bold tracking-tight text-zinc-900">
-                {currentModuleName}
-              </h2>
-
-              {/* Pill Progress Bar styled with Site Brand Colors */}
+            {/* Pill Progress Bar styled with Site Brand Colors */}
+            <div
+              className="relative h-8 w-full overflow-hidden rounded-full bg-[#e2e4e9] flex items-center shadow-inner"
+              role="progressbar"
+              aria-valuenow={pct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              title={`Course Progress: ${pct}%`}
+            >
+              {/* Brand Primary Gradient Fill */}
               <div
-                className="mt-3 relative h-8 w-full overflow-hidden rounded-full bg-[#e2e4e9] flex items-center shadow-inner"
-                role="progressbar"
-                aria-valuenow={pct}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                title={`Course Progress: ${pct}%`}
-              >
-                {/* Brand Primary Gradient Fill (Replaces the black bar) */}
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-[#5051f9] to-[#7c83ff] transition-all duration-400 ease-out shadow-xs"
-                  style={{ width: `${pct}%` }}
-                />
+                className="h-full rounded-full bg-gradient-to-r from-[#5051f9] to-[#7c83ff] transition-all duration-400 ease-out shadow-xs"
+                style={{ width: `${pct}%` }}
+              />
 
-                {/* Prominent Percentage Label */}
-                <span
-                  className={`absolute inset-y-0 left-4 flex items-center text-xs font-black tracking-wide transition-colors ${
-                    pct > 15 ? "text-white drop-shadow-xs" : "text-zinc-800"
-                  }`}
-                >
-                  {pct}%
-                </span>
-              </div>
+              {/* Prominent Percentage Label */}
+              <span
+                className={`absolute inset-y-0 left-4 flex items-center text-xs font-black tracking-wide transition-colors ${
+                  pct > 15 ? "text-white drop-shadow-xs" : "text-zinc-800"
+                }`}
+              >
+                {pct}%
+              </span>
             </div>
 
-            {/* Prominent Lesson Navigation List (Directly displayed, never collapsed) */}
+            {/* Prominent Lesson Navigation List */}
             <div className="space-y-6">
-              {modules.map((mod, modIdx) => {
-                const isCurrentModule = mod.name === currentModuleName;
-                return (
-                  <div key={mod.name} className="space-y-2">
-                    {/* If multiple modules, show clean subtitle header */}
-                    {modules.length > 1 && modIdx > 0 && (
-                      <h3 className="pt-2 text-xs font-bold uppercase tracking-wider text-zinc-500">
-                        {mod.name}
-                      </h3>
-                    )}
+              {modules.map((mod) => (
+                <div key={mod.name} className="space-y-2.5">
+                  {/* Module Title Header - Identical styling for all modules */}
+                  <h2 className="text-lg font-bold tracking-tight text-zinc-900">
+                    {mod.name}
+                  </h2>
 
-                    <div className="space-y-1.5">
-                      {mod.lessons.map((item) => {
-                        const isActive = activeLesson?.id === item.id;
-                        const isDone = completedIds.includes(item.id);
+                  <div className="space-y-1.5">
+                    {mod.lessons.map((item) => {
+                      const isActive = activeLesson?.id === item.id;
+                      const isDone = completedIds.includes(item.id);
 
-                        return (
-                          <button
-                            key={item.id}
-                            onClick={() => handleSelectLesson(item.id)}
-                            className={`group flex w-full items-center justify-between text-left transition-all ${
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => handleSelectLesson(item.id)}
+                          className={`group flex w-full items-center justify-between text-left transition-all ${
+                            isActive
+                              ? "rounded-xl bg-zinc-100 px-4 py-2.5 font-bold text-zinc-950 shadow-xs border border-zinc-200"
+                              : "rounded-xl px-4 py-2.5 text-[14.5px] font-medium text-zinc-800 hover:bg-white hover:text-[#5051f9] hover:shadow-xs"
+                          }`}
+                        >
+                          <span
+                            className={`truncate leading-snug ${
                               isActive
-                                ? "rounded-xl bg-zinc-100 px-4 py-2.5 font-bold text-zinc-950 shadow-xs border border-zinc-200"
-                                : "rounded-xl px-4 py-2.5 text-[14.5px] font-medium text-zinc-800 hover:bg-white hover:text-[#5051f9] hover:shadow-xs"
+                                ? "font-bold text-zinc-950 text-[14.5px]"
+                                : "text-zinc-800"
                             }`}
+                            title={item.title}
                           >
-                            <span
-                              className={`truncate leading-snug ${
-                                isActive
-                                  ? "font-bold text-zinc-950 text-[14.5px]"
-                                  : "text-zinc-800"
-                              }`}
-                              title={item.title}
-                            >
-                              {item.title}
-                            </span>
+                            {item.title}
+                          </span>
 
-                            {isDone && (
-                              <span
-                                className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full shadow-xs bg-[#5051f9] text-white"
-                                title="Completed"
-                              >
-                                <Check size={11} strokeWidth={3.5} />
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                          {isDone && (
+                            <span
+                              className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full shadow-xs bg-[#5051f9] text-white"
+                              title="Completed"
+                            >
+                              <Check size={11} strokeWidth={3.5} />
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           </aside>
 

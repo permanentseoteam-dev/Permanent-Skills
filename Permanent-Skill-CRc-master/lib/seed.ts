@@ -45,15 +45,6 @@ export function createClassroomCourses(): Course[] {
       price: 49,
       lessons: [
         {
-          id: "l-welcome",
-          module: "Module 1: Introduction",
-          title: "Welcome Message From Founder: Arturs Sevselevs",
-          videoTitle: "Welcome Message From Founder: Arturs Sevselevs",
-          duration: "0:34",
-          videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-          notes: "Welcome to the community! In this introductory video, Arturs shares the foundational vision, member resources, and how to get maximum ROI from every training module.\n\nIMPORTANT: Make sure to introduce yourself in the Community tab after watching this welcome video.",
-        },
-        {
           id: "l-1-1",
           module: "Module 1: Introduction",
           title: "1.1 Introduction and Course Overview",
