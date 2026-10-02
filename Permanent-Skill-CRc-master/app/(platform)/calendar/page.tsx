@@ -84,8 +84,9 @@ export default function MeetPage() {
     addProjectTask,
   } = useApp();
 
-  const [cursor, setCursor] = useState(new Date(2026, 8, 1));
+  const [cursor, setCursor] = useState(() => new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [rsvpSuccess, setRsvpSuccess] = useState(false);
 
   // Project Modal State
   const [projectModalOpen, setProjectModalOpen] = useState(false);
@@ -108,6 +109,14 @@ export default function MeetPage() {
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionCursorIndex, setMentionCursorIndex] = useState<number | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  const userTz = useMemo(() => {
+    try {
+      return Intl.DateTimeFormat().resolvedOptions().timeZone.replace(/_/g, " ");
+    } catch {
+      return "Local time";
+    }
+  }, []);
 
   const grid = useMemo(() => {
     const start = startOfMonth(cursor);
@@ -518,6 +527,109 @@ export default function MeetPage() {
                             </span>
                           </div>
                         </div>
+
+                        {/* Expandable Milestones / Deliverables Checklist */}
+                        <div className="mt-3 border-t border-zinc-100 pt-3">
+                          <div className="flex items-center justify-between">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setExpandedTasks((prev) => ({
+                                  ...prev,
+                                  [proj.id]: !prev[proj.id],
+                                }))
+                              }
+                              className="flex items-center gap-1.5 text-xs font-semibold text-zinc-600 hover:text-[#5051F9] transition cursor-pointer"
+                            >
+                              <ListTodo size={14} className="text-primary" />
+                              <span>
+                                Deliverables & Milestones (
+                                {proj.tasks?.filter((t) => t.completed).length || 0}/
+                                {proj.tasks?.length || 0})
+                              </span>
+                              {expandedTasks[proj.id] ? (
+                                <ChevronUp size={14} />
+                              ) : (
+                                <ChevronDown size={14} />
+                              )}
+                            </button>
+
+                            <span className="text-[11px] font-medium text-zinc-400">
+                              {proj.tasks && proj.tasks.length > 0
+                                ? `${Math.round(
+                                    ((proj.tasks.filter((t) => t.completed).length) /
+                                      proj.tasks.length) *
+                                      100
+                                  )}% milestones done`
+                                : "No milestones added"}
+                            </span>
+                          </div>
+
+                          {expandedTasks[proj.id] && (
+                            <div className="mt-2.5 space-y-2 rounded-xl border border-zinc-100 bg-zinc-50/80 p-3">
+                              {proj.tasks && proj.tasks.length > 0 ? (
+                                <div className="space-y-1.5">
+                                  {proj.tasks.map((task) => (
+                                    <label
+                                      key={task.id}
+                                      className="flex items-center gap-2.5 text-xs text-zinc-700 hover:text-zinc-900 cursor-pointer select-none"
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={task.completed}
+                                        onChange={() => toggleProjectTask(proj.id, task.id)}
+                                        className="h-4 w-4 rounded border-zinc-300 text-[#5051F9] focus:ring-[#5051F9]"
+                                      />
+                                      <span
+                                        className={
+                                          task.completed
+                                            ? "line-through text-zinc-400 font-normal"
+                                            : "font-medium text-zinc-800"
+                                        }
+                                      >
+                                        {task.title}
+                                      </span>
+                                    </label>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-zinc-400 italic">
+                                  No milestones defined yet.
+                                </p>
+                              )}
+
+                              {/* Inline Add Task Input */}
+                              <form
+                                onSubmit={(e) => {
+                                  e.preventDefault();
+                                  const val = (cardNewTask[proj.id] || "").trim();
+                                  if (!val) return;
+                                  addProjectTask(proj.id, val);
+                                  setCardNewTask((prev) => ({ ...prev, [proj.id]: "" }));
+                                }}
+                                className="flex items-center gap-2 pt-2 border-t border-zinc-200/60"
+                              >
+                                <input
+                                  value={cardNewTask[proj.id] || ""}
+                                  onChange={(e) =>
+                                    setCardNewTask((prev) => ({
+                                      ...prev,
+                                      [proj.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Add new milestone..."
+                                  className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs outline-none focus:ring-1 focus:ring-[#5051F9]"
+                                />
+                                <button
+                                  type="submit"
+                                  className="rounded-lg bg-[#5051F9] px-3 py-1.5 text-xs font-semibold text-white hover:bg-[#4041d8] transition shadow-xs cursor-pointer"
+                                >
+                                  Add
+                                </button>
+                              </form>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
@@ -549,7 +661,7 @@ export default function MeetPage() {
                             href={proj.meetUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg bg-[#5051F9]/10 hover:bg-[#5051F9]/20 px-2.5 py-1.5 text-xs font-semibold text-primary transition"
+                            className="inline-flex items-center gap-1 rounded-lg bg-[#5051F9]/10 hover:bg-[#5051F9]/20 px-2.5 py-1.5 text-xs font-semibold text-primary transition cursor-pointer"
                           >
                             <Video size={13} /> Join Meet
                           </a>
@@ -557,14 +669,14 @@ export default function MeetPage() {
 
                         <button
                           onClick={() => openEditProject(proj)}
-                          className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition"
+                          className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition cursor-pointer"
                           title="Edit Project"
                         >
                           <Pencil size={15} />
                         </button>
                         <button
                           onClick={() => onDeleteProject(proj.id)}
-                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition"
+                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
                           title="Delete Project"
                         >
                           <Trash2 size={15} />
@@ -584,7 +696,7 @@ export default function MeetPage() {
         <div className="mb-6 flex items-center justify-between gap-3">
           <button
             onClick={() => setCursor(new Date())}
-            className="rounded-full border border-zinc-200 bg-white px-3.5 py-1 text-sm font-medium hover:bg-zinc-50 shadow-xs"
+            className="rounded-full border border-zinc-200 bg-white px-3.5 py-1 text-sm font-medium hover:bg-zinc-50 shadow-xs cursor-pointer"
           >
             Today
           </button>
@@ -592,7 +704,7 @@ export default function MeetPage() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
-              className="rounded-lg p-1.5 hover:bg-zinc-100 text-zinc-600 transition"
+              className="rounded-lg p-1.5 hover:bg-zinc-100 text-zinc-600 transition cursor-pointer"
             >
               <ChevronLeft size={18} />
             </button>
@@ -601,22 +713,22 @@ export default function MeetPage() {
                 {cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h1>
               <p className="text-xs text-zinc-500">
-                {new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} Karachi time
+                {new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} ({userTz})
               </p>
             </div>
             <button
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
-              className="rounded-lg p-1.5 hover:bg-zinc-100 text-zinc-600 transition"
+              className="rounded-lg p-1.5 hover:bg-zinc-100 text-zinc-600 transition cursor-pointer"
             >
               <ChevronRight size={18} />
             </button>
           </div>
 
-          {/* Right Toolbar Action: + Add Project (Where the red arrow pointed) */}
+          {/* Right Toolbar Action: + Add Project */}
           <div>
             <PrimaryButton
               onClick={openCreateProject}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3.5 shadow-sm"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3.5 shadow-sm cursor-pointer"
             >
               <Plus size={15} /> Add Project
             </PrimaryButton>
@@ -659,8 +771,11 @@ export default function MeetPage() {
                   {dayEvents.map((e) => (
                     <button
                       key={e.id}
-                      onClick={() => setSelectedEvent(e)}
-                      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition ${
+                      onClick={() => {
+                        setSelectedEvent(e);
+                        setRsvpSuccess(false);
+                      }}
+                      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
                         e.type === "premium"
                           ? "bg-primary/10 text-primary hover:bg-primary/20"
                           : "bg-blue-50 text-blue-700 hover:bg-blue-100"
@@ -679,24 +794,68 @@ export default function MeetPage() {
       {/* 3. Event Detail Modal */}
       <Modal
         open={!!selectedEvent}
-        onClose={() => setSelectedEvent(null)}
+        onClose={() => {
+          setSelectedEvent(null);
+          setRsvpSuccess(false);
+        }}
         title={selectedEvent?.title || "Meet Session"}
       >
         {selectedEvent && (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-zinc-600 bg-zinc-50 p-2.5 rounded-lg">
-              <CalendarIcon size={16} className="text-primary" />
-              <span>{formatDateTime(selectedEvent.start)}</span>
+            <div className="flex items-center gap-2 text-sm text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
+              <CalendarIcon size={16} className="text-primary shrink-0" />
+              <span>{formatDateTime(selectedEvent.start)} - {eventTimeLabel(selectedEvent.end)}</span>
             </div>
             <p className="text-sm text-zinc-700 leading-relaxed">{selectedEvent.description}</p>
             <div className="flex items-center justify-between text-xs font-semibold">
-              <span className="rounded bg-primary/10 px-2 py-1 text-primary uppercase tracking-wider">
+              <span className={`rounded px-2.5 py-1 uppercase tracking-wider ${
+                selectedEvent.type === "premium"
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "bg-blue-50 text-blue-700 border border-blue-200"
+              }`}>
                 {selectedEvent.type} session
               </span>
+              <span className="text-zinc-500 font-medium">{userTz}</span>
             </div>
-            <PrimaryButton className="w-full" onClick={() => setSelectedEvent(null)}>
-              Add to my schedule
-            </PrimaryButton>
+
+            <div className="pt-2 space-y-2">
+              <a
+                href="https://meet.google.com/new"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] px-4 py-2.5 font-bold text-white shadow-md hover:bg-[#4041d8] transition text-sm cursor-pointer"
+              >
+                <Video size={16} /> Join Video Room
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setRsvpSuccess(true);
+                  setTimeout(() => {
+                    setSelectedEvent(null);
+                    setRsvpSuccess(false);
+                  }, 1200);
+                }}
+                className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition cursor-pointer ${
+                  rsvpSuccess
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                    : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                }`}
+              >
+                {rsvpSuccess ? (
+                  <>
+                    <CheckCircle2 size={15} className="text-emerald-600" />
+                    <span>Added to your schedule!</span>
+                  </>
+                ) : (
+                  <>
+                    <CalendarIcon size={15} />
+                    <span>Add to my schedule / RSVP</span>
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </Modal>
@@ -795,7 +954,7 @@ export default function MeetPage() {
                         key={m.id}
                         type="button"
                         onClick={() => selectMentionMember(m)}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-indigo-50/70 transition"
+                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-indigo-50/70 transition cursor-pointer"
                       >
                         <Avatar user={m} size={28} />
                         <div className="min-w-0 flex-1">
@@ -809,6 +968,66 @@ export default function MeetPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Milestones / Deliverables Builder in Modal */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700">
+                Project Deliverables & Milestones ({form.tasks.filter((t) => t.completed).length}/{form.tasks.length})
+              </label>
+              <span className="text-[11px] font-bold text-primary">
+                {form.tasks.length ? `${form.progress}% progress` : ""}
+              </span>
+            </div>
+
+            <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
+              {form.tasks.map((task) => (
+                <div key={task.id} className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-zinc-200 shadow-2xs">
+                  <label className="flex items-center gap-2.5 text-xs flex-1 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={task.completed}
+                      onChange={() => toggleModalTask(task.id)}
+                      className="rounded border-zinc-300 text-primary focus:ring-primary h-4 w-4"
+                    />
+                    <span className={task.completed ? "line-through text-zinc-400" : "font-medium text-zinc-800"}>
+                      {task.title}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeModalTask(task.id)}
+                    className="text-zinc-400 hover:text-red-500 transition p-1 cursor-pointer"
+                    title="Remove milestone"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              ))}
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  value={newModalTaskTitle}
+                  onChange={(e) => setNewModalTaskTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddModalTask();
+                    }
+                  }}
+                  placeholder="e.g. Complete responsive Figma token review"
+                  className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddModalTask}
+                  className="inline-flex items-center gap-1 rounded-lg bg-zinc-800 hover:bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-white transition shadow-xs cursor-pointer"
+                >
+                  <Plus size={13} /> Add
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Team Members Assignment Chips */}
@@ -830,7 +1049,7 @@ export default function MeetPage() {
                     <button
                       type="button"
                       onClick={() => toggleTeamMember(id)}
-                      className="text-zinc-400 hover:text-red-500"
+                      className="text-zinc-400 hover:text-red-500 cursor-pointer"
                     >
                       <X size={12} />
                     </button>
@@ -863,11 +1082,11 @@ export default function MeetPage() {
             <button
               type="button"
               onClick={() => setProjectModalOpen(false)}
-              className="rounded-lg px-4 py-2 text-sm text-zinc-500 hover:bg-zinc-100"
+              className="rounded-lg px-4 py-2 text-sm text-zinc-500 hover:bg-zinc-100 cursor-pointer"
             >
               Cancel
             </button>
-            <PrimaryButton disabled={busy} onClick={onSaveProject}>
+            <PrimaryButton disabled={busy} onClick={onSaveProject} className="cursor-pointer">
               {busy ? "Saving..." : editingProjectId ? "Save Changes" : "Create Project"}
             </PrimaryButton>
           </div>

@@ -771,8 +771,8 @@ export function createSeed(): Database {
   const progress: Database["progress"] = [];
 
   const events: CalendarEvent[] = [];
-  const start = new Date(2026, 7, 31);
-  const end = new Date(2026, 9, 6);
+  const start = new Date(2026, 6, 1);
+  const end = new Date(2027, 2, 31);
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const day = d.getDay();
     const y = d.getFullYear();
