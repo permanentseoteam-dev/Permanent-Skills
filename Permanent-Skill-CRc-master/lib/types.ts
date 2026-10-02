@@ -37,6 +37,7 @@ export interface User {
   loginCount: number;
   isPremium: boolean;
   language: string;
+  ipAddress?: string;
   phone?: string;
   notes?: string;
   application?: Application;
@@ -67,6 +68,7 @@ export interface PublicUser {
   isOnline: boolean;
   isPremium: boolean;
   language?: string;
+  ipAddress?: string;
   phone?: string;
   notes?: string;
   loginCount?: number;
@@ -177,6 +179,18 @@ export interface Session {
   createdAt: string;
 }
 
+export interface Community {
+  id: string;
+  name: string;
+  description: string;
+  slug: string;
+  icon?: string;
+  isPrivate?: boolean;
+  memberCount?: number;
+  createdAt: string;
+  createdBy: string;
+}
+
 export interface AdminStats {
   totalUsers: number;
   totalSales: number;
@@ -196,6 +210,7 @@ export interface Database {
   reviews: Review[];
   sales: Sale[];
   sessions: Session[];
+  communities: Community[];
 }
 
 export interface AppState {
@@ -212,6 +227,8 @@ export interface AppState {
   stats: AdminStats | null;
   sales: Sale[];
   limited: boolean;
+  communities: Community[];
+  activeCommunityId: string;
 }
 
 export interface ActionResult {

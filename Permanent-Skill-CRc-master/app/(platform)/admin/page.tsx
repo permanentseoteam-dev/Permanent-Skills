@@ -202,6 +202,7 @@ export default function AdminPage() {
                   <th className="px-4 py-3">Member</th>
                   <th>Status</th>
                   <th>Role</th>
+                  <th>IP Address</th>
                   <th>Device</th>
                   <th>Logins</th>
                   <th>Points</th>
@@ -223,6 +224,9 @@ export default function AdminPage() {
                     </td>
                     <td className="capitalize">{m.status}</td>
                     <td className="capitalize">{m.role}</td>
+                    <td>
+                      <span className="font-mono text-xs text-zinc-600">{m.ipAddress || "127.0.0.1"}</span>
+                    </td>
                     <td>{m.hasActiveSession ? "Logged in" : "Free"}</td>
                     <td>{m.loginCount ?? "—"}</td>
                     <td>{m.points}</td>
@@ -331,8 +335,13 @@ export default function AdminPage() {
             Premium member
           </label>
           {editor && editor !== "create" && (
-            <div className="rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
-              Device login: {editor.hasActiveSession ? "this member is logged in on one device." : "no active device session."}
+            <div className="space-y-1 rounded-lg bg-zinc-50 px-3 py-2 text-sm text-zinc-600">
+              <div>
+                Device login: {editor.hasActiveSession ? "this member is logged in on one device." : "no active device session."}
+              </div>
+              <div>
+                Tracked IP: <span className="font-mono font-medium text-zinc-800">{editor.ipAddress || "127.0.0.1"}</span>
+              </div>
             </div>
           )}
           {message && <p className="text-sm text-primary">{message}</p>}

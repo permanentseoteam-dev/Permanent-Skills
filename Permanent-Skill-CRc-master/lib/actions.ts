@@ -1,6 +1,6 @@
 "use server";
 
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { randomBytes } from "crypto";
 import { readDb, updateDb, upsertUser } from "./db";
 import { hashPassword, verifyPassword } from "./password";
@@ -11,6 +11,7 @@ import type {
   ActionResult,
   AppState,
   Application,
+  Community,
   Lesson,
   PostCategory,
   PublicUser,
@@ -36,6 +37,17 @@ function affiliateCode(name: string) {
 
 function isOnline(lastSeenAt: string) {
   return Date.now() - new Date(lastSeenAt).getTime() < ONLINE_MS;
+}
+
+async function getClientIp(): Promise<string> {
+  try {
+    const jar = await headers();
+    const forwarded = jar.get("x-forwarded-for");
+    if (forwarded) return forwarded.split(",")[0].trim();
+    const real = jar.get("x-real-ip");
+    if (real) return real.trim();
+  } catch {}
+  return "127.0.0.1";
 }
 
 function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string>): PublicUser {
@@ -69,6 +81,7 @@ function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string
     base.affiliateClicks = user.affiliateClicks;
     base.affiliateSignups = user.affiliateSignups;
     base.affiliateEarnings = user.affiliateEarnings;
+    base.ipAddress = user.ipAddress || "127.0.0.1";
   }
   if (viewer?.role === "admin") {
     base.hasActiveSession = activeUserIds?.has(user.id) ?? false;
@@ -150,6 +163,8 @@ export async function getAppState(): Promise<AppState> {
     stats: null,
     sales: [],
     limited: false,
+    communities: [],
+    activeCommunityId: "comm-pss",
   };
   if (!me) return empty;
 
@@ -163,6 +178,8 @@ export async function getAppState(): Promise<AppState> {
       ...empty,
       user: publicUser(me, me, activeUserIds),
       limited: true,
+      communities: db.communities || [],
+      activeCommunityId: db.communities?.[0]?.id || "comm-pss",
     };
   }
 
@@ -191,6 +208,8 @@ export async function getAppState(): Promise<AppState> {
     stats,
     sales: me.role === "admin" ? db.sales : [],
     limited: false,
+    communities: db.communities || [],
+    activeCommunityId: db.communities?.[0]?.id || "comm-pss",
   };
 }
 
@@ -210,11 +229,13 @@ export async function login(
       return { ok: false, error: "This application was not approved. Contact support." };
     }
 
+    const ip = await getClientIp();
     await updateDb((d) => {
       const u = d.users.find((x) => x.id === user.id);
       if (!u) return;
       u.loginCount += 1;
       u.lastSeenAt = new Date().toISOString();
+      u.ipAddress = ip;
       if (memberType === "premium") {
         u.isPremium = true;
       } else if (memberType === "team") {
@@ -258,6 +279,7 @@ export async function register(input: {
   const id = `u-${token().slice(0, 10)}`;
   const now = new Date().toISOString();
   const username = uniqueUsername(readDb().users, name);
+  const ip = await getClientIp();
 
   await updateDb((db) => {
     let referredBy: string | undefined;
@@ -291,6 +313,7 @@ export async function register(input: {
       loginCount: 1,
       isPremium: false,
       language: "English",
+      ipAddress: ip,
       affiliateCode: affiliateCode(name),
       affiliateClicks: 0,
       affiliateSignups: 0,
@@ -921,4 +944,36 @@ export async function deleteLesson(courseId: string, lessonId: string): Promise<
 export async function isAdminSession() {
   const me = await currentUser();
   return me?.role === "admin";
+}
+
+export async function createCommunity(input: {
+  name: string;
+  description: string;
+  isPrivate?: boolean;
+}): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  const name = input.name.trim();
+  if (name.length < 3) return { ok: false, error: "Community name must be at least 3 characters." };
+  const slug = slugify(name);
+  const db = readDb();
+  if (db.communities?.some((c) => c.slug === slug || c.name.toLowerCase() === name.toLowerCase())) {
+    return { ok: false, error: "A community with this name already exists." };
+  }
+  const id = `comm-${token().slice(0, 8)}`;
+  const newCommunity: Community = {
+    id,
+    name,
+    description: input.description.trim() || `${name} community.`,
+    slug,
+    isPrivate: Boolean(input.isPrivate),
+    memberCount: 1,
+    createdAt: new Date().toISOString(),
+    createdBy: me.id,
+  };
+  await updateDb((d) => {
+    d.communities = d.communities || [];
+    d.communities.push(newCommunity);
+  });
+  return { ok: true, id };
 }

@@ -14,6 +14,7 @@ import {
   approveUser as approveUserAction,
   changePassword as changePasswordAction,
   completeLesson as completeLessonAction,
+  createCommunity as createCommunityAction,
   createMember as createMemberAction,
   createPost as createPostAction,
   deleteLesson as deleteLessonAction,
@@ -38,6 +39,7 @@ import type {
   ActionResult,
   AppState,
   Application,
+  Community,
   PostCategory,
   PublicUser,
   Role,
@@ -85,6 +87,8 @@ const empty: AppState = {
   stats: null,
   sales: [],
   limited: false,
+  communities: [],
+  activeCommunityId: "comm-pss",
 };
 
 type AppContextValue = AppState & {
@@ -124,6 +128,9 @@ type AppContextValue = AppState & {
   releaseMemberLogin: (userId: string) => Promise<ActionResult>;
   upgrade: () => Promise<ActionResult>;
   inviteMember: (email: string) => Promise<ActionResult>;
+  createCommunity: (input: { name: string; description: string; isPrivate?: boolean }) => Promise<ActionResult>;
+  switchCommunity: (communityId: string) => void;
+  activeCommunity?: Community;
   userById: (id: string) => PublicUser | undefined;
 };
 
@@ -273,6 +280,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const upgradeFn = useCallback(() => run(() => upgradeAction()), [run]);
   const inviteMemberFn = useCallback((email: string) => run(() => inviteMemberAction(email)), [run]);
+  const createCommunityFn = useCallback(
+    (input: { name: string; description: string; isPrivate?: boolean }) =>
+      run(async () => {
+        const result = await createCommunityAction(input);
+        if (result.ok && result.id) {
+          setState((prev) => ({ ...prev, activeCommunityId: result.id! }));
+        }
+        return result;
+      }),
+    [run],
+  );
+  const switchCommunity = useCallback((communityId: string) => {
+    setState((prev) => ({ ...prev, activeCommunityId: communityId }));
+  }, []);
+  const activeCommunity = useMemo(() => {
+    return state.communities?.find((c) => c.id === state.activeCommunityId) || state.communities?.[0];
+  }, [state.communities, state.activeCommunityId]);
   const userById = useCallback(
     (id: string) => state.users.find((u) => u.id === id) || (state.user?.id === id ? state.user : undefined),
     [state.users, state.user],
@@ -308,6 +332,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       releaseMemberLogin: releaseMemberLoginFn,
       upgrade: upgradeFn,
       inviteMember: inviteMemberFn,
+      createCommunity: createCommunityFn,
+      switchCommunity,
+      activeCommunity,
       userById,
     }),
     [
@@ -339,6 +366,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       releaseMemberLoginFn,
       upgradeFn,
       inviteMemberFn,
+      createCommunityFn,
+      switchCommunity,
+      activeCommunity,
       userById,
     ],
   );

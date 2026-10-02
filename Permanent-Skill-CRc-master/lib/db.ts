@@ -38,6 +38,18 @@ function normalizeLesson(raw: Lesson & { content?: string }): Lesson {
 
 function migrate(db: Database) {
   let changed = false;
+  if (!db.communities || db.communities.length === 0) {
+    db.communities = createSeed().communities;
+    changed = true;
+  }
+  const seedUsers = createSeed().users;
+  for (const user of db.users) {
+    if (!user.ipAddress) {
+      const match = seedUsers.find((s) => s.id === user.id);
+      user.ipAddress = match?.ipAddress || "192.168.1.50";
+      changed = true;
+    }
+  }
   const catalogIds = COURSE_CATALOG_IDS as readonly string[];
   const hasOld = db.courses.some((course) => OLD_COURSE_IDS.includes(course.id));
   const missingNew = catalogIds.some((id) => !db.courses.some((course) => course.id === id));

@@ -36,9 +36,21 @@ const NAV = [
 
 export function Header() {
   const pathname = usePathname();
-  const { user, users, posts, notifications, messages, logout, markNotificationsRead } = useApp();
+  const {
+    user,
+    users,
+    posts,
+    notifications,
+    messages,
+    logout,
+    markNotificationsRead,
+    communities,
+    activeCommunity,
+    switchCommunity,
+  } = useApp();
   const [open, setOpen] = useState<null | "community" | "user" | "chat" | "bell" | "search">(null);
   const [query, setQuery] = useState("");
+  const [communitySearch, setCommunitySearch] = useState("");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
   const headerRef = useRef<HTMLElement>(null);
 
@@ -78,6 +90,22 @@ export function Header() {
     };
   }, [query, users, posts]);
 
+  const filteredCommunities = useMemo(() => {
+    const q = communitySearch.trim().toLowerCase();
+    const list = communities && communities.length > 0 ? communities : [
+      {
+        id: "comm-pss",
+        name: "Permanent Skill Strategy",
+        slug: "permanent-skill-strategy",
+        description: "Private community",
+        createdAt: "",
+        createdBy: "u-admin",
+      },
+    ];
+    if (!q) return list;
+    return list.filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
+  }, [communities, communitySearch]);
+
   return (
     <>
       <header ref={headerRef} className="sticky top-0 z-50 border-b border-zinc-200 bg-white">
@@ -86,7 +114,23 @@ export function Header() {
             onClick={() => setOpen(open === "community" ? null : "community")}
             className="flex min-w-0 items-center gap-2 rounded-lg px-1 py-1 hover:bg-zinc-50"
           >
-            <Image src="/logo.png" alt="Permanent Skill Strategy" width={190} height={48} className="h-10 w-auto shrink-0" priority />
+            {activeCommunity?.icon ? (
+              <Image
+                src={activeCommunity.icon}
+                alt={activeCommunity.name}
+                width={190}
+                height={48}
+                className="h-10 w-auto shrink-0 object-contain"
+                priority
+              />
+            ) : (
+              <span className="flex h-10 items-center gap-2 font-bold text-zinc-900">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
+                  {activeCommunity?.name?.slice(0, 2).toUpperCase() || "PS"}
+                </span>
+                <span className="truncate max-w-[180px]">{activeCommunity?.name || "Permanent Skill Strategy"}</span>
+              </span>
+            )}
             <ChevronDown size={16} className="shrink-0 text-zinc-500" />
           </button>
 
@@ -95,20 +139,58 @@ export function Header() {
               <div className="p-2">
                 <div className="relative mb-2">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input className="w-full rounded-lg bg-zinc-100 py-2 pl-8 pr-3 text-sm outline-none" placeholder="Search" />
+                  <input
+                    value={communitySearch}
+                    onChange={(e) => setCommunitySearch(e.target.value)}
+                    className="w-full rounded-lg bg-zinc-100 py-2 pl-8 pr-3 text-sm outline-none"
+                    placeholder="Search"
+                  />
                 </div>
-                <Link href="/create-community" onClick={() => setOpen(null)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50">
+                <Link
+                  href="/create-community"
+                  onClick={() => setOpen(null)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
+                >
                   <Plus size={16} /> Create a community
                 </Link>
-                <Link href="/discover" onClick={() => setOpen(null)} className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50">
+                <Link
+                  href="/discover"
+                  onClick={() => setOpen(null)}
+                  className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
+                >
                   <Compass size={16} /> Discover communities
                 </Link>
               </div>
-              <div className="border-t border-zinc-100 p-2">
-                <div className="flex items-center gap-2 rounded-lg bg-[#5051F9]/10 px-3 py-2 text-sm font-medium text-primary">
-                  <Image src="/logo.png" alt="" width={22} height={22} className="h-6 w-6 object-contain" />
-                  Permanent Skill Strategy
-                </div>
+              <div className="border-t border-zinc-100 p-2 space-y-1 max-h-[220px] overflow-y-auto">
+                {filteredCommunities.map((c) => {
+                  const isCurrent = (activeCommunity?.id || "comm-pss") === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        switchCommunity(c.id);
+                        setOpen(null);
+                      }}
+                      className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+                        isCurrent
+                          ? "bg-[#5051F9]/10 text-primary"
+                          : "text-zinc-700 hover:bg-zinc-50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        {c.icon ? (
+                          <Image src={c.icon} alt="" width={22} height={22} className="h-6 w-6 object-contain" />
+                        ) : (
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-200 text-xs font-bold text-zinc-700">
+                            {c.name.slice(0, 2).toUpperCase()}
+                          </span>
+                        )}
+                        <span className="truncate">{c.name}</span>
+                      </div>
+                      {isCurrent && <Check size={16} className="text-primary shrink-0 ml-2" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
