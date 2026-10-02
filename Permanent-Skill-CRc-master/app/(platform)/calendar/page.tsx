@@ -304,55 +304,105 @@ export default function MeetPage() {
     await deleteProject(id);
   }
 
-  // Quick progress increment / decrement on card
-  async function stepProgress(projectId: string, currentPct: number, delta: number) {
-    const next = Math.max(0, Math.min(100, currentPct + delta));
-    await updateProjectProgress(projectId, next);
-  }
+  // Project Tabs: 'all' | 'current' | 'previous'
+  const [projectTab, setProjectTab] = useState<"all" | "current" | "previous">("current");
 
-  async function handleAddCardTask(projectId: string) {
-    const title = cardNewTask[projectId]?.trim();
-    if (!title) return;
-    await addProjectTask(projectId, title);
-    setCardNewTask((s) => ({ ...s, [projectId]: "" }));
-  }
+  const currentProjects = useMemo(
+    () => projects.filter((p) => p.status === "active" || p.status === "paused" || p.progress < 100),
+    [projects]
+  );
+  const previousProjects = useMemo(
+    () => projects.filter((p) => p.status === "completed" || p.progress === 100),
+    [projects]
+  );
+
+  const displayedProjects = useMemo(() => {
+    if (projectTab === "current") return currentProjects;
+    if (projectTab === "previous") return previousProjects;
+    return projects;
+  }, [projectTab, currentProjects, previousProjects, projects]);
 
   return (
     <div className="space-y-6">
-      {/* 1. Active Projects Section (Matching Reference Image 1 with Fully Functional Progress Bar & Tasks) */}
+      {/* 1. Projects Section: Previous and Current Projects */}
       <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 px-1">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+          <div>
             <h2 className="text-xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
-              <span>Active Projects</span>
+              <span>Projects & Initiatives</span>
               <span className="h-2.5 w-2.5 rounded-full bg-[#5051F9]" />
             </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Comprehensive overview of your current initiatives and previous completed projects synced with Meet Calendar
+            </p>
           </div>
-          <p className="text-xs text-zinc-500">
-            Showing active initiatives synced with Meet Calendar
-          </p>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-1">
+              <button
+                onClick={() => setProjectTab("current")}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                  projectTab === "current"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                Current Projects ({currentProjects.length})
+              </button>
+              <button
+                onClick={() => setProjectTab("previous")}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                  projectTab === "previous"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                Previous Projects ({previousProjects.length})
+              </button>
+              <button
+                onClick={() => setProjectTab("all")}
+                className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                  projectTab === "all"
+                    ? "bg-white text-zinc-900 shadow-xs"
+                    : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                All ({projects.length})
+              </button>
+            </div>
+
+            <button
+              onClick={openCreateProject}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#5051F9] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-[#4041d8] transition"
+            >
+              <Plus size={14} /> Add Project
+            </button>
+          </div>
         </div>
 
-        {projects.length === 0 ? (
+        {displayedProjects.length === 0 ? (
           <Card className="p-8 text-center bg-zinc-50/50 border-dashed">
             <Layers size={32} className="mx-auto text-zinc-400 mb-2" />
-            <p className="text-sm font-semibold text-zinc-700">No active projects yet</p>
+            <p className="text-sm font-semibold text-zinc-700">
+              {projectTab === "previous"
+                ? "No previous completed projects yet"
+                : projectTab === "current"
+                ? "No current active projects"
+                : "No projects created yet"}
+            </p>
             <p className="text-xs text-zinc-500 mt-1">
-              Click &ldquo;+ Add Project&rdquo; on the calendar toolbar to create your first team initiative.
+              Click &ldquo;+ Add Project&rdquo; to create a new initiative.
             </p>
           </Card>
         ) : (
           <div className="space-y-4">
-            {projects.map((proj) => {
+            {displayedProjects.map((proj) => {
               const lead = users.find((u) => u.id === proj.leadId);
               const teamMembers = proj.memberIds
                 .map((id) => users.find((u) => u.id === id))
                 .filter(Boolean) as PublicUser[];
 
               const isCompleted = proj.progress === 100 || proj.status === "completed";
-              const tasksOpen = !!expandedTasks[proj.id];
-              const projectTasks = proj.tasks || [];
-              const completedTasksCount = projectTasks.filter((t) => t.completed).length;
 
               return (
                 <Card
@@ -402,7 +452,7 @@ export default function MeetPage() {
                                   : "bg-indigo-50 text-indigo-700 border-indigo-200"
                               }`}
                             >
-                              ● {proj.status}
+                              {isCompleted ? "✓ Completed" : "● Active"}
                             </span>
                           </div>
                           <p className="mt-1 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
@@ -419,7 +469,7 @@ export default function MeetPage() {
                           </p>
                         </div>
 
-                        {/* Metadata row: Avatars, Lead, Interactive Progress Bar & Steppers */}
+                        {/* Metadata row: Avatars, Lead, and Sleek Progress Bar (Matching 3rd Image) */}
                         <div className="flex items-center gap-4 flex-wrap pt-1">
                           {/* Member Avatars */}
                           <div className="flex items-center -space-x-2">
@@ -444,57 +494,34 @@ export default function MeetPage() {
                             <span>Lead: <strong className="font-semibold">{proj.leadName || lead?.name || "Admin"}</strong></span>
                           </div>
 
-                          {/* Fully Functional Interactive Progress Bar */}
-                          <div className="flex items-center gap-2 min-w-[200px] max-w-[260px] flex-1 bg-zinc-50/80 px-2.5 py-1 rounded-lg border border-zinc-200/60">
-                            <button
-                              onClick={() => stepProgress(proj.id, proj.progress, -10)}
-                              className="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 rounded"
-                              title="Decrease 10%"
+                          {/* Progress Bar (Matching Reference Image 3: Sleek rounded horizontal track with right percentage) */}
+                          <div className="flex items-center gap-2.5 min-w-[170px] max-w-[260px] flex-1">
+                            <div
+                              className="relative h-2 flex-1 rounded-full bg-zinc-200/80 overflow-hidden cursor-pointer group"
+                              title={`Progress: ${proj.progress}% (click anywhere to adjust)`}
+                              onClick={(e) => {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = Math.max(0, Math.min(rect.width, e.clientX - rect.left));
+                                const pct = Math.round((x / rect.width) * 100);
+                                updateProjectProgress(proj.id, pct);
+                              }}
                             >
-                              <Minus size={11} />
-                            </button>
-
-                            <div className="flex-1">
-                              <ProgressBar
-                                value={proj.progress}
-                                interactive
-                                onChange={(newVal) => updateProjectProgress(proj.id, newVal)}
+                              <div
+                                className={`h-full rounded-full transition-all duration-300 ${
+                                  isCompleted ? "bg-emerald-500" : "bg-[#5051F9]"
+                                }`}
+                                style={{ width: `${proj.progress}%` }}
                               />
                             </div>
-
-                            <button
-                              onClick={() => stepProgress(proj.id, proj.progress, 10)}
-                              className="p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200/60 rounded"
-                              title="Increase 10%"
-                            >
-                              <Plus size={11} />
-                            </button>
-
-                            <span className="text-xs font-bold text-zinc-800 w-9 text-right">
+                            <span className="text-xs font-medium text-zinc-500 shrink-0 w-8 text-right">
                               {proj.progress}%
                             </span>
                           </div>
-
-                          {/* Quick Toggle Milestones / Checklist */}
-                          <button
-                            onClick={() =>
-                              setExpandedTasks((s) => ({ ...s, [proj.id]: !s[proj.id] }))
-                            }
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                          >
-                            <ListTodo size={13} />
-                            <span>
-                              {projectTasks.length > 0
-                                ? `${completedTasksCount}/${projectTasks.length} Milestones`
-                                : "Add Milestones"}
-                            </span>
-                            {tasksOpen ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-                          </button>
                         </div>
                       </div>
                     </div>
 
-                    {/* Right: MEET SYNC STATUS Box (Matching Image 1) */}
+                    {/* Right: MEET SYNC STATUS Box */}
                     <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0">
                       <div className="w-full lg:w-[260px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2">
                         <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
@@ -515,26 +542,8 @@ export default function MeetPage() {
                         </div>
                       </div>
 
-                      {/* Project actions */}
+                      {/* Project actions (Join Meet, Edit, Delete) */}
                       <div className="flex items-center gap-2 shrink-0">
-                        {isCompleted ? (
-                          <button
-                            onClick={() => updateProjectProgress(proj.id, 90)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-zinc-100 hover:bg-zinc-200 px-2.5 py-1.5 text-xs font-semibold text-zinc-700 transition"
-                            title="Reopen initiative"
-                          >
-                            <RotateCcw size={12} /> Reopen
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => updateProjectProgress(proj.id, 100)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 text-xs font-semibold text-white shadow-xs transition"
-                            title="Mark 100% Complete"
-                          >
-                            <CheckCircle2 size={12} /> Mark 100%
-                          </button>
-                        )}
-
                         {proj.meetUrl && (
                           <a
                             href={proj.meetUrl}
@@ -563,70 +572,6 @@ export default function MeetPage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Expandable Milestones & Checklist Drawer */}
-                  {tasksOpen && (
-                    <div className="mt-4 pt-4 border-t border-zinc-100 space-y-3 bg-zinc-50/60 rounded-xl p-3.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
-                          <ListTodo size={14} className="text-primary" />
-                          <span>Project Milestones & Key Tasks</span>
-                        </span>
-                        <span className="text-xs font-medium text-zinc-500">
-                          {completedTasksCount} of {projectTasks.length} tasks completed ({proj.progress}%)
-                        </span>
-                      </div>
-
-                      {projectTasks.length === 0 ? (
-                        <p className="text-xs text-zinc-500 py-1">No milestones added yet. Add tasks below to track initiative progress.</p>
-                      ) : (
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {projectTasks.map((t) => (
-                            <label
-                              key={t.id}
-                              className={`flex items-start gap-2.5 rounded-lg border p-2.5 text-xs transition cursor-pointer ${
-                                t.completed
-                                  ? "bg-emerald-50/70 border-emerald-200 text-emerald-900 line-through"
-                                  : "bg-white border-zinc-200/80 text-zinc-800 hover:border-primary/40 shadow-xs"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={t.completed}
-                                onChange={() => toggleProjectTask(proj.id, t.id)}
-                                className="mt-0.5 rounded text-primary focus:ring-primary h-4 w-4"
-                              />
-                              <span className="flex-1 select-none font-medium leading-relaxed">{t.title}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Add new milestone inline */}
-                      <div className="flex gap-2 pt-1">
-                        <input
-                          value={cardNewTask[proj.id] || ""}
-                          onChange={(e) =>
-                            setCardNewTask((s) => ({ ...s, [proj.id]: e.target.value }))
-                          }
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              e.preventDefault();
-                              handleAddCardTask(proj.id);
-                            }
-                          }}
-                          placeholder="Add milestone / deliverable (press Enter)..."
-                          className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                        />
-                        <PrimaryButton
-                          onClick={() => handleAddCardTask(proj.id)}
-                          className="text-xs py-1.5 px-3"
-                        >
-                          <Plus size={13} /> Add
-                        </PrimaryButton>
-                      </div>
-                    </div>
-                  )}
                 </Card>
               );
             })}

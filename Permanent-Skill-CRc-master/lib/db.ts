@@ -75,6 +75,14 @@ function migrate(db: Database) {
   if (!db.projects || db.projects.length === 0) {
     db.projects = createSeed().projects;
     changed = true;
+  } else {
+    const seedProjects = createSeed().projects;
+    for (const sp of seedProjects) {
+      if (!db.projects.some((p) => p.id === sp.id)) {
+        db.projects.push(sp);
+        changed = true;
+      }
+    }
   }
   if (changed) persist(db);
 }

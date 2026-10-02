@@ -718,6 +718,28 @@ export function createSeed(): Database {
       createdAt: daysAgo(10),
       createdBy: "u-admin",
     },
+    {
+      id: "proj-crm-engine",
+      title: "Omnichannel Lead Nurture & CRM Engine",
+      description: "Automated multi-touch outreach architecture, high-intent lead scoring, and N8N pipeline integration with real-time conversion telemetry.",
+      version: "v1.0.0",
+      leadId: "u-ayaan",
+      leadName: "Ayaan Malik",
+      memberIds: ["u-ayaan", "u-priya", "u-admin"],
+      mentionedUsernames: ["ayaan-malik", "priya-sharma"],
+      progress: 100,
+      tasks: [
+        { id: "t8", title: "N8N Webhook payload normalization", completed: true },
+        { id: "t9", title: "Lead scoring matrix configuration", completed: true },
+        { id: "t10", title: "Multi-channel automated sequence deployment", completed: true },
+      ],
+      status: "completed",
+      meetSyncTime: "Sprint Wrap-Up: Completed",
+      meetRoom: "Archive Meet #crm-wrapup",
+      meetUrl: "https://meet.google.com/new",
+      createdAt: daysAgo(28),
+      createdBy: "u-admin",
+    },
   ];
 
   return {
