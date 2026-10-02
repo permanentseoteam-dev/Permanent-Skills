@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: #5051f9;
+  --color-primary-dark: #3d3ee6;
+  --color-gold: #f0c14b;
+  --color-bg: #f4f4f1;
+  --font-sans: var(--font-geist-sans);
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+
+body {
+  background: #f4f4f1;
+  color: #1c1c1c;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d4d4d0 transparent;
+}
+
+::selection {
+  background: #5051f933;
+}
+
+.skool-nav-link {
+  position: relative;
+  padding: 0.9rem 0.85rem;
+  font-size: 0.925rem;
+  color: #52525b;
+  font-weight: 500;
+}
+
+.skool-nav-link:hover {
+  color: #18181b;
+}
+
+.skool-nav-link.active {
+  color: #18181b;
+  font-weight: 600;
+}
+
+.skool-nav-link.active::after {
+  content: "";
+  position: absolute;
+  left: 0.4rem;
+  right: 0.4rem;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: #5051f9;
+}
+
+.course-shine {
+  background:
+    radial-gradient(circle at 80% 18%, rgba(255, 255, 255, 0.22), transparent 42%),
+    linear-gradient(135deg, #3d3ee6 0%, #5051f9 48%, #7c83ff 100%);
+  color: #fff;
+}

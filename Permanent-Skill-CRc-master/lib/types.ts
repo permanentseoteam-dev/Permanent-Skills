@@ -1,0 +1,222 @@
+export type Role = "admin" | "member";
+export type Status = "pending" | "approved" | "rejected";
+export type PostCategory = "chat" | "wins" | "recorded" | "reviews";
+export type EventType = "live" | "premium";
+
+export interface Application {
+  fullName: string;
+  phone: string;
+  country: string;
+  city: string;
+  profession: string;
+  experience: string;
+  website: string;
+  goals: string;
+  howHeard: string;
+  notes: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  passwordHash: string;
+  name: string;
+  username: string;
+  bio: string;
+  role: Role;
+  status: Status;
+  points: number;
+  points7d: number;
+  points30d: number;
+  avatarColor: string;
+  location: string;
+  lat: number;
+  lng: number;
+  joinedAt: string;
+  lastSeenAt: string;
+  loginCount: number;
+  isPremium: boolean;
+  language: string;
+  phone?: string;
+  notes?: string;
+  application?: Application;
+  affiliateCode: string;
+  affiliateClicks: number;
+  affiliateSignups: number;
+  affiliateEarnings: number;
+  referredBy?: string;
+}
+
+export interface PublicUser {
+  id: string;
+  email?: string;
+  name: string;
+  username: string;
+  bio: string;
+  role: Role;
+  status?: Status;
+  points: number;
+  points7d: number;
+  points30d: number;
+  avatarColor: string;
+  location: string;
+  lat: number;
+  lng: number;
+  joinedAt: string;
+  lastSeenAt: string;
+  isOnline: boolean;
+  isPremium: boolean;
+  language?: string;
+  phone?: string;
+  notes?: string;
+  loginCount?: number;
+  application?: Application;
+  affiliateCode?: string;
+  affiliateClicks?: number;
+  affiliateSignups?: number;
+  affiliateEarnings?: number;
+  hasActiveSession?: boolean;
+}
+
+export interface Post {
+  id: string;
+  authorId: string;
+  category: PostCategory;
+  title: string;
+  body: string;
+  pinned: boolean;
+  likes: string[];
+  createdAt: string;
+  thumbnail?: string;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  authorId: string;
+  body: string;
+  createdAt: string;
+}
+
+export interface Lesson {
+  id: string;
+  module: string;
+  title: string;
+  duration: string;
+  notes: string;
+  videoUrl?: string;
+  videoTitle?: string;
+}
+
+export interface Course {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  accent: string;
+  badge: string;
+  unlockLevel: number;
+  lessons: Lesson[];
+}
+
+export interface Progress {
+  userId: string;
+  courseId: string;
+  completedLessonIds: string[];
+}
+
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  type: EventType;
+  description: string;
+}
+
+export interface Message {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  body: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  actorId?: string;
+  title: string;
+  body: string;
+  link: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export interface Review {
+  id: string;
+  userId: string;
+  rating: number;
+  body: string;
+  createdAt: string;
+}
+
+export interface Sale {
+  id: string;
+  userId: string;
+  amount: number;
+  plan: string;
+  createdAt: string;
+}
+
+export interface Session {
+  token: string;
+  userId: string;
+  deviceId?: string;
+  createdAt: string;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  totalSales: number;
+  totalLogins: number;
+  pendingCount: number;
+}
+
+export interface Database {
+  users: User[];
+  posts: Post[];
+  comments: Comment[];
+  courses: Course[];
+  progress: Progress[];
+  events: CalendarEvent[];
+  messages: Message[];
+  notifications: Notification[];
+  reviews: Review[];
+  sales: Sale[];
+  sessions: Session[];
+}
+
+export interface AppState {
+  user: PublicUser | null;
+  users: PublicUser[];
+  posts: Post[];
+  comments: Comment[];
+  courses: Course[];
+  progress: Progress[];
+  events: CalendarEvent[];
+  messages: Message[];
+  notifications: Notification[];
+  reviews: Review[];
+  stats: AdminStats | null;
+  sales: Sale[];
+  limited: boolean;
+}
+
+export interface ActionResult {
+  ok: boolean;
+  error?: string;
+  id?: string;
+  next?: string;
+}
