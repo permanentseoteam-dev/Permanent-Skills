@@ -401,7 +401,7 @@ export async function submitApplication(form: Application): Promise<ActionResult
 
 export async function approveUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   const now = new Date().toISOString();
   await updateDb((db) => {
     const user = db.users.find((u) => u.id === userId);
