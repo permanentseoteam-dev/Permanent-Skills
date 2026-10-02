@@ -1,11 +1,31 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Clock, MessageSquare, Pencil, Plus, Trash2, X } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  CheckCircle2,
+  Clock,
+  Eye,
+  EyeOff,
+  Key,
+  Lock,
+  MessageSquare,
+  Pencil,
+  Plus,
+  RotateCcw,
+  Shield,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  UserCheck,
+  Users,
+  X,
+} from "lucide-react";
 import Link from "next/link";
 import { useApp } from "@/components/AppProvider";
 import { AdminClassroom } from "@/components/AdminClassroom";
-import { Avatar, Card, Field, Modal, PrimaryButton, inputClass } from "@/components/ui";
+import { Avatar, Card, Field, Modal, PrimaryButton, UserRoleBadge, inputClass } from "@/components/ui";
 import { formatMoney, timeAgo } from "@/lib/format";
 import type { PublicUser, Role, Status } from "@/lib/types";
 
@@ -52,16 +72,32 @@ export default function AdminPage() {
     rejectComment,
     deleteComment,
   } = useApp();
-  const [tab, setTab] = useState<"pending" | "members" | "comments" | "sales" | "classroom">("pending");
+  const [tab, setTab] = useState<"pending" | "members" | "manager" | "comments" | "sales" | "classroom">("pending");
   const [editor, setEditor] = useState<"create" | PublicUser | null>(null);
   const [form, setForm] = useState<MemberForm>(emptyForm);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Dedicated Manager Setup form state (initial login details empty for later setup)
+  const [managerForm, setManagerForm] = useState({
+    name: "",
+    email: "",
+    username: "",
+    password: "",
+    bio: "",
+    location: "",
+    status: "approved" as Status,
+  });
+  const [managerEditingId, setManagerEditingId] = useState<string | null>(null);
+  const [managerBusy, setManagerBusy] = useState(false);
+  const [managerFeedback, setManagerFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showManagerPassword, setShowManagerPassword] = useState(false);
+
   const pending = users.filter((u) => u.status === "pending");
   const pendingComments = comments.filter((c) => c.status === "pending");
   const approvedComments = comments.filter((c) => c.status === "approved" || !c.status);
   const members = users;
+  const managerUsers = users.filter((u) => u.role === "manager");
 
   if (user?.role !== "admin" && user?.role !== "manager") {
     return <p className="text-zinc-500">Admin and Manager access only.</p>;
@@ -126,10 +162,120 @@ export default function AdminPage() {
     }
   }
 
+  function resetManagerForm() {
+    setManagerForm({
+      name: "",
+      email: "",
+      username: "",
+      password: "",
+      bio: "",
+      location: "",
+      status: "approved",
+    });
+    setManagerEditingId(null);
+    setManagerFeedback(null);
+  }
+
+  function loadManagerIntoForm(mgr: PublicUser) {
+    setManagerForm({
+      name: mgr.name,
+      email: mgr.email || "",
+      username: mgr.username,
+      password: "",
+      bio: mgr.bio,
+      location: mgr.location,
+      status: mgr.status || "approved",
+    });
+    setManagerEditingId(mgr.id);
+    setManagerFeedback(null);
+  }
+
+  async function onSaveManager() {
+    setManagerBusy(true);
+    setManagerFeedback(null);
+
+    if (
+      !managerForm.name.trim() &&
+      !managerForm.email.trim() &&
+      !managerForm.username.trim() &&
+      !managerForm.password.trim()
+    ) {
+      setManagerBusy(false);
+      setManagerFeedback({
+        type: "error",
+        text: "Please enter the manager's name, email, or credentials to save the account.",
+      });
+      return;
+    }
+
+    if (managerForm.email && !managerForm.email.includes("@")) {
+      setManagerBusy(false);
+      setManagerFeedback({
+        type: "error",
+        text: "Please enter a valid email address.",
+      });
+      return;
+    }
+
+    if (managerEditingId) {
+      const res = await updateMember({
+        userId: managerEditingId,
+        name: managerForm.name.trim() || undefined,
+        email: managerForm.email.trim() || undefined,
+        username: managerForm.username.trim() || undefined,
+        password: managerForm.password.trim() || undefined,
+        bio: managerForm.bio.trim() || undefined,
+        location: managerForm.location.trim() || undefined,
+        status: managerForm.status,
+        role: "manager",
+        isPremium: true,
+        language: "English",
+      });
+      setManagerBusy(false);
+      if (res.ok) {
+        setManagerFeedback({
+          type: "success",
+          text: "✓ Manager account updated successfully with full delegated permissions.",
+        });
+      } else {
+        setManagerFeedback({
+          type: "error",
+          text: res.error || "Failed to update manager account.",
+        });
+      }
+    } else {
+      const res = await createMember({
+        name: managerForm.name.trim() || "Community Operations Manager",
+        email: managerForm.email.trim() || "manager@permanentseo.com",
+        username: managerForm.username.trim() || undefined,
+        password: managerForm.password.trim() || "manager123456",
+        bio: managerForm.bio.trim() || "Community Operations & Moderation Manager",
+        location: managerForm.location.trim() || "",
+        status: managerForm.status,
+        role: "manager",
+        isPremium: true,
+        language: "English",
+      });
+      setManagerBusy(false);
+      if (res.ok) {
+        setManagerFeedback({
+          type: "success",
+          text: "✓ New Manager account created successfully with full delegated permissions.",
+        });
+        resetManagerForm();
+      } else {
+        setManagerFeedback({
+          type: "error",
+          text: res.error || "Failed to create manager account.",
+        });
+      }
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">Admin</h1>
+        <h1 className="text-2xl font-bold">Admin & Operations</h1>
         <p className="text-sm text-zinc-500">Total users, sales, and logins are visible only here and on your sidebar.</p>
       </div>
       <div className="grid gap-4 md:grid-cols-4">
@@ -143,6 +289,7 @@ export default function AdminPage() {
           [
             { id: "pending", label: `Pending Apps (${pending.length})` },
             { id: "members", label: "Members" },
+            { id: "manager", label: `★ Manager Setup ${managerUsers.length > 0 ? `(${managerUsers.length})` : ""}` },
             { id: "comments", label: `Comments Moderation ${pendingComments.length > 0 ? `(${pendingComments.length})` : ""}` },
             { id: "sales", label: "Sales" },
             { id: "classroom", label: "Classroom" },
@@ -243,7 +390,14 @@ export default function AdminPage() {
                       </div>
                     </td>
                     <td className="capitalize">{m.status}</td>
-                    <td className="capitalize">{m.role}</td>
+                    <td className="capitalize">
+                      <div className="flex items-center gap-1.5">
+                        <span>{m.role}</span>
+                        {m.role === "manager" && (
+                          <span className="rounded bg-blue-100 px-1.5 py-0.2 text-[10px] font-bold text-blue-700">★</span>
+                        )}
+                      </div>
+                    </td>
                     <td>
                       <span className="font-mono text-xs text-zinc-600">{m.ipAddress || "127.0.0.1"}</span>
                     </td>
@@ -267,6 +421,343 @@ export default function AdminPage() {
         </div>
       )}
 
+      {/* NEW MANAGER SETUP SECTION */}
+      {tab === "manager" && (
+        <div className="space-y-6">
+          {/* Overview & Responsibilities Banner */}
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50/70 via-indigo-50/40 to-white p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2.5">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-blue-900 px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide text-blue-100 shadow-xs border border-blue-400/40">
+                    <span className="text-[10px]">★</span> Manager Role
+                  </span>
+                  <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
+                    Delegated Operations
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold text-zinc-900 pt-1">
+                  Manager Responsibilities & Credentials Setup
+                </h2>
+                <p className="text-sm text-zinc-600 max-w-3xl">
+                  The Manager role gives delegated staff complete operational control across all communities, students, and comment moderation while safeguarding root system privileges.
+                </p>
+              </div>
+
+              <div className="shrink-0">
+                <div className="rounded-xl border border-blue-100 bg-white p-3.5 shadow-xs text-center">
+                  <p className="text-xs font-medium text-zinc-500">Active Managers</p>
+                  <p className="text-2xl font-black text-blue-900">{managerUsers.length}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Responsibilities Matrix */}
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 pt-4 border-t border-blue-100/80">
+              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
+                  <UserCheck size={15} className="text-blue-600" />
+                  <span>Student & Member Management</span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  Add, edit, approve, and reject students. Update profiles and release device login locks anytime.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
+                  <MessageSquare size={15} className="text-blue-600" />
+                  <span>Comments & Discussion Moderation</span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  Review, approve, and reject submitted comments across both Classroom lessons and Community posts.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
+                  <Sparkles size={15} className="text-blue-600" />
+                  <span>Verified ★ Manager Favicon Badge</span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  All posts, announcements, replies, and notes automatically show the official verified Manager badge.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
+                  <Users size={15} className="text-blue-600" />
+                  <span>Multi-Community Leadership</span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  Post and oversee discussions across Students Community and Team Members Community.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
+                  <Clock size={15} className="text-blue-600" />
+                  <span>Application Review Workflow</span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  Process applicant questionnaires, contact phones, and country/experience notes.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-blue-100/60 bg-white/90 p-3.5 space-y-1">
+                <div className="flex items-center gap-2 font-semibold text-xs text-blue-900">
+                  <ShieldCheck size={15} className="text-blue-600" />
+                  <span>Safeguarded Superuser Scope</span>
+                </div>
+                <p className="text-xs text-zinc-600">
+                  Protected boundaries prevent modifying admin accounts or elevating users to root superadmin.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Dedicated Empty Manager Login Credentials Section */}
+          <Card className="p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                  <Key size={18} className="text-blue-600" />
+                  <span>{managerEditingId ? "Edit Manager Credentials" : "Manager Login Credentials"}</span>
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Login details are kept empty in this dedicated section so you can configure them whenever you are ready.
+                </p>
+              </div>
+
+              {managerEditingId && (
+                <button
+                  onClick={resetManagerForm}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800"
+                >
+                  <RotateCcw size={12} /> Reset to empty form
+                </button>
+              )}
+            </div>
+
+            {/* Info notice about empty state */}
+            <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/60 p-3.5 flex items-start gap-2.5 text-xs text-blue-900">
+              <AlertCircle size={16} className="text-blue-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-semibold">Setup Notice:</span> Manager credentials are prepped and empty below. You can fill out the email, username, and password fields now or later whenever ready to activate or update manager access.
+              </div>
+            </div>
+
+            {/* Feedback Alert */}
+            {managerFeedback && (
+              <div
+                className={`mb-4 rounded-xl p-3.5 text-xs flex items-center gap-2 font-medium ${
+                  managerFeedback.type === "success"
+                    ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                    : "bg-red-50 text-red-800 border border-red-200"
+                }`}
+              >
+                {managerFeedback.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                <span>{managerFeedback.text}</span>
+              </div>
+            )}
+
+            {/* Empty Credentials Input Form */}
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Manager Full Name">
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. Community Operations Manager"
+                    value={managerForm.name}
+                    onChange={(e) => setManagerForm((f) => ({ ...f, name: e.target.value }))}
+                  />
+                </Field>
+
+                <Field label="Manager Email (Login ID)">
+                  <input
+                    className={inputClass}
+                    type="email"
+                    placeholder="e.g. manager@permanentseo.com"
+                    value={managerForm.email}
+                    onChange={(e) => setManagerForm((f) => ({ ...f, email: e.target.value }))}
+                  />
+                </Field>
+
+                <Field label="Username (Slug)">
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. community-manager"
+                    value={managerForm.username}
+                    onChange={(e) => setManagerForm((f) => ({ ...f, username: e.target.value }))}
+                  />
+                </Field>
+
+                <Field label={managerEditingId ? "New Password (Leave empty to keep existing)" : "Manager Password"}>
+                  <div className="relative">
+                    <input
+                      className={`${inputClass} pr-10`}
+                      type={showManagerPassword ? "text" : "password"}
+                      placeholder={managerEditingId ? "•••••••• (Leave blank to keep)" : "Set secure manager password (min 8 chars)"}
+                      value={managerForm.password}
+                      onChange={(e) => setManagerForm((f) => ({ ...f, password: e.target.value }))}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowManagerPassword(!showManagerPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                      tabIndex={-1}
+                    >
+                      {showManagerPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </Field>
+
+                <Field label="Location">
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. New York, USA"
+                    value={managerForm.location}
+                    onChange={(e) => setManagerForm((f) => ({ ...f, location: e.target.value }))}
+                  />
+                </Field>
+
+                <Field label="Account Status">
+                  <select
+                    className={inputClass}
+                    value={managerForm.status}
+                    onChange={(e) => setManagerForm((f) => ({ ...f, status: e.target.value as Status }))}
+                  >
+                    <option value="approved">Approved (Active Staff)</option>
+                    <option value="pending">Pending</option>
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="Staff Bio / Role Description">
+                <textarea
+                  className={`${inputClass} min-h-[70px]`}
+                  placeholder="e.g. Community manager and student success lead assisting students and moderating community submissions."
+                  value={managerForm.bio}
+                  onChange={(e) => setManagerForm((f) => ({ ...f, bio: e.target.value }))}
+                />
+              </Field>
+
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100">
+                <div className="flex items-center gap-2 text-xs text-zinc-500">
+                  <Shield size={14} className="text-blue-600" />
+                  <span>Role is automatically locked to <strong className="text-zinc-800">★ Manager</strong></span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={resetManagerForm}
+                    className="rounded-lg px-4 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition"
+                  >
+                    Clear Form
+                  </button>
+                  <PrimaryButton
+                    disabled={managerBusy}
+                    onClick={onSaveManager}
+                    className="gap-1.5 text-xs py-2 bg-blue-900 hover:bg-blue-800 ring-blue-900"
+                  >
+                    <Check size={14} />
+                    {managerBusy
+                      ? "Saving..."
+                      : managerEditingId
+                        ? "Save Changes to Manager"
+                        : "Save / Configure Manager Account"}
+                  </PrimaryButton>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Active Configured Managers List */}
+          <Card className="p-6">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-zinc-900 flex items-center gap-2">
+                  <span>Current Active Managers</span>
+                  <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">
+                    {managerUsers.length}
+                  </span>
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Accounts configured with delegated management access.
+                </p>
+              </div>
+            </div>
+
+            {managerUsers.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-200 p-8 text-center">
+                <Shield size={28} className="mx-auto text-zinc-300 mb-2" />
+                <p className="text-sm font-medium text-zinc-700">No Manager Accounts Configured Yet</p>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Fill in the empty credentials form above whenever you are ready to create your manager account.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {managerUsers.map((mgr) => (
+                  <div
+                    key={mgr.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-zinc-200/80 bg-white p-4 shadow-2xs hover:border-blue-200 transition"
+                  >
+                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                      <Avatar user={mgr} size={42} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-sm text-zinc-900">{mgr.name}</span>
+                          <UserRoleBadge role="manager" size="xs" />
+                          <span className="text-xs text-zinc-400 font-mono">@{mgr.username}</span>
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-0.5">{mgr.email || "No email provided"}</p>
+                        {mgr.bio && <p className="text-xs text-zinc-700 mt-1 line-clamp-1">{mgr.bio}</p>}
+                        <div className="mt-2 flex items-center gap-3 text-[11px] text-zinc-400">
+                          <span>Joined {timeAgo(mgr.joinedAt)}</span>
+                          <span>•</span>
+                          <span>Device: {mgr.hasActiveSession ? "Logged in" : "Free"}</span>
+                          <span>•</span>
+                          <span>IP: {mgr.ipAddress || "127.0.0.1"}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                      <button
+                        onClick={() => loadManagerIntoForm(mgr)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition"
+                      >
+                        <Pencil size={12} /> Edit Details
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const res = await updateMember({
+                            userId: mgr.id,
+                            role: "member",
+                          });
+                          if (res.ok) {
+                            setManagerFeedback({
+                              type: "success",
+                              text: `Demoted ${mgr.name} to member.`,
+                            });
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-zinc-500 hover:text-red-600 hover:bg-red-50 transition"
+                        title="Demote to Member"
+                      >
+                        Demote
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
       {tab === "comments" && (
         <div className="space-y-6">
           <Card className="p-5">
@@ -279,7 +770,7 @@ export default function AdminPage() {
                   </span>
                 </h2>
                 <p className="text-xs text-zinc-500 mt-0.5">
-                  Comments written by members must be approved by an admin before they become visible to the community.
+                  Comments written by members must be approved by an admin or manager before they become visible to the community.
                 </p>
               </div>
             </div>
@@ -355,6 +846,7 @@ export default function AdminPage() {
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-xs font-semibold text-zinc-800">{author?.name}</span>
+                            <UserRoleBadge role={author?.role} size="xs" />
                             <span className="text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
                             <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
                               Approved
@@ -445,7 +937,10 @@ export default function AdminPage() {
             <Field label="Role">
               <select className={inputClass} value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role }))}>
                 <option value="member">Member</option>
-                <option value="admin">Admin</option>
+                <option value="manager">★ Manager (Staff)</option>
+                <option value="admin">Admin (Superuser)</option>
+                <option value="student">Student</option>
+                <option value="team_member">Team Member</option>
               </select>
             </Field>
             <Field label="Location">

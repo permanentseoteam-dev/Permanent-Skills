@@ -513,38 +513,19 @@ export async function createMember(input: {
 
 export async function updateMember(input: {
   userId: string;
-  name: string;
-  email: string;
-  username: string;
-  bio: string;
-  location: string;
-  status: Status;
-  role: Role;
-  isPremium: boolean;
-  language: string;
+  name?: string;
+  email?: string;
+  username?: string;
+  bio?: string;
+  location?: string;
+  status?: Status;
+  role?: Role;
+  isPremium?: boolean;
+  language?: string;
   password?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
-
-  const name = input.name.trim();
-  const email = input.email.trim().toLowerCase();
-  const username = slugify(input.username.trim()) || slugify(name);
-  if (name.length < 2) return { ok: false, error: "Please enter the member's name." };
-  if (!email.includes("@")) return { ok: false, error: "Enter a valid email." };
-  if (input.password && input.password.length < 8) {
-    return { ok: false, error: "Password must be at least 8 characters." };
-  }
-  if (!["pending", "approved", "rejected"].includes(input.status)) {
-    return { ok: false, error: "Choose a valid status." };
-  }
-  const allowedRoles: Role[] = ["admin", "manager", "member", "student", "team_member", "user"];
-  if (!allowedRoles.includes(input.role)) {
-    return { ok: false, error: "Choose a valid role." };
-  }
-  if (input.role === "admin" && me.role !== "admin") {
-    return { ok: false, error: "Only admins can assign the admin role." };
-  }
 
   const db = readDb();
   const target = db.users.find((u) => u.id === input.userId);
@@ -552,6 +533,29 @@ export async function updateMember(input: {
   if (target.role === "admin" && me.role !== "admin") {
     return { ok: false, error: "Only admins can modify admin accounts." };
   }
+
+  const name = input.name !== undefined ? input.name.trim() : target.name;
+  const email = input.email !== undefined ? input.email.trim().toLowerCase() : target.email;
+  const username = input.username !== undefined ? slugify(input.username.trim()) || slugify(name) : target.username;
+  const status = input.status !== undefined ? input.status : target.status;
+  const role = input.role !== undefined ? input.role : target.role;
+
+  if (name.length < 2) return { ok: false, error: "Please enter the member's name." };
+  if (!email.includes("@")) return { ok: false, error: "Enter a valid email." };
+  if (input.password && input.password.length < 8) {
+    return { ok: false, error: "Password must be at least 8 characters." };
+  }
+  if (!["pending", "approved", "rejected"].includes(status)) {
+    return { ok: false, error: "Choose a valid status." };
+  }
+  const allowedRoles: Role[] = ["admin", "manager", "member", "student", "team_member", "user"];
+  if (!allowedRoles.includes(role)) {
+    return { ok: false, error: "Choose a valid role." };
+  }
+  if (role === "admin" && me.role !== "admin") {
+    return { ok: false, error: "Only admins can assign the admin role." };
+  }
+
   if (db.users.some((u) => u.email.toLowerCase() === email && u.id !== input.userId)) {
     return { ok: false, error: "An account with this email already exists." };
   }
@@ -560,10 +564,10 @@ export async function updateMember(input: {
   }
 
   const admins = db.users.filter((u) => u.role === "admin");
-  if (target.role === "admin" && input.role !== "admin" && admins.length < 2) {
+  if (target.role === "admin" && role !== "admin" && admins.length < 2) {
     return { ok: false, error: "Keep at least one admin account." };
   }
-  if (target.id === me.id && input.role !== "admin") {
+  if (target.id === me.id && role !== "admin") {
     return { ok: false, error: "You cannot remove your own admin role." };
   }
 
@@ -573,14 +577,14 @@ export async function updateMember(input: {
     user.name = name;
     user.email = email;
     user.username = username;
-    user.bio = input.bio.trim();
-    user.location = input.location.trim();
-    user.status = input.status;
-    user.role = input.role;
-    user.isPremium = Boolean(input.isPremium);
-    user.language = input.language.trim() || "English";
+    if (input.bio !== undefined) user.bio = input.bio.trim();
+    if (input.location !== undefined) user.location = input.location.trim();
+    user.status = status;
+    user.role = role;
+    if (input.isPremium !== undefined) user.isPremium = Boolean(input.isPremium);
+    if (input.language !== undefined) user.language = input.language.trim() || "English";
     if (input.password) user.passwordHash = hashPassword(input.password);
-    if (input.status === "rejected") {
+    if (status === "rejected") {
       d.sessions = d.sessions.filter((s) => s.userId !== user.id);
     }
   });
@@ -589,7 +593,7 @@ export async function updateMember(input: {
 
 export async function releaseMemberLogin(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   await updateDb((db) => {
     db.sessions = db.sessions.filter((s) => s.userId !== userId);
   });

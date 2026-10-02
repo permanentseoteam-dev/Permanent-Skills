@@ -594,9 +594,9 @@ export function Header() {
               {item.label}
             </Link>
           ))}
-          {user?.role === "admin" && (
+          {(user?.role === "admin" || user?.role === "manager") && (
             <Link href="/admin" className={`skool-nav-link whitespace-nowrap ${pathname.startsWith("/admin") ? "active" : ""}`}>
-              Admin
+              {user?.role === "admin" ? "Admin" : "Manager"}
             </Link>
           )}
           <Link
@@ -628,7 +628,14 @@ function UserMenu({
     router.push(href);
   }
 
-  const roleLabel = user?.role === "admin" ? "Admin" : user?.isPremium ? "Premium Member" : "Team Member";
+  const roleLabel =
+    user?.role === "admin"
+      ? "Admin"
+      : user?.role === "manager"
+        ? "★ Manager"
+        : user?.isPremium
+          ? "Premium Member"
+          : "Team Member";
 
   return (
     <div className="absolute right-0 top-full mt-2 z-50 w-[270px] overflow-hidden rounded-xl border border-zinc-200 bg-white py-2 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
@@ -655,6 +662,7 @@ function UserMenu({
         <button onClick={() => go("/affiliates")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
           <Sparkles size={16} className="text-zinc-500" /> Affiliates
         </button>
+        <button onClick={() => go("/langOpen")} className="hidden" />
         <button onClick={() => setLangOpen(!langOpen)} className="flex w-full items-center justify-between px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
           <span className="flex items-center gap-2.5">
             <Globe size={16} className="text-zinc-500" /> Language
@@ -688,9 +696,9 @@ function UserMenu({
         <button onClick={() => go("/discover")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
           <Compass size={16} className="text-zinc-500" /> Discover communities
         </button>
-        {user?.role === "admin" && (
+        {(user?.role === "admin" || user?.role === "manager") && (
           <button onClick={() => go("/admin")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5">
-            <Shield size={16} /> Admin panel
+            <Shield size={16} /> {user?.role === "admin" ? "Admin panel" : "Manager panel"}
           </button>
         )}
       </div>

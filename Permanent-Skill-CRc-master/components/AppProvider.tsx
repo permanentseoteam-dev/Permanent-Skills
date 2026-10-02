@@ -71,15 +71,15 @@ type MemberInput = {
 
 type MemberUpdateInput = {
   userId: string;
-  name: string;
-  email: string;
-  username: string;
-  bio: string;
-  location: string;
-  status: Status;
-  role: Role;
-  isPremium: boolean;
-  language: string;
+  name?: string;
+  email?: string;
+  username?: string;
+  bio?: string;
+  location?: string;
+  status?: Status;
+  role?: Role;
+  isPremium?: boolean;
+  language?: string;
   password?: string;
 };
 
