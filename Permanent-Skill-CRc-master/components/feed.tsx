@@ -6,42 +6,32 @@ import { CalendarDays, Check, Clock, MessageCircle, Pin, Star, ThumbsUp, Trash2,
 import { useApp } from "@/components/AppProvider";
 import { Avatar, Card, PrimaryButton } from "@/components/ui";
 import { CATEGORIES, timeAgo } from "@/lib/format";
-import { assignVariant } from "@/lib/experimentation/bucketing";
-import { trackExperimentEvent } from "@/lib/experimentation/telemetry";
-import { CommunityComposerVariantB } from "@/components/experimentation/CommunityComposerVariantB";
-import type { Comment, ExperimentVariant, Post, PostCategory } from "@/lib/types";
+import type { Comment, Post, PostCategory } from "@/lib/types";
 
-export function PostComposer({ variantOverride }: { variantOverride?: ExperimentVariant }) {
+export function PostComposer() {
   const { createPost, user } = useApp();
-  const [variant, setVariant] = useState<ExperimentVariant>("control");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<PostCategory>("chat");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const v = variantOverride || assignVariant(user?.id);
-    setVariant(v);
-    trackExperimentEvent("exposure", v, user?.id);
-  }, [user?.id, variantOverride]);
-
-  if (variant === "treatment") {
-    return <CommunityComposerVariantB />;
-  }
-
-  // Variant A: Control
   function handleOpen() {
+    setError(null);
     setOpen(true);
-    trackExperimentEvent("composer_open", "control", user?.id);
   }
 
   async function submit() {
     if (!body.trim()) return;
     setBusy(true);
+    setError(null);
     try {
-      await createPost(title, body, category);
-      trackExperimentEvent("post_submit", "control", user?.id, { category, charCount: body.length });
+      const res = await createPost(title, body, category);
+      if (!res.ok) {
+        setError(res.error || "Failed to create post. Please try again.");
+        return;
+      }
       setTitle("");
       setBody("");
       setOpen(false);
@@ -64,12 +54,19 @@ export function PostComposer({ variantOverride }: { variantOverride?: Experiment
 
   return (
     <Card className="p-4">
+      {error && (
+        <div className="mb-3 rounded-xl bg-red-50 p-2.5 text-xs font-semibold text-red-700 border border-red-200">
+          {error}
+        </div>
+      )}
       <div className="mb-3 flex gap-2">
         {(["chat", "wins", "recorded", "reviews"] as PostCategory[]).map((c) => (
           <button
             key={c}
             onClick={() => setCategory(c)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${category === c ? "bg-primary text-white" : "bg-zinc-100 text-zinc-600"}`}
+            className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
+              category === c ? "bg-[#5051f9] text-white shadow-xs" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80"
+            }`}
           >
             {c}
           </button>
@@ -100,18 +97,36 @@ export function PostComposer({ variantOverride }: { variantOverride?: Experiment
 }
 
 export function Feed({ category }: { category: "all" | PostCategory }) {
-  const { posts, comments, userById, user, toggleLike, addComment, togglePin, approveComment, rejectComment, deleteComment } = useApp();
+  const { posts, comments, userById, user, activeCommunity, toggleLike, addComment, togglePin, deletePost, approveComment, rejectComment, deleteComment } = useApp();
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [feedback, setFeedback] = useState<Record<string, string>>({});
+  const [feedback, setFeedback] = useState<Record<string, { text: string; isError?: boolean }>>({});
 
   const list = useMemo(() => {
-    const filtered = posts.filter((p) => category === "all" || p.category === category);
+    const communityId = activeCommunity?.id || "comm-pss";
+    const scoped = posts.filter(
+      (p) => !p.communityId || p.communityId === communityId || (communityId === "comm-pss" && !p.communityId)
+    );
+    const filtered = scoped.filter((p) => category === "all" || p.category === category);
     return [...filtered].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return +new Date(b.createdAt) - +new Date(a.createdAt);
     });
-  }, [posts, category]);
+  }, [posts, category, activeCommunity?.id]);
+
+  if (list.length === 0) {
+    return (
+      <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-xs">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5051f9]/10 text-[#5051f9] mb-3">
+          <MessageCircle size={26} />
+        </div>
+        <h3 className="text-lg font-bold text-zinc-900">No posts in this category yet</h3>
+        <p className="mt-1 text-sm text-zinc-500 max-w-md mx-auto">
+          Be the first to share an insight, ask a question, or celebrate a milestone with the community!
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -123,20 +138,28 @@ export function Feed({ category }: { category: "all" | PostCategory }) {
           onToggleComments={() => setOpenComments((s) => ({ ...s, [post.id]: !s[post.id] }))}
           draft={drafts[post.id] || ""}
           setDraft={(v) => setDrafts((s) => ({ ...s, [post.id]: v }))}
+          feedback={feedback[post.id]?.text || ""}
+          feedbackIsError={feedback[post.id]?.isError}
           onLike={() => {
             toggleLike(post.id);
-            trackExperimentEvent("like_click", assignVariant(user?.id), user?.id, { postId: post.id });
           }}
           onPin={() => togglePin(post.id)}
+          onDeletePost={() => {
+            if (confirm("Are you sure you want to delete this post?")) {
+              deletePost(post.id);
+            }
+          }}
           onComment={async () => {
             const text = drafts[post.id];
             if (!text?.trim()) return;
             const res = await addComment(post.id, text);
-            trackExperimentEvent("comment_submit", assignVariant(user?.id), user?.id, { postId: post.id, charCount: text.length });
             setDrafts((s) => ({ ...s, [post.id]: "" }));
             if (res.message) {
-              setFeedback((s) => ({ ...s, [post.id]: res.message! }));
-              setTimeout(() => setFeedback((s) => ({ ...s, [post.id]: "" })), 4000);
+              setFeedback((s) => ({ ...s, [post.id]: { text: res.message!, isError: false } }));
+              setTimeout(() => setFeedback((s) => ({ ...s, [post.id]: { text: "" } })), 4000);
+            } else if (res.error) {
+              setFeedback((s) => ({ ...s, [post.id]: { text: res.error!, isError: true } }));
+              setTimeout(() => setFeedback((s) => ({ ...s, [post.id]: { text: "" } })), 4000);
             }
           }}
           onApproveComment={(id) => approveComment(id)}
@@ -163,8 +186,10 @@ function PostCard({
   draft,
   setDraft,
   feedback,
+  feedbackIsError,
   onLike,
   onPin,
+  onDeletePost,
   onComment,
   onApproveComment,
   onRejectComment,
@@ -182,8 +207,10 @@ function PostCard({
   draft: string;
   setDraft: (v: string) => void;
   feedback?: string;
+  feedbackIsError?: boolean;
   onLike: () => void;
   onPin: () => void;
+  onDeletePost?: () => void;
   onComment: () => void;
   onApproveComment: (id: string) => void;
   onRejectComment: (id: string) => void;
@@ -214,13 +241,22 @@ function PostCard({
         </div>
         <div className="flex items-center gap-2">
           {post.pinned && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500">
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
               <Pin size={12} /> Pinned
             </span>
           )}
           {isAdmin && (
-            <button onClick={onPin} className="text-xs text-zinc-400 hover:text-primary">
+            <button onClick={onPin} className="text-xs font-medium text-zinc-500 hover:text-primary transition">
               {post.pinned ? "Unpin" : "Pin"}
+            </button>
+          )}
+          {(isAdmin || post.authorId === currentUserId) && onDeletePost && (
+            <button
+              onClick={onDeletePost}
+              className="text-xs text-zinc-400 hover:text-red-500 transition p-1 rounded"
+              title="Delete post"
+            >
+              <Trash2 size={13} />
             </button>
           )}
         </div>
@@ -228,11 +264,14 @@ function PostCard({
       <h3 className="mt-3 text-lg font-semibold">{post.title}</h3>
       <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{post.body}</p>
       {post.thumbnail && (
-        <div className="mt-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-8 text-white">
+        <Link
+          href="/calendar"
+          className="group block mt-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-8 text-white hover:shadow-md transition"
+        >
           <p className="text-xs uppercase tracking-[0.25em] text-white/70">PSS Replay</p>
-          <p className="mt-2 text-2xl font-black">{post.title.replace("Replay: ", "")}</p>
-          <p className="mt-2 text-sm text-white/80">Watch the recording inside Archived Calls.</p>
-        </div>
+          <p className="mt-2 text-2xl font-black group-hover:underline">{post.title.replace("Replay: ", "")}</p>
+          <p className="mt-2 text-sm text-white/80">Watch the recording inside Archived Calls →</p>
+        </Link>
       )}
       <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
         <button onClick={onLike} className={`inline-flex items-center gap-1.5 ${liked ? "text-primary" : ""}`}>
@@ -294,8 +333,12 @@ function PostCard({
                   )}
                   {canDelete && (
                     <button
-                      onClick={() => onDeleteComment(c.id)}
-                      className="p-1 text-zinc-400 hover:text-red-500 rounded"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this comment?")) {
+                          onDeleteComment(c.id);
+                        }
+                      }}
+                      className="p-1 text-zinc-400 hover:text-red-500 rounded transition"
                       title="Delete Comment"
                     >
                       <Trash2 size={13} />
@@ -307,7 +350,13 @@ function PostCard({
           })}
 
           {feedback && (
-            <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-800 border border-emerald-200">
+            <div
+              className={`rounded-xl px-3.5 py-2.5 text-xs font-semibold border ${
+                feedbackIsError
+                  ? "bg-red-50 text-red-700 border-red-200"
+                  : "bg-emerald-50 text-emerald-800 border-emerald-200"
+              }`}
+            >
               {feedback}
             </div>
           )}
@@ -346,12 +395,32 @@ export function LiveBanner() {
     .filter((e) => new Date(e.start).getTime() > Date.now() - 60 * 60 * 1000)
     .sort((a, b) => +new Date(a.start) - +new Date(b.start))[0];
   if (!next) return null;
-  const diff = new Date(next.start).getTime() - Date.now();
-  const days = Math.max(0, Math.round(diff / 86400000));
-  const label = days <= 0 ? "today" : days === 1 ? "tomorrow" : `in ${days} days`;
+
+  const eventDate = new Date(next.start);
+  const today = new Date();
+  const isToday = eventDate.toDateString() === today.toDateString();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const isTomorrow = eventDate.toDateString() === tomorrow.toDateString();
+  const diffDays = Math.ceil((eventDate.getTime() - today.getTime()) / 86400000);
+  const label = isToday ? "today" : isTomorrow ? "tomorrow" : `in ${Math.max(2, diffDays)} days`;
   return (
-    <Link href="/calendar" className="flex items-center justify-center gap-2 py-2 text-sm text-zinc-600">
-      <CalendarDays size={16} /> {next.title} is happening {label}
+    <Link
+      href="/calendar"
+      className="group flex items-center justify-between rounded-2xl border border-[#5051f9]/20 bg-gradient-to-r from-[#5051f9]/5 via-[#5051f9]/10 to-transparent px-4 py-3 text-sm transition hover:border-[#5051f9]/40 hover:bg-[#5051f9]/10 shadow-xs"
+    >
+      <div className="flex items-center gap-2.5 font-medium text-zinc-900">
+        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#5051f9]/15 text-[#5051f9]">
+          <CalendarDays size={16} />
+        </span>
+        <span>
+          <strong className="font-bold text-[#5051f9]">{next.title}</strong> is happening{" "}
+          <span className="font-extrabold underline decoration-[#5051f9]/30">{label}</span>
+        </span>
+      </div>
+      <span className="text-xs font-bold text-[#5051f9] group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+        Join Call →
+      </span>
     </Link>
   );
 }
@@ -382,8 +451,10 @@ export function CategoryPills({
         <button
           key={c.id}
           onClick={() => onChange(c.id as "all" | PostCategory)}
-          className={`rounded-full px-3 py-1.5 text-sm ${
-            value === c.id ? "bg-zinc-900 text-white" : "bg-white text-zinc-600 ring-1 ring-zinc-200"
+          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+            value === c.id
+              ? "bg-[#5051f9] text-white shadow-xs ring-1 ring-[#5051f9]"
+              : "bg-white text-zinc-700 hover:text-[#5051f9] hover:bg-zinc-50 border border-zinc-200/80 shadow-xs"
           }`}
         >
           {"emoji" in c && c.emoji ? `${c.emoji} ` : ""}

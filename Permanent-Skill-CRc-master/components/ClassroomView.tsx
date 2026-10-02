@@ -247,7 +247,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                             onClick={() => handleSelectLesson(item.id)}
                             className={`group flex w-full items-center justify-between text-left transition-all ${
                               isActive
-                                ? "rounded-xl bg-[#f0c14b] px-4 py-3 font-bold text-zinc-950 shadow-sm ring-1 ring-[#e0b03b]"
+                                ? "rounded-xl bg-zinc-100 px-4 py-2.5 font-bold text-zinc-950 shadow-xs border border-zinc-200"
                                 : "rounded-xl px-4 py-2.5 text-[14.5px] font-medium text-zinc-800 hover:bg-white hover:text-[#5051f9] hover:shadow-xs"
                             }`}
                           >
@@ -264,11 +264,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
                             {isDone && (
                               <span
-                                className={`ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full shadow-xs ${
-                                  isActive
-                                    ? "bg-zinc-950 text-white"
-                                    : "bg-[#5051f9] text-white"
-                                }`}
+                                className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full shadow-xs bg-[#5051f9] text-white"
                                 title="Completed"
                               >
                                 <Check size={11} strokeWidth={3.5} />

@@ -20,6 +20,7 @@ import {
   createCommunity as createCommunityAction,
   createMember as createMemberAction,
   createPost as createPostAction,
+  deletePost as deletePostAction,
   deleteLesson as deleteLessonAction,
   getAppState,
   heartbeat,
@@ -108,7 +109,8 @@ type AppContextValue = AppState & {
   register: (name: string, email: string, password: string, phone: string, notes: string, ref?: string) => Promise<ActionResult>;
   logout: () => Promise<void>;
   apply: (form: Application) => Promise<ActionResult>;
-  createPost: (title: string, body: string, category: PostCategory) => Promise<ActionResult>;
+  createPost: (title: string, body: string, category: PostCategory, communityId?: string) => Promise<ActionResult>;
+  deletePost: (postId: string) => Promise<ActionResult>;
   toggleLike: (postId: string) => Promise<ActionResult>;
   addComment: (postId: string, body: string) => Promise<ActionResult>;
   approveComment: (commentId: string) => Promise<ActionResult>;
@@ -253,9 +255,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
   const apply = useCallback((form: Application) => run(() => submitApplication(form)), [run]);
   const createPostFn = useCallback(
-    (title: string, body: string, category: PostCategory) => run(() => createPostAction({ title, body, category })),
-    [run],
+    (title: string, body: string, category: PostCategory, communityId?: string) =>
+      run(() => createPostAction({ title, body, category, communityId: communityId || state.activeCommunityId })),
+    [run, state.activeCommunityId],
   );
+  const deletePostFn = useCallback((postId: string) => run(() => deletePostAction(postId)), [run]);
   const toggleLikeFn = useCallback((postId: string) => run(() => toggleLikeAction(postId)), [run]);
   const addCommentFn = useCallback((postId: string, body: string) => run(() => addCommentAction(postId, body)), [run]);
   const approveCommentFn = useCallback((commentId: string) => run(() => approveCommentAction(commentId)), [run]);
@@ -390,6 +394,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       logout,
       apply,
       createPost: createPostFn,
+      deletePost: deletePostFn,
       toggleLike: toggleLikeFn,
       addComment: addCommentFn,
       approveComment: approveCommentFn,
@@ -433,6 +438,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       logout,
       apply,
       createPostFn,
+      deletePostFn,
       toggleLikeFn,
       addCommentFn,
       approveCommentFn,

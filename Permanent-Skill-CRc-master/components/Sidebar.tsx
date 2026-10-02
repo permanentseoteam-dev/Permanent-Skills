@@ -10,7 +10,7 @@ import { formatMoney } from "@/lib/format";
 import { UpgradeModal } from "./UpgradeModal";
 
 export function Sidebar() {
-  const { users, stats, user } = useApp();
+  const { users, stats, user, activeCommunity } = useApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const visible = users.filter((u) => u.role === "admin" || u.status === "approved" || typeof u.status === "undefined");
   const online = visible.filter((u) => u.isOnline).length;
@@ -19,6 +19,11 @@ export function Sidebar() {
     () => [...visible].sort((a, b) => b.points30d - a.points30d).slice(0, 5),
     [visible],
   );
+
+  const communityName = activeCommunity?.name || "Permanent Skill Strategy";
+  const communityDesc =
+    activeCommunity?.description ||
+    "Learn a durable skill system for SEO, offers, and authority so your pipeline is not rented from an algorithm.";
 
   return (
     <aside className="w-full shrink-0 space-y-4 lg:w-[300px]">
@@ -30,14 +35,18 @@ export function Sidebar() {
         </div>
         <div className="p-4">
           <div className="mb-3 flex items-center gap-2">
-            <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+            {activeCommunity?.icon ? (
+              <Image src={activeCommunity.icon} alt="" width={28} height={28} className="h-7 w-7 rounded-lg object-contain" />
+            ) : (
+              <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+            )}
             <div>
-              <p className="font-semibold">Permanent Skill Strategy</p>
+              <p className="font-semibold truncate max-w-[180px]">{communityName}</p>
               <p className="text-xs text-zinc-500">permanentseo.com</p>
             </div>
           </div>
           <p className="text-sm leading-relaxed text-zinc-600">
-            Learn a durable skill system for SEO, offers, and authority so your pipeline is not rented from an algorithm.
+            {communityDesc}
           </p>
           <div className="mt-4 grid grid-cols-3 divide-x divide-zinc-200 border-y border-zinc-100 py-3 text-center">
             <div>

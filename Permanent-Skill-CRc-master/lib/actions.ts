@@ -601,6 +601,7 @@ export async function createPost(input: {
   title: string;
   body: string;
   category: PostCategory;
+  communityId?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (!me || (me.status !== "approved" && me.role !== "admin")) {
@@ -621,6 +622,7 @@ export async function createPost(input: {
       pinned: false,
       likes: [],
       createdAt: now,
+      communityId: input.communityId || "comm-pss",
     });
     if (input.category === "reviews") {
       db.reviews.unshift({
@@ -633,6 +635,27 @@ export async function createPost(input: {
     }
   });
   return { ok: true, id };
+}
+
+export async function deletePost(postId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in." };
+  let found = false;
+  await updateDb((db) => {
+    const post = db.posts.find((p) => p.id === postId);
+    if (!post) return;
+    if (post.authorId !== me.id && me.role !== "admin") return;
+    found = true;
+    db.posts = db.posts.filter((p) => p.id !== postId);
+    db.comments = db.comments.filter((c) => c.postId !== postId);
+    if (post.category === "reviews") {
+      db.reviews = db.reviews.filter(
+        (r) => !(r.userId === post.authorId && (r.body === post.body || r.createdAt === post.createdAt))
+      );
+    }
+  });
+  if (!found) return { ok: false, error: "Permission denied or post not found." };
+  return { ok: true };
 }
 
 export async function toggleLike(postId: string): Promise<ActionResult> {

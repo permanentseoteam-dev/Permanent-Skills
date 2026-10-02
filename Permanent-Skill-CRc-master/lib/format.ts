@@ -58,7 +58,7 @@ export function eventTimeLabel(iso: string) {
 export const CATEGORIES = [
   { id: "all", label: "All", emoji: "" },
   { id: "chat", label: "Chat room", emoji: "💬" },
-  { id: "wins", label: "Wins", emoji: "🔔" },
+  { id: "wins", label: "Wins", emoji: "🏆" },
   { id: "recorded", label: "Recorded Calls", emoji: "🎥" },
   { id: "reviews", label: "Reviews", emoji: "⭐" },
 ] as const;

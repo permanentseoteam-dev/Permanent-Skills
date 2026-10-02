@@ -164,35 +164,55 @@ export function Header() {
         />
       )}
 
-      <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white isolate">
-        <div ref={menuContainerRef} className="relative mx-auto flex h-14 max-w-[1180px] items-center gap-3 px-4">
-          {/* Community Switcher Dropdown */}
+      <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white isolate shadow-xs">
+        <div ref={menuContainerRef} className="relative flex h-14 w-full items-center gap-3 px-4 sm:px-6 lg:px-8">
+          {/* Logo - Click to scroll smoothly to top of the current page */}
           <button
-            onClick={() => setOpen(open === "community" ? null : "community")}
-            className="flex min-w-0 items-center gap-2 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-50 shrink-0"
+            onClick={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            className="flex items-center gap-2 rounded-xl p-1 transition-all active:scale-95 hover:opacity-90 shrink-0 cursor-pointer"
+            title="Scroll to top of page"
+            aria-label="Scroll to top"
           >
             {activeCommunity?.icon ? (
               <Image
                 src={activeCommunity.icon}
-                alt={activeCommunity.name}
-                width={190}
-                height={48}
-                className="h-10 w-auto shrink-0 object-contain"
+                alt={activeCommunity.name || "Logo"}
+                width={160}
+                height={40}
+                className="h-9 w-auto shrink-0 object-contain"
                 priority
               />
             ) : (
-              <span className="flex h-10 items-center gap-2 font-bold text-zinc-900">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white">
+              <span className="flex h-9 items-center gap-2 font-bold text-zinc-900">
+                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-xs">
                   {activeCommunity?.name?.slice(0, 2).toUpperCase() || "PS"}
                 </span>
-                <span className="truncate max-w-[180px]">{activeCommunity?.name || "Permanent Skill Strategy"}</span>
               </span>
             )}
-            <ChevronDown size={16} className="shrink-0 text-zinc-500" />
+          </button>
+
+          {/* Community Switcher Dropdown Trigger */}
+          <button
+            onClick={() => setOpen(open === "community" ? null : "community")}
+            className="flex min-w-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-zinc-100/80 shrink-0 cursor-pointer"
+            aria-label="Community menu and courses"
+            title="Select community or courses"
+          >
+            <span className="truncate max-w-[150px] sm:max-w-[220px] font-bold text-sm text-zinc-900">
+              {activeCommunity?.name || "Permanent Skill Strategy"}
+            </span>
+            <ChevronDown
+              size={15}
+              className={`shrink-0 text-zinc-500 transition-transform duration-200 ${
+                open === "community" ? "rotate-180 text-primary" : ""
+              }`}
+            />
           </button>
 
           {open === "community" && (
-            <div className="absolute left-4 top-[58px] z-50 w-[330px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
+            <div className="absolute left-4 sm:left-6 lg:left-8 top-[58px] z-50 w-[340px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
               <div className="p-2">
                 <div className="relative mb-2">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -565,8 +585,8 @@ export function Header() {
           )}
         </div>
 
-        {/* Main Navigation Row */}
-        <nav className="mx-auto flex h-11 max-w-[1180px] items-center gap-1 overflow-x-auto px-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+        {/* Main Navigation Row - Full Width */}
+        <nav className="flex h-11 w-full items-center gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8 border-t border-zinc-100/80 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {NAV.map((item) => (
             <Link
               key={item.href}

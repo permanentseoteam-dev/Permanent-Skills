@@ -92,6 +92,7 @@ export interface Post {
   likes: string[];
   createdAt: string;
   thumbnail?: string;
+  communityId?: string;
 }
 
 export interface Comment {
@@ -228,19 +229,6 @@ export interface AdminStats {
   pendingCount: number;
 }
 
-export type ExperimentVariant = "control" | "treatment";
-
-export interface ExperimentEvent {
-  id: string;
-  experimentId: string;
-  variant: ExperimentVariant;
-  userId?: string;
-  visitorId: string;
-  eventName: "exposure" | "composer_open" | "post_submit" | "like_click" | "comment_submit";
-  metadata?: Record<string, unknown>;
-  timestamp: string;
-}
-
 export interface Database {
   users: User[];
   posts: Post[];
@@ -255,7 +243,6 @@ export interface Database {
   sales: Sale[];
   sessions: Session[];
   communities: Community[];
-  experimentEvents?: ExperimentEvent[];
 }
 
 export interface AppState {
