@@ -194,7 +194,11 @@ export async function getAppState(): Promise<AppState> {
   };
 }
 
-export async function login(email: string, password: string): Promise<ActionResult> {
+export async function login(
+  email: string,
+  password: string,
+  memberType?: "team" | "premium"
+): Promise<ActionResult> {
   try {
     const normalized = email.trim().toLowerCase();
     const db = readDb();
@@ -211,6 +215,11 @@ export async function login(email: string, password: string): Promise<ActionResu
       if (!u) return;
       u.loginCount += 1;
       u.lastSeenAt = new Date().toISOString();
+      if (memberType === "premium") {
+        u.isPremium = true;
+      } else if (memberType === "team") {
+        u.isPremium = false;
+      }
     });
     await setSession(user.id);
     return { ok: true, next: nextPathFor(user) };

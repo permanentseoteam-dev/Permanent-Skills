@@ -12,6 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [memberType, setMemberType] = useState<"team" | "premium">("team");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -21,7 +22,7 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, memberType);
       if (!result.ok) {
         setError(result.error || "Could not log in.");
         return;
@@ -37,6 +38,16 @@ export default function LoginPage() {
   return (
     <AuthCard title="Welcome back" subtitle="Log in to Permanent Skill Strategy">
       <form onSubmit={onSubmit} className="space-y-4">
+        <Field label="Member">
+          <select
+            className={inputClass}
+            value={memberType}
+            onChange={(e) => setMemberType(e.target.value as "team" | "premium")}
+          >
+            <option value="team">Team member</option>
+            <option value="premium">Premium member</option>
+          </select>
+        </Field>
         <Field label="Email">
           <input
             className={inputClass}
