@@ -33,61 +33,59 @@ export function Sidebar() {
   return (
     <aside className="w-full shrink-0 space-y-4 lg:w-[310px]">
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xs">
-        {/* Banner matching platform theme */}
-        <div className="relative overflow-hidden bg-gradient-to-b from-[#0e1626] via-[#10243e] to-[#0a1220] p-4 text-white">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-black tracking-tight leading-tight uppercase font-sans">
-                {activeCommunity?.type === "team" ? "TEAM SPECIALISTS HUB" : "PERMANENT SKILLS ACADEMY"}
-              </h2>
-            </div>
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 opacity-40">
-            <div className="h-12 w-8 rounded-sm bg-white/20" />
-            <div className="h-14 w-9 rounded-sm bg-white/30" />
-            <div className="h-16 w-10 rounded-sm bg-primary/60" />
-          </div>
+        {/* Banner matching reference site theme */}
+        <div className="bg-gradient-to-br from-[#0b1b4a] via-[#5051F9] to-[#7c83ff] px-4 py-5 text-white">
+          <p className="text-lg font-black tracking-wide">THE PERMANENT</p>
+          <p className="text-2xl font-black">SKILL METHOD</p>
+          <p className="mt-1 text-xs text-white/80">Learn once. Compound forever.</p>
         </div>
 
         <div className="p-4">
-          <h3 className="text-base font-bold text-zinc-950">{communityName}</h3>
-          <p className="text-xs text-zinc-400 mt-0.5 truncate">
-            permanentskills.com/{activeCommunity?.slug || "students"}
-          </p>
+          <div className="mb-3 flex items-center gap-2">
+            <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+            <div>
+              <p className="font-semibold text-zinc-900">{communityName}</p>
+              <p className="text-xs text-zinc-500">permanentseo.com</p>
+            </div>
+          </div>
 
-          <p className="mt-3 text-xs leading-relaxed text-zinc-600">
+          <p className="text-sm leading-relaxed text-zinc-600">
             {communityDesc}
           </p>
 
           <div className="mt-4 grid grid-cols-3 divide-x divide-zinc-200 border-y border-zinc-100 py-3 text-center">
             <div>
-              <p className="text-lg font-bold text-zinc-900">{memberCount}</p>
-              <p className="text-[11px] font-medium text-zinc-400">Members</p>
+              <p className="text-lg font-semibold text-zinc-900">{memberCount}</p>
+              <p className="text-xs text-zinc-500">Members</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-zinc-900">{onlineCount}</p>
-              <p className="text-[11px] font-medium text-zinc-400">Online</p>
+              <p className="text-lg font-semibold text-zinc-900">{onlineCount}</p>
+              <p className="text-xs text-zinc-500">Online</p>
             </div>
             <div>
-              <p className="text-lg font-bold text-zinc-900">{adminCount}</p>
-              <p className="text-[11px] font-medium text-zinc-400">Admin</p>
+              <p className="text-lg font-semibold text-zinc-900">{adminCount}</p>
+              <p className="text-xs text-zinc-500">Admins</p>
             </div>
           </div>
 
-          <div className="mt-3.5 flex items-center justify-start -space-x-2">
-            {visible.slice(0, 5).map((m) => (
+          <div className="mt-3 flex -space-x-2">
+            {visible.slice(0, 8).map((m) => (
               <Avatar key={m.id} user={m} size={28} className="border-2 border-white shadow-xs" />
             ))}
           </div>
 
-          <div className="mt-4 pt-2 border-t border-zinc-100 flex items-center justify-between text-xs">
-            <Link
-              href="/settings"
-              className="w-full flex items-center justify-center gap-1.5 py-2 font-bold uppercase tracking-wider text-zinc-500 hover:text-zinc-900 rounded-lg hover:bg-zinc-50 transition"
-            >
-              <Settings size={13} /> Settings
-            </Link>
-          </div>
+          {!user?.isPremium && (
+            <GoldButton className="mt-4 w-full" onClick={() => setUpgradeOpen(true)}>
+              UPGRADE
+            </GoldButton>
+          )}
+
+          <Link
+            href="/settings"
+            className="mt-2 flex items-center justify-center gap-1 py-2 text-sm text-zinc-500 hover:text-zinc-800 transition"
+          >
+            <Settings size={14} /> Settings
+          </Link>
         </div>
       </div>
 
