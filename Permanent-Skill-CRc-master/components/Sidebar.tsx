@@ -22,10 +22,10 @@ export function Sidebar() {
 
   const communityName =
     activeCommunity?.name ||
-    (activeCommunity?.type === "team" ? "Team Members" : "Ecommerce Email Marketing");
+    (activeCommunity?.type === "team" ? "Team Members" : "Permanent Skills Academy");
   const communityDesc =
     activeCommunity?.description ||
-    "Join ecommerce founders to learn email marketing from the team behind 200+ brands. Courses, templates, case studies, and much more. ©VEX MEDIA.";
+    "Private community for durable SEO, automation, and compounded skill systems.";
   const memberCount = activeCommunity?.memberCount || visible.length;
   const onlineCount = activeCommunity?.onlineCount || online;
   const adminCount = activeCommunity?.adminCount || admins;
@@ -33,29 +33,26 @@ export function Sidebar() {
   return (
     <aside className="w-full shrink-0 space-y-4 lg:w-[310px]">
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xs">
-        {/* Banner matching reference screenshot */}
+        {/* Banner matching platform theme */}
         <div className="relative overflow-hidden bg-gradient-to-b from-[#0e1626] via-[#10243e] to-[#0a1220] p-4 text-white">
           <div className="flex items-start justify-between">
-            <div className="pr-16">
+            <div>
               <h2 className="text-xl font-black tracking-tight leading-tight uppercase font-sans">
-                {activeCommunity?.type === "team" ? "VEX MEDIA TEAM SPECIALISTS" : "ECOMMERCE EMAIL MARKETING"}
+                {activeCommunity?.type === "team" ? "TEAM SPECIALISTS HUB" : "PERMANENT SKILLS ACADEMY"}
               </h2>
             </div>
-            <span className="absolute right-2 top-3 rotate-12 rounded bg-amber-500/90 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-black shadow-xs">
-              powered by skool
-            </span>
           </div>
           <div className="mt-2 flex items-center gap-1.5 opacity-40">
             <div className="h-12 w-8 rounded-sm bg-white/20" />
             <div className="h-14 w-9 rounded-sm bg-white/30" />
-            <div className="h-16 w-10 rounded-sm bg-amber-400/50" />
+            <div className="h-16 w-10 rounded-sm bg-primary/60" />
           </div>
         </div>
 
         <div className="p-4">
           <h3 className="text-base font-bold text-zinc-950">{communityName}</h3>
           <p className="text-xs text-zinc-400 mt-0.5 truncate">
-            skool.com/{activeCommunity?.slug || "retention-secrets-by-vex-8995"}
+            permanentskills.com/{activeCommunity?.slug || "students"}
           </p>
 
           <p className="mt-3 text-xs leading-relaxed text-zinc-600">

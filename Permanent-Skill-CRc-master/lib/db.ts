@@ -42,13 +42,21 @@ function migrate(db: Database) {
     db.communities = createSeed().communities;
     changed = true;
   }
-  const seedUsers = createSeed().users;
-  for (const user of db.users) {
-    if (!user.ipAddress) {
-      const match = seedUsers.find((s) => s.id === user.id);
-      user.ipAddress = match?.ipAddress || "192.168.1.50";
+  const seedCommunities = createSeed().communities;
+  for (const comm of db.communities || []) {
+    const match = seedCommunities.find((c) => c.id === comm.id || c.slug === comm.slug);
+    if (match && comm.description?.includes("ecommerce")) {
+      comm.description = match.description;
+      comm.name = match.name;
       changed = true;
     }
+  }
+  const adminUser = db.users.find((u) => u.id === "u-admin");
+  if (adminUser && adminUser.bio?.includes("Ecommerce Email Marketing")) {
+    adminUser.bio = "Founder of Permanent Skills Academy. Helping builders, founders, and students master high-value digital systems.";
+    adminUser.name = "Permanent Skills Admin";
+    adminUser.username = "pss-admin";
+    changed = true;
   }
   const catalogIds = COURSE_CATALOG_IDS as readonly string[];
   const hasOld = db.courses.some((course) => OLD_COURSE_IDS.includes(course.id));

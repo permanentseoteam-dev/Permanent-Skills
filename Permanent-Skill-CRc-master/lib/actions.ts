@@ -423,12 +423,18 @@ export async function approveUser(userId: string): Promise<ActionResult> {
 
 export async function rejectUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
-  await updateDb((db) => {
-    const user = db.users.find((u) => u.id === userId);
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
+  const db = readDb();
+  const target = db.users.find((u) => u.id === userId);
+  if (!target) return { ok: false, error: "User not found." };
+  if (target.role === "admin" && me.role !== "admin") return { ok: false, error: "Cannot reject an admin." };
+  if (target.id === me.id) return { ok: false, error: "Cannot reject yourself." };
+
+  await updateDb((d) => {
+    const user = d.users.find((u) => u.id === userId);
     if (!user) return;
     user.status = "rejected";
-    db.sessions = db.sessions.filter((s) => s.userId !== userId);
+    d.sessions = d.sessions.filter((s) => s.userId !== userId);
   });
   return { ok: true };
 }
@@ -468,7 +474,11 @@ export async function createMember(input: {
   const now = new Date().toISOString();
   const username = wantedUsername || uniqueUsername(db.users, name);
   const status: Status = input.status || "approved";
-  const role: Role = input.role === "admin" ? "admin" : "member";
+  const allowedRoles: Role[] = ["admin", "manager", "member", "student", "team_member", "user"];
+  let role: Role = input.role && allowedRoles.includes(input.role) ? input.role : "member";
+  if (role === "admin" && me.role !== "admin") {
+    role = "member";
+  }
 
   await updateDb((d) => {
     d.users.push({
@@ -528,13 +538,20 @@ export async function updateMember(input: {
   if (!["pending", "approved", "rejected"].includes(input.status)) {
     return { ok: false, error: "Choose a valid status." };
   }
-  if (input.role !== "admin" && input.role !== "member") {
+  const allowedRoles: Role[] = ["admin", "manager", "member", "student", "team_member", "user"];
+  if (!allowedRoles.includes(input.role)) {
     return { ok: false, error: "Choose a valid role." };
+  }
+  if (input.role === "admin" && me.role !== "admin") {
+    return { ok: false, error: "Only admins can assign the admin role." };
   }
 
   const db = readDb();
   const target = db.users.find((u) => u.id === input.userId);
   if (!target) return { ok: false, error: "Member not found." };
+  if (target.role === "admin" && me.role !== "admin") {
+    return { ok: false, error: "Only admins can modify admin accounts." };
+  }
   if (db.users.some((u) => u.email.toLowerCase() === email && u.id !== input.userId)) {
     return { ok: false, error: "An account with this email already exists." };
   }
