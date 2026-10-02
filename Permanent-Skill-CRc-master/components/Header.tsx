@@ -184,121 +184,125 @@ export function Header() {
           <div ref={communityRef} className="relative shrink-0 flex items-center gap-2">
             <button
               onClick={() => setOpen(open === "community" ? null : "community")}
-              className="flex items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-zinc-100/80 cursor-pointer"
+              className="flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-zinc-100/80 cursor-pointer"
               aria-label="Select community"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-xs font-black text-white shadow-xs">
-                {activeCommunity?.type === "team" ? "TM" : "EEM"}
+              {/* Community Icon Badge */}
+              {activeCommunity?.slug === "ai-architects" || activeCommunity?.name.toLowerCase().includes("ai") ? (
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-black border border-amber-500/60 font-mono text-xs font-black text-amber-400 shadow-xs">
+                  &gt;_
+                </span>
+              ) : activeCommunity?.type === "team" ? (
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 border border-purple-500/50 text-xs font-black text-purple-300 shadow-xs">
+                  TM
+                </span>
+              ) : (
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-black text-xs font-black text-white shadow-xs">
+                  {(activeCommunity?.name || "PS").slice(0, 2).toUpperCase()}
+                </span>
+              )}
+
+              <span className="truncate max-w-[130px] sm:max-w-[220px] font-bold text-sm text-zinc-950">
+                {activeCommunity?.name || "AI Architects"}
               </span>
-              <span className="truncate max-w-[150px] sm:max-w-[240px] font-bold text-sm text-zinc-950">
-                {activeCommunity?.name || "Students"}
+
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 transition">
+                <ChevronsUpDown size={13} />
               </span>
-              <ChevronsUpDown size={14} className="text-zinc-500 shrink-0" />
             </button>
 
             {open === "community" && (
-              <div className="absolute left-0 top-full mt-2 z-50 w-[340px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
-                <div className="p-2">
-                  <div className="relative mb-2">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                      value={communitySearch}
-                      onChange={(e) => setCommunitySearch(e.target.value)}
-                      className="w-full rounded-lg bg-zinc-100 py-2 pl-8 pr-3 text-sm outline-none"
-                      placeholder="Search"
-                    />
-                  </div>
+              <div className="absolute left-0 top-full mt-2 z-50 w-[310px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl p-2.5 animate-in fade-in zoom-in-95 duration-100">
+                {/* Search Header with Settings Gear */}
+                <div className="relative flex items-center mb-2">
+                  <Search size={14} className="absolute left-3 text-zinc-400 pointer-events-none" />
+                  <input
+                    value={communitySearch}
+                    onChange={(e) => setCommunitySearch(e.target.value)}
+                    className="w-full rounded-xl bg-zinc-100 py-2 pl-8.5 pr-8 text-xs font-medium outline-none placeholder:text-zinc-400 focus:bg-zinc-100/90"
+                    placeholder="Search"
+                  />
+                  <Link
+                    href="/settings"
+                    onClick={() => setOpen(null)}
+                    className="absolute right-2.5 text-zinc-400 hover:text-zinc-700 p-0.5"
+                    title="Community Settings"
+                  >
+                    <Settings size={14} />
+                  </Link>
+                </div>
+
+                {/* Create & Discover Actions matching Reference Screenshot */}
+                <div className="space-y-0.5">
                   <Link
                     href="/create-community"
                     onClick={() => setOpen(null)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
+                    className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition"
                   >
-                    <Plus size={16} /> Create a community
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                      <Plus size={15} />
+                    </div>
+                    <span>Create a community</span>
                   </Link>
+
                   <Link
                     href="/discover"
                     onClick={() => setOpen(null)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50"
+                    className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition"
                   >
-                    <Compass size={16} /> Discover communities
-                  </Link>
-                  <Link
-                    href="/all-courses"
-                    onClick={() => setOpen(null)}
-                    className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-zinc-50 text-primary font-medium"
-                  >
-                    <BookOpen size={16} /> All Courses (Catalog)
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                      <Compass size={15} />
+                    </div>
+                    <span>Discover communities</span>
                   </Link>
                 </div>
 
-                {/* User's Purchased Courses Section */}
-                <div className="border-t border-zinc-100 p-2">
-                  <div className="mb-1.5 flex items-center justify-between px-2 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                    <span>My Purchased Courses</span>
-                    <Link href="/all-courses" onClick={() => setOpen(null)} className="text-primary hover:underline lowercase font-normal">
-                      browse
-                    </Link>
-                  </div>
-                  {myPurchasedCourses.length > 0 ? (
-                    <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
-                      {myPurchasedCourses.map((c) => (
-                        <Link
-                          key={c.id}
-                          href={`/classroom/${c.slug}`}
-                          onClick={() => setOpen(null)}
-                          className="flex items-center justify-between rounded-lg px-2.5 py-1.5 text-xs text-zinc-700 hover:bg-zinc-50 transition"
-                        >
-                          <span className="truncate font-medium">{c.title}</span>
-                          <span className="ml-2 shrink-0 rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-600">
-                            {c.badge}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="rounded-lg bg-zinc-50 p-2.5 text-center">
-                      <p className="text-xs text-zinc-500">No courses purchased yet.</p>
-                      <Link
-                        href="/all-courses"
-                        onClick={() => setOpen(null)}
-                        className="mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
-                      >
-                        <Plus size={13} /> Purchase a course
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                {/* Divider */}
+                <div className="border-t border-zinc-100 my-1.5" />
 
-                <div className="border-t border-zinc-100 p-2 space-y-1 max-h-[160px] overflow-y-auto">
-                  <div className="px-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                    Communities
-                  </div>
+                {/* Communities List matching Reference Screenshot */}
+                <div className="space-y-1 max-h-[220px] overflow-y-auto pr-0.5">
                   {filteredCommunities.map((c) => {
-                    const isCurrent = (activeCommunity?.id || "comm-pss") === c.id;
+                    const isCurrent = (activeCommunity?.id || "comm-ai-architects") === c.id;
+
+                    let iconNode = (
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-black text-white text-[11px] font-black">
+                        {c.name.slice(0, 2).toUpperCase()}
+                      </span>
+                    );
+
+                    if (c.slug === "ai-architects" || c.name.toLowerCase().includes("ai")) {
+                      iconNode = (
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-black border border-amber-500/60 font-mono text-[11px] font-black text-amber-400">
+                          &gt;_
+                        </span>
+                      );
+                    } else if (c.type === "team" || c.slug === "team-members") {
+                      iconNode = (
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-900 border border-purple-500/50 text-[11px] font-black text-purple-300">
+                          TM
+                        </span>
+                      );
+                    }
+
                     return (
                       <button
                         key={c.id}
+                        type="button"
                         onClick={() => {
                           switchCommunity(c.id);
                           setOpen(null);
                         }}
-                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+                        className={`flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-left text-xs font-bold transition cursor-pointer ${
                           isCurrent
-                            ? "bg-[#5051F9]/10 text-primary"
-                            : "text-zinc-700 hover:bg-zinc-50"
+                            ? "bg-[#fef3c7] text-zinc-950 shadow-2xs border border-amber-200/50"
+                            : "text-zinc-850 hover:bg-zinc-100/70"
                         }`}
                       >
-                        <div className="flex items-center gap-2 truncate">
-                          {c.icon ? (
-                            <Image src={c.icon} alt="" width={22} height={22} className="h-6 w-6 object-contain" />
-                          ) : (
-                            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-zinc-200 text-xs font-bold text-zinc-700">
-                              {c.name.slice(0, 2).toUpperCase()}
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2.5 truncate">
+                          {iconNode}
                           <span className="truncate">{c.name}</span>
                         </div>
-                        {isCurrent && <Check size={16} className="text-primary shrink-0 ml-2" />}
                       </button>
                     );
                   })}

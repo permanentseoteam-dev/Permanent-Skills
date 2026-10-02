@@ -968,6 +968,20 @@ export function createSeed(): Database {
 
   const communities: Community[] = [
     {
+      id: "comm-ai-architects",
+      name: "AI Architects",
+      slug: "ai-architects",
+      description: "Elite mastermind for AI systems architects, full-stack agent developers, and digital operators.",
+      icon: "/logo.png",
+      isPrivate: false,
+      memberCount: 168,
+      onlineCount: 8,
+      adminCount: 1,
+      type: "students",
+      createdAt: "2025-01-12T08:00:00.000Z",
+      createdBy: "u-admin",
+    },
+    {
       id: "comm-students",
       name: "Students",
       slug: "students",

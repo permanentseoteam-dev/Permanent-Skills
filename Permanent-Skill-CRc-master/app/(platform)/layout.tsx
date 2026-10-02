@@ -1,6 +1,7 @@
 "use client";
 
 import { Header } from "@/components/Header";
+import { LeftCommunityRail } from "@/components/LeftCommunityRail";
 import { useApp } from "@/components/AppProvider";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
@@ -14,9 +15,10 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
   }
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg relative">
       <Header />
-      <div className="mx-auto max-w-[1180px] px-4 py-6">{children}</div>
+      <LeftCommunityRail />
+      <div className="mx-auto max-w-[1180px] px-4 py-6 sm:pl-16 lg:pl-16 xl:px-4">{children}</div>
     </div>
   );
 }

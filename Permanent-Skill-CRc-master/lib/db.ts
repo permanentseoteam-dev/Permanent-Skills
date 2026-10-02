@@ -43,6 +43,12 @@ function migrate(db: Database) {
     changed = true;
   }
   const seedCommunities = createSeed().communities;
+  for (const sc of seedCommunities) {
+    if (!db.communities.some((c) => c.id === sc.id || c.slug === sc.slug)) {
+      db.communities.push(sc);
+      changed = true;
+    }
+  }
   for (const comm of db.communities || []) {
     const match = seedCommunities.find((c) => c.id === comm.id || c.slug === comm.slug);
     if (match && comm.description?.includes("ecommerce")) {

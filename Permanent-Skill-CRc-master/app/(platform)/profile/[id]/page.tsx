@@ -83,8 +83,48 @@ export default function ProfilePage() {
             )}
           </div>
 
+          {/* Level Progress */}
+          <div className="mt-5 max-w-md mx-auto rounded-2xl border border-zinc-200 bg-zinc-50/70 p-4 space-y-2 text-left">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-zinc-900 flex items-center gap-1.5">
+                <Trophy size={14} className="text-amber-500" /> Level {level.level} · {level.name}
+              </span>
+              <span className="font-semibold text-zinc-500">
+                {person.points || 0} pts
+                {level.next && ` / ${level.next.min} pts`}
+              </span>
+            </div>
+            <div className="w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-amber-500 h-full rounded-full transition-all duration-300"
+                style={{ width: `${level.progress}%` }}
+              />
+            </div>
+            {level.next && (
+              <p className="text-[11px] text-zinc-500 text-right">
+                {level.pointsToNext} points needed for Level {level.next.level} ({level.next.name})
+              </p>
+            )}
+          </div>
+
+          {/* Stats Grid */}
+          <div className="mt-5 grid grid-cols-3 gap-3 max-w-md mx-auto text-center">
+            <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-2xs">
+              <p className="text-lg font-black text-zinc-900">{person.points || 0}</p>
+              <p className="text-[11px] font-medium text-zinc-500">Total Points</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-2xs">
+              <p className="text-lg font-black text-primary">+{person.points7d || 0}</p>
+              <p className="text-[11px] font-medium text-zinc-500">7-Day Score</p>
+            </div>
+            <div className="rounded-xl border border-zinc-200 bg-white p-3 shadow-2xs">
+              <p className="text-lg font-black text-amber-600">+{person.points30d || 0}</p>
+              <p className="text-[11px] font-medium text-zinc-500">30-Day Score</p>
+            </div>
+          </div>
+
           {person.bio && (
-            <p className="mt-4 max-w-lg mx-auto text-sm leading-relaxed text-zinc-700">
+            <p className="mt-5 max-w-lg mx-auto text-sm leading-relaxed text-zinc-700">
               {person.bio}
             </p>
           )}
@@ -106,8 +146,6 @@ export default function ProfilePage() {
               })}
             </span>
 
-            <span>⭐ {person.points || 0} Total Points</span>
-
             <span>
               {person.isOnline ? (
                 <span className="text-emerald-600 font-bold flex items-center gap-1">
@@ -119,6 +157,39 @@ export default function ProfilePage() {
               )}
             </span>
           </div>
+
+          {/* Staff Information (Admin & Manager viewers only) */}
+          {(user?.role === "admin" || user?.role === "manager") && (
+            <div className="mt-5 max-w-md mx-auto text-left rounded-xl bg-zinc-900 text-zinc-100 p-3.5 space-y-2 border border-zinc-800">
+              <p className="text-[11px] font-black uppercase tracking-wider text-amber-400">
+                Staff View · Account Details
+              </p>
+              {person.email && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Email:</span>
+                  <span className="font-mono text-zinc-200">{person.email}</span>
+                </div>
+              )}
+              {person.status && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Status:</span>
+                  <span className="capitalize font-bold text-amber-300">{person.status}</span>
+                </div>
+              )}
+              {person.phone && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Phone:</span>
+                  <span className="font-mono text-zinc-200">{person.phone}</span>
+                </div>
+              )}
+              {person.affiliateCode && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-zinc-400">Affiliate Code:</span>
+                  <span className="font-mono text-zinc-200">{person.affiliateCode}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {person.id !== user?.id && (
             <div className="mt-6">
