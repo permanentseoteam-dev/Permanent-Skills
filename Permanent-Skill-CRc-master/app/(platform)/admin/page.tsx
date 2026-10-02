@@ -63,8 +63,8 @@ export default function AdminPage() {
   const approvedComments = comments.filter((c) => c.status === "approved" || !c.status);
   const members = users;
 
-  if (user?.role !== "admin") {
-    return <p className="text-zinc-500">Admin access only.</p>;
+  if (user?.role !== "admin" && user?.role !== "manager") {
+    return <p className="text-zinc-500">Admin and Manager access only.</p>;
   }
 
   function openCreate() {

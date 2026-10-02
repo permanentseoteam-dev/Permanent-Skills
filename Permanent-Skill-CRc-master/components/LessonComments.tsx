@@ -32,7 +32,7 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
   );
   const [modFilter, setModFilter] = useState<"all" | "approved" | "pending">("all");
 
-  const isAdminOrManager = user?.role === "admin" || user?.isPremium;
+  const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
 
   // Filter comments for this lesson
   const lessonComments = useMemo(() => {

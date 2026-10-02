@@ -2,14 +2,50 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { CalendarDays, Check, Clock, MessageCircle, Pin, Star, ThumbsUp, Trash2, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  Clock,
+  MessageCircle,
+  Pin,
+  SlidersHorizontal,
+  Star,
+  ThumbsUp,
+  Trash2,
+  X,
+  Lock,
+} from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Avatar, Card, PrimaryButton } from "@/components/ui";
 import { CATEGORIES, timeAgo } from "@/lib/format";
-import type { Comment, Post, PostCategory } from "@/lib/types";
+import { getLevel } from "@/lib/levels";
+import type { Comment, Post, PostCategory, PublicUser } from "@/lib/types";
+
+export function AvatarWithLevel({
+  user,
+  size = 40,
+  className = "",
+}: {
+  user?: PublicUser | null;
+  size?: number;
+  className?: string;
+}) {
+  const lvl = getLevel(user?.points || 0).level;
+  return (
+    <div className={`relative inline-block shrink-0 ${className}`}>
+      <Avatar user={user} size={size} />
+      <span
+        className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#0284c7] text-[10px] font-extrabold text-white ring-2 ring-white shadow-xs"
+        title={`Level ${lvl}`}
+      >
+        {lvl}
+      </span>
+    </div>
+  );
+}
 
 export function PostComposer() {
-  const { createPost, user } = useApp();
+  const { createPost, user, activeCommunity } = useApp();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<PostCategory>("chat");
@@ -17,7 +53,12 @@ export function PostComposer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isTeamCommunity = activeCommunity?.type === "team" || activeCommunity?.id === "comm-team";
+  const isTeamMemberRestricted =
+    isTeamCommunity && user?.role !== "admin" && user?.role !== "manager";
+
   function handleOpen() {
+    if (isTeamMemberRestricted) return;
     setError(null);
     setOpen(true);
   }
@@ -27,7 +68,7 @@ export function PostComposer() {
     setBusy(true);
     setError(null);
     try {
-      const res = await createPost(title, body, category);
+      const res = await createPost(title, body, category, activeCommunity?.id);
       if (!res.ok) {
         setError(res.error || "Failed to create post. Please try again.");
         return;
@@ -40,14 +81,33 @@ export function PostComposer() {
     }
   }
 
+  // If in Team Members community and user is a regular team member (watch, comment, take notes only)
+  if (isTeamMemberRestricted) {
+    return (
+      <div className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/80 px-4 py-3 text-left shadow-xs">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-zinc-600">
+          <Lock size={16} />
+        </div>
+        <div>
+          <p className="text-xs font-semibold text-zinc-800">
+            Team Member Access (Watch, Comment & Notes)
+          </p>
+          <p className="text-[11px] text-zinc-500">
+            You have full access to watch lessons, leave comments, and record Word notes. Top-level posts are managed by Admins & Managers.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!open) {
     return (
       <button
         onClick={handleOpen}
-        className="flex w-full items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-sm hover:border-zinc-300 transition"
+        className="flex w-full items-center gap-3.5 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-xs hover:border-zinc-300 hover:shadow-sm transition"
       >
-        <Avatar user={user} size={40} />
-        <span className="text-zinc-400">Write something</span>
+        <AvatarWithLevel user={user} size={38} />
+        <span className="text-sm font-medium text-zinc-400">Write something</span>
       </button>
     );
   }
@@ -59,16 +119,18 @@ export function PostComposer() {
           {error}
         </div>
       )}
-      <div className="mb-3 flex gap-2">
+      <div className="mb-3 flex gap-2 flex-wrap">
         {(["chat", "wins", "recorded", "reviews"] as PostCategory[]).map((c) => (
           <button
             key={c}
             onClick={() => setCategory(c)}
             className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
-              category === c ? "bg-[#5051f9] text-white shadow-xs" : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80"
+              category === c
+                ? "bg-zinc-900 text-white shadow-xs"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80"
             }`}
           >
-            {c}
+            {c === "chat" ? "General discussion" : c}
           </button>
         ))}
       </div>
@@ -76,16 +138,16 @@ export function PostComposer() {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Title (optional)"
-        className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-primary"
+        className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900"
       />
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder="Share a question, win, or lesson..."
-        className="min-h-[110px] w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-primary"
+        placeholder="Share a question, win, or discussion..."
+        className="min-h-[110px] w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900"
       />
       <div className="mt-3 flex justify-end gap-2">
-        <button onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm text-zinc-500">
+        <button onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:text-zinc-800">
           Cancel
         </button>
         <PrimaryButton disabled={busy || !body.trim()} onClick={submit}>
@@ -97,15 +159,31 @@ export function PostComposer() {
 }
 
 export function Feed({ category }: { category: "all" | PostCategory }) {
-  const { posts, comments, userById, user, activeCommunity, toggleLike, addComment, togglePin, deletePost, approveComment, rejectComment, deleteComment } = useApp();
+  const {
+    posts,
+    comments,
+    userById,
+    user,
+    activeCommunity,
+    toggleLike,
+    addComment,
+    togglePin,
+    deletePost,
+    approveComment,
+    rejectComment,
+    deleteComment,
+  } = useApp();
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, { text: string; isError?: boolean }>>({});
 
   const list = useMemo(() => {
-    const communityId = activeCommunity?.id || "comm-pss";
+    const communityId = activeCommunity?.id || "comm-students";
     const scoped = posts.filter(
-      (p) => !p.communityId || p.communityId === communityId || (communityId === "comm-pss" && !p.communityId)
+      (p) =>
+        !p.communityId ||
+        p.communityId === communityId ||
+        (communityId === "comm-students" && (!p.communityId || p.communityId === "comm-pss"))
     );
     const filtered = scoped.filter((p) => category === "all" || p.category === category);
     return [...filtered].sort((a, b) => {
@@ -114,15 +192,17 @@ export function Feed({ category }: { category: "all" | PostCategory }) {
     });
   }, [posts, category, activeCommunity?.id]);
 
+  const isStaff = user?.role === "admin" || user?.role === "manager";
+
   if (list.length === 0) {
     return (
       <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-xs">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#5051f9]/10 text-[#5051f9] mb-3">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-700 mb-3">
           <MessageCircle size={26} />
         </div>
         <h3 className="text-lg font-bold text-zinc-900">No posts in this category yet</h3>
         <p className="mt-1 text-sm text-zinc-500 max-w-md mx-auto">
-          Be the first to share an insight, ask a question, or celebrate a milestone with the community!
+          Be the first to share an insight, ask a question, or start a discussion in this community!
         </p>
       </div>
     );
@@ -167,12 +247,32 @@ export function Feed({ category }: { category: "all" | PostCategory }) {
           onDeleteComment={(id) => deleteComment(id)}
           comments={comments.filter((c) => c.postId === post.id)}
           author={userById(post.authorId)}
-          isAdmin={user?.role === "admin"}
+          isStaff={isStaff}
           currentUserId={user?.id}
           liked={!!user && post.likes.includes(user.id)}
           userById={userById}
         />
       ))}
+    </div>
+  );
+}
+
+function EcomMailGraphic() {
+  return (
+    <div className="hidden sm:flex h-24 w-28 shrink-0 items-center justify-center rounded-2xl bg-zinc-50 border border-zinc-200/80 p-3 shadow-xs">
+      <div className="relative flex flex-col items-center">
+        {/* White envelope */}
+        <div className="relative h-12 w-16 rounded-md bg-white border border-zinc-300 shadow-sm flex items-center justify-center overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-5 border-b border-red-500/80 bg-red-50/50 transform -skew-y-6" />
+          <div className="absolute top-0 left-0 right-0 h-5 border-b border-red-500/80 bg-red-50/50 transform skew-y-6" />
+          {/* Cool sunglasses */}
+          <div className="relative z-10 flex items-center gap-0.5 mt-2">
+            <div className="h-3 w-4 bg-zinc-950 rounded-b-sm" />
+            <div className="h-0.5 w-1 bg-zinc-950" />
+            <div className="h-3 w-4 bg-zinc-950 rounded-b-sm" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -194,7 +294,7 @@ function PostCard({
   onApproveComment,
   onRejectComment,
   onDeleteComment,
-  isAdmin,
+  isStaff,
   currentUserId,
   liked,
   userById,
@@ -215,42 +315,54 @@ function PostCard({
   onApproveComment: (id: string) => void;
   onRejectComment: (id: string) => void;
   onDeleteComment: (id: string) => void;
-  isAdmin: boolean;
+  isStaff: boolean;
   currentUserId?: string;
   liked: boolean;
   userById: ReturnType<typeof useApp>["userById"];
 }) {
-  const cat = CATEGORIES.find((c) => c.id === post.category);
-  const visibleComments = comments.filter((c) => c.status === "approved" || !c.status || c.authorId === currentUserId || isAdmin);
+  const visibleComments = comments.filter(
+    (c) => c.status === "approved" || !c.status || c.authorId === currentUserId || isStaff
+  );
+
+  const lastComment = visibleComments[visibleComments.length - 1];
+
+  const categoryLabel =
+    post.category === "chat"
+      ? "General discussion"
+      : post.category === "wins"
+      ? "Wins"
+      : post.category === "recorded"
+      ? "Replay"
+      : "Review";
 
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <Link href={`/profile/${author?.id || ""}`}>
-            <Avatar user={author} size={42} />
+            <AvatarWithLevel user={author} size={40} />
           </Link>
           <div>
-            <Link href={`/profile/${author?.id || ""}`} className="font-semibold hover:underline">
-              {author?.name || "Member"}
+            <Link href={`/profile/${author?.id || ""}`} className="font-bold text-sm text-zinc-950 hover:underline">
+              {author?.name || "Vex Media Group Admin"}
             </Link>
-            <p className="text-xs text-zinc-500">
-              {timeAgo(post.createdAt)} · {cat?.emoji} {cat?.label}
+            <p className="text-xs text-zinc-500 font-normal">
+              {timeAgo(post.createdAt)} · {categoryLabel}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {post.pinned && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200/60">
-              <Pin size={12} /> Pinned
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-zinc-700 bg-transparent px-1 py-0.5">
+              <Pin size={12} className="fill-zinc-700" /> Pinned
             </span>
           )}
-          {isAdmin && (
-            <button onClick={onPin} className="text-xs font-medium text-zinc-500 hover:text-primary transition">
+          {isStaff && (
+            <button onClick={onPin} className="text-xs font-medium text-zinc-400 hover:text-zinc-800 transition">
               {post.pinned ? "Unpin" : "Pin"}
             </button>
           )}
-          {(isAdmin || post.authorId === currentUserId) && onDeletePost && (
+          {(isStaff || post.authorId === currentUserId) && onDeletePost && (
             <button
               onClick={onDeletePost}
               className="text-xs text-zinc-400 hover:text-red-500 transition p-1 rounded"
@@ -261,46 +373,79 @@ function PostCard({
           )}
         </div>
       </div>
-      <h3 className="mt-3 text-lg font-semibold">{post.title}</h3>
-      <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{post.body}</p>
-      {post.thumbnail && (
+
+      <div className="mt-3.5 flex items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2">
+            {post.title.includes("Entrepreneurship") && !post.title.includes("🔵") ? (
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-500 shrink-0" />
+            ) : null}
+            <span>{post.title}</span>
+          </h3>
+          <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{post.body}</p>
+        </div>
+
+        {post.thumbnail === "ecom-mail" && <EcomMailGraphic />}
+      </div>
+
+      {post.thumbnail === "replay" && (
         <Link
           href="/calendar"
           className="group block mt-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-8 text-white hover:shadow-md transition"
         >
-          <p className="text-xs uppercase tracking-[0.25em] text-white/70">PSS Replay</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-white/70">Replay Session</p>
           <p className="mt-2 text-2xl font-black group-hover:underline">{post.title.replace("Replay: ", "")}</p>
-          <p className="mt-2 text-sm text-white/80">Watch the recording inside Archived Calls →</p>
+          <p className="mt-2 text-sm text-white/80">Watch the recording inside Classroom & Meet →</p>
         </Link>
       )}
-      <div className="mt-4 flex items-center gap-4 text-sm text-zinc-500">
-        <button onClick={onLike} className={`inline-flex items-center gap-1.5 ${liked ? "text-primary" : ""}`}>
-          <ThumbsUp size={16} fill={liked ? "currentColor" : "none"} /> {post.likes.length}
-        </button>
-        <button onClick={onToggleComments} className="inline-flex items-center gap-1.5">
-          <MessageCircle size={16} /> {visibleComments.length}
-        </button>
-        <div className="flex -space-x-2">
-          {post.likes.slice(0, 5).map((id) => (
-            <Avatar key={id} user={userById(id)} size={22} className="border border-white" />
-          ))}
+
+      {/* Reaction & comments bar matching Skool format */}
+      <div className="mt-4 pt-2 flex items-center justify-between gap-3 text-xs text-zinc-500">
+        <div className="flex items-center gap-4">
+          <button
+            onClick={onLike}
+            className={`inline-flex items-center gap-1.5 font-medium transition ${
+              liked ? "text-primary font-bold" : "text-zinc-600 hover:text-zinc-900"
+            }`}
+          >
+            <ThumbsUp size={15} fill={liked ? "currentColor" : "none"} /> {post.likes.length || 0}
+          </button>
+          <button
+            onClick={onToggleComments}
+            className="inline-flex items-center gap-1.5 font-medium text-zinc-600 hover:text-zinc-900 transition"
+          >
+            <MessageCircle size={15} /> {visibleComments.length || 0}
+          </button>
+
+          {/* Commenters avatars stack */}
+          {visibleComments.length > 0 && (
+            <div className="flex items-center -space-x-1.5 pl-1">
+              {visibleComments.slice(0, 4).map((c) => (
+                <Avatar key={c.id} user={userById(c.authorId)} size={20} className="border border-white shadow-xs" />
+              ))}
+            </div>
+          )}
         </div>
-        {visibleComments[0] && (
-          <span className="text-xs text-primary">New comment {timeAgo(visibleComments[visibleComments.length - 1].createdAt)}</span>
+
+        {lastComment && (
+          <span className="text-[11px] text-zinc-400">
+            Last comment {timeAgo(lastComment.createdAt)}
+          </span>
         )}
       </div>
+
       {commentsOpen && (
         <div className="mt-4 space-y-3 border-t border-zinc-100 pt-4">
           {visibleComments.map((c) => {
             const isPending = c.status === "pending";
-            const canDelete = isAdmin || c.authorId === currentUserId;
+            const canDelete = isStaff || c.authorId === currentUserId;
             return (
               <div key={c.id} className="flex items-start justify-between gap-2 rounded-xl p-1.5 hover:bg-zinc-50/70 transition">
-                <div className="flex gap-2 min-w-0 flex-1">
-                  <Avatar user={userById(c.authorId)} size={28} />
-                  <div className="rounded-xl bg-zinc-50 px-3 py-2 flex-1 min-w-0">
+                <div className="flex gap-2.5 min-w-0 flex-1">
+                  <AvatarWithLevel user={userById(c.authorId)} size={30} />
+                  <div className="rounded-xl bg-zinc-50 px-3 py-2 flex-1 min-w-0 border border-zinc-100">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs font-semibold">{userById(c.authorId)?.name}</p>
+                      <p className="text-xs font-bold text-zinc-900">{userById(c.authorId)?.name}</p>
                       <span className="text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
                       {isPending && (
                         <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
@@ -313,11 +458,11 @@ function PostCard({
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0 pt-1">
-                  {isAdmin && isPending && (
+                  {isStaff && isPending && (
                     <>
                       <button
                         onClick={() => onApproveComment(c.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700 shadow-sm"
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700 shadow-xs"
                         title="Approve Comment"
                       >
                         <Check size={12} /> Approve
@@ -366,20 +511,20 @@ function PostCard({
               e.preventDefault();
               onComment();
             }}
-            className="space-y-1.5"
+            className="space-y-1.5 pt-2"
           >
             <div className="flex gap-2">
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Write a comment..."
-                className="flex-1 rounded-full bg-zinc-100 px-4 py-2 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary"
+                className="flex-1 rounded-full bg-zinc-100 px-4 py-2 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 border border-transparent focus:border-zinc-200"
               />
               <PrimaryButton type="submit">Send</PrimaryButton>
             </div>
-            {!isAdmin && (
+            {!isStaff && (
               <p className="px-3 text-[11px] text-zinc-400 flex items-center gap-1">
-                <Clock size={11} /> Comments require admin approval before becoming visible to all members.
+                <Clock size={11} /> Comments require manager or admin approval before becoming visible to all members.
               </p>
             )}
           </form>
@@ -407,18 +552,18 @@ export function LiveBanner() {
   return (
     <Link
       href="/calendar"
-      className="group flex items-center justify-between rounded-2xl border border-[#5051f9]/20 bg-gradient-to-r from-[#5051f9]/5 via-[#5051f9]/10 to-transparent px-4 py-3 text-sm transition hover:border-[#5051f9]/40 hover:bg-[#5051f9]/10 shadow-xs"
+      className="group flex items-center justify-between rounded-2xl border border-zinc-200 bg-gradient-to-r from-zinc-50 via-zinc-100/60 to-transparent px-4 py-3 text-sm transition hover:border-zinc-300 shadow-xs"
     >
       <div className="flex items-center gap-2.5 font-medium text-zinc-900">
-        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#5051f9]/15 text-[#5051f9]">
+        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-zinc-200 text-zinc-800">
           <CalendarDays size={16} />
         </span>
         <span>
-          <strong className="font-bold text-[#5051f9]">{next.title}</strong> is happening{" "}
-          <span className="font-extrabold underline decoration-[#5051f9]/30">{label}</span>
+          <strong className="font-bold text-zinc-900">{next.title}</strong> is happening{" "}
+          <span className="font-extrabold underline decoration-zinc-400">{label}</span>
         </span>
       </div>
-      <span className="text-xs font-bold text-[#5051f9] group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+      <span className="text-xs font-bold text-zinc-900 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
         Join Call →
       </span>
     </Link>
@@ -446,21 +591,66 @@ export function CategoryPills({
   onChange: (v: "all" | PostCategory) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      {CATEGORIES.map((c) => (
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <button
-          key={c.id}
-          onClick={() => onChange(c.id as "all" | PostCategory)}
-          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-            value === c.id
-              ? "bg-[#5051f9] text-white shadow-xs ring-1 ring-[#5051f9]"
-              : "bg-white text-zinc-700 hover:text-[#5051f9] hover:bg-zinc-50 border border-zinc-200/80 shadow-xs"
+          onClick={() => onChange("all")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            value === "all"
+              ? "bg-zinc-900 text-white shadow-xs"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
           }`}
         >
-          {"emoji" in c && c.emoji ? `${c.emoji} ` : ""}
-          {c.label}
+          All
         </button>
-      ))}
+        <button
+          onClick={() => onChange("chat")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            value === "chat"
+              ? "bg-zinc-900 text-white shadow-xs"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+          }`}
+        >
+          General discussion
+        </button>
+        <button
+          onClick={() => onChange("wins")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            value === "wins"
+              ? "bg-zinc-900 text-white shadow-xs"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+          }`}
+        >
+          Wins
+        </button>
+        <button
+          onClick={() => onChange("recorded")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            value === "recorded"
+              ? "bg-zinc-900 text-white shadow-xs"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+          }`}
+        >
+          Replays
+        </button>
+        <button
+          onClick={() => onChange("reviews")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            value === "reviews"
+              ? "bg-zinc-900 text-white shadow-xs"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+          }`}
+        >
+          Reviews
+        </button>
+      </div>
+
+      <button
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800 transition shadow-xs"
+        title="Filter & sort options"
+      >
+        <SlidersHorizontal size={14} />
+      </button>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-export type Role = "admin" | "member";
+export type Role = "admin" | "manager" | "member" | "student" | "team_member" | "user";
 export type Status = "pending" | "approved" | "rejected";
 export type PostCategory = "chat" | "wins" | "recorded" | "reviews";
 export type EventType = "live" | "premium";
@@ -220,8 +220,12 @@ export interface Community {
   description: string;
   slug: string;
   icon?: string;
+  banner?: string;
   isPrivate?: boolean;
   memberCount?: number;
+  onlineCount?: number;
+  adminCount?: number;
+  type?: "students" | "team" | "general";
   createdAt: string;
   createdBy: string;
 }

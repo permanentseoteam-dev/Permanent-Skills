@@ -9,6 +9,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  ChevronsUpDown,
   Compass,
   Globe,
   HelpCircle,
@@ -179,50 +180,20 @@ export function Header() {
     <>
       <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white isolate shadow-xs">
         <div className="relative flex h-14 w-full items-center gap-3 px-4 sm:px-6 lg:px-8">
-          {/* Logo - Click to scroll smoothly to top of the current page */}
-          <button
-            onClick={() => {
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            className="flex items-center gap-2 rounded-xl p-1 transition-all active:scale-95 hover:opacity-90 shrink-0 cursor-pointer"
-            title="Scroll to top of page"
-            aria-label="Scroll to top"
-          >
-            {activeCommunity?.icon ? (
-              <Image
-                src={activeCommunity.icon}
-                alt={activeCommunity.name || "Logo"}
-                width={160}
-                height={40}
-                className="h-9 w-auto shrink-0 object-contain"
-                priority
-              />
-            ) : (
-              <span className="flex h-9 items-center gap-2 font-bold text-zinc-900">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-bold text-white shadow-xs">
-                  {activeCommunity?.name?.slice(0, 2).toUpperCase() || "PS"}
-                </span>
-              </span>
-            )}
-          </button>
-
-          {/* Community Switcher Dropdown */}
-          <div ref={communityRef} className="relative shrink-0">
+          {/* Community Switcher with Badge & Up/Down indicator */}
+          <div ref={communityRef} className="relative shrink-0 flex items-center gap-2">
             <button
               onClick={() => setOpen(open === "community" ? null : "community")}
-              className="flex min-w-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 transition-colors hover:bg-zinc-100/80 shrink-0 cursor-pointer"
-              aria-label="Community menu and courses"
-              title="Select community or courses"
+              className="flex items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-zinc-100/80 cursor-pointer"
+              aria-label="Select community"
             >
-              <span className="truncate max-w-[150px] sm:max-w-[220px] font-bold text-sm text-zinc-900">
-                {activeCommunity?.name || "Permanent Skill Strategy"}
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-xs font-black text-white shadow-xs">
+                {activeCommunity?.type === "team" ? "TM" : "EEM"}
               </span>
-              <ChevronDown
-                size={15}
-                className={`shrink-0 text-zinc-500 transition-transform duration-200 ${
-                  open === "community" ? "rotate-180 text-primary" : ""
-                }`}
-              />
+              <span className="truncate max-w-[150px] sm:max-w-[240px] font-bold text-sm text-zinc-950">
+                {activeCommunity?.name || "Students"}
+              </span>
+              <ChevronsUpDown size={14} className="text-zinc-500 shrink-0" />
             </button>
 
             {open === "community" && (

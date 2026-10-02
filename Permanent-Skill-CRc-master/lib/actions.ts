@@ -71,7 +71,7 @@ function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string
     isPremium: user.isPremium,
     language: user.language,
   };
-  if (viewer?.id === user.id || viewer?.role === "admin") {
+  if (viewer?.id === user.id || viewer?.role === "admin" || viewer?.role === "manager") {
     base.email = user.email;
     base.status = user.status;
     base.application = user.application;
@@ -85,7 +85,7 @@ function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string
     base.ipAddress = user.ipAddress || "127.0.0.1";
     base.purchasedCourseIds = user.purchasedCourseIds || [];
   }
-  if (viewer?.role === "admin") {
+  if (viewer?.role === "admin" || viewer?.role === "manager") {
     base.hasActiveSession = activeUserIds?.has(user.id) ?? false;
   }
   return base;
@@ -167,14 +167,14 @@ export async function getAppState(): Promise<AppState> {
     sales: [],
     limited: false,
     communities: [],
-    activeCommunityId: "comm-pss",
+    activeCommunityId: "comm-students",
   };
   if (!me) return empty;
 
   const db = readDb();
   const activeUserIds = new Set(db.sessions.map((s) => s.userId));
-  const approved = db.users.filter((u) => u.status === "approved" || u.role === "admin");
-  const limited = me.role !== "admin" && me.status !== "approved";
+  const approved = db.users.filter((u) => u.status === "approved" || u.role === "admin" || u.role === "manager");
+  const limited = me.role !== "admin" && me.role !== "manager" && me.status !== "approved";
 
   if (limited) {
     return {
@@ -182,13 +182,14 @@ export async function getAppState(): Promise<AppState> {
       user: publicUser(me, me, activeUserIds),
       limited: true,
       communities: db.communities || [],
-      activeCommunityId: db.communities?.[0]?.id || "comm-pss",
+      activeCommunityId: db.communities?.[0]?.id || "comm-students",
     };
   }
 
-  const visibleUsers = me.role === "admin" ? db.users : approved;
+  const isStaff = me.role === "admin" || me.role === "manager";
+  const visibleUsers = isStaff ? db.users : approved;
   const stats =
-    me.role === "admin"
+    isStaff
       ? {
           totalUsers: db.users.length,
           totalSales: db.sales.reduce((sum, s) => sum + s.amount, 0),
@@ -202,11 +203,11 @@ export async function getAppState(): Promise<AppState> {
     users: visibleUsers.map((u) => publicUser(u, me, activeUserIds)),
     posts: db.posts,
     comments:
-      me.role === "admin"
+      isStaff
         ? db.comments
         : db.comments.filter((c) => c.status === "approved" || !c.status || c.authorId === me.id),
     courses: db.courses,
-    progress: db.progress.filter((p) => p.userId === me.id || me.role === "admin"),
+    progress: db.progress.filter((p) => p.userId === me.id || isStaff),
     events: db.events,
     projects: db.projects || [],
     messages: db.messages.filter((m) => m.senderId === me.id || m.receiverId === me.id),
@@ -216,7 +217,7 @@ export async function getAppState(): Promise<AppState> {
     sales: me.role === "admin" ? db.sales : [],
     limited: false,
     communities: db.communities || [],
-    activeCommunityId: db.communities?.[0]?.id || "comm-pss",
+    activeCommunityId: db.communities?.[0]?.id || "comm-students",
   };
 }
 
@@ -445,7 +446,7 @@ export async function createMember(input: {
   language?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
 
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -514,7 +515,7 @@ export async function updateMember(input: {
   password?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
 
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -604,16 +605,30 @@ export async function createPost(input: {
   communityId?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (!me || (me.status !== "approved" && me.role !== "admin")) {
+  if (!me || (me.status !== "approved" && me.role !== "admin" && me.role !== "manager")) {
     return { ok: false, error: "You need approval before posting." };
   }
   if (!input.body.trim()) return { ok: false, error: "Write something first." };
+
+  const db = readDb();
+  const targetCommId = input.communityId || db.communities?.[0]?.id || "comm-students";
+  const targetComm = db.communities?.find((c) => c.id === targetCommId);
+  const isTeamComm = targetComm?.type === "team" || targetCommId === "comm-team";
+
+  // In Team Members community: team members have watch, comment, and note-taking access only.
+  if (isTeamComm && me.role !== "admin" && me.role !== "manager") {
+    return {
+      ok: false,
+      error: "Team members have watch, comment, and note-taking access only. Creating community posts is restricted to Managers and Admins.",
+    };
+  }
+
   const id = `p-${token().slice(0, 8)}`;
   const now = new Date().toISOString();
-  await updateDb((db) => {
-    const user = db.users.find((u) => u.id === me.id);
+  await updateDb((d) => {
+    const user = d.users.find((u) => u.id === me.id);
     if (user) award(user, 5);
-    db.posts.unshift({
+    d.posts.unshift({
       id,
       authorId: me.id,
       category: input.category,
@@ -622,10 +637,10 @@ export async function createPost(input: {
       pinned: false,
       likes: [],
       createdAt: now,
-      communityId: input.communityId || "comm-pss",
+      communityId: targetCommId,
     });
     if (input.category === "reviews") {
-      db.reviews.unshift({
+      d.reviews.unshift({
         id: `r-${token().slice(0, 8)}`,
         userId: me.id,
         rating: 5,
@@ -680,12 +695,12 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
   if (!me) return { ok: false, error: "Please log in." };
   if (!body.trim()) return { ok: false, error: "Comment cannot be empty." };
   const now = new Date().toISOString();
-  const isAdmin = me.role === "admin";
-  const status: Status = isAdmin ? "approved" : "pending";
+  const isPrivileged = me.role === "admin" || me.role === "manager";
+  const status: Status = isPrivileged ? "approved" : "pending";
 
   await updateDb((db) => {
     const user = db.users.find((u) => u.id === me.id);
-    if (user && isAdmin) award(user, 2);
+    if (user && isPrivileged) award(user, 2);
     db.comments.push({
       id: `c-${token().slice(0, 8)}`,
       postId,
@@ -696,7 +711,7 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
     });
 
     const post = db.posts.find((p) => p.id === postId);
-    if (isAdmin && post && post.authorId !== me.id) {
+    if (isPrivileged && post && post.authorId !== me.id) {
       db.notifications.unshift({
         id: `n-${token().slice(0, 8)}`,
         userId: post.authorId,
@@ -707,12 +722,12 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
         read: false,
         createdAt: now,
       });
-    } else if (!isAdmin) {
-      const admins = db.users.filter((u) => u.role === "admin");
-      for (const admin of admins) {
+    } else if (!isPrivileged) {
+      const moderators = db.users.filter((u) => u.role === "admin" || u.role === "manager");
+      for (const mod of moderators) {
         db.notifications.unshift({
           id: `n-${token().slice(0, 8)}`,
-          userId: admin.id,
+          userId: mod.id,
           actorId: me.id,
           title: "Comment pending approval",
           body: `${me.name}: "${body.trim().slice(0, 60)}"`,
@@ -723,12 +738,12 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
       }
     }
   });
-  return { ok: true, message: isAdmin ? "Comment posted." : "Comment submitted and pending admin approval." };
+  return { ok: true, message: isPrivileged ? "Comment posted." : "Comment submitted and pending approval." };
 }
 
 export async function approveComment(commentId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   const now = new Date().toISOString();
 
   await updateDb((db) => {
@@ -744,7 +759,7 @@ export async function approveComment(commentId: string): Promise<ActionResult> {
       userId: comment.authorId,
       actorId: me.id,
       title: "Comment approved",
-      body: "Your comment was approved by the admin and is now visible to the community.",
+      body: "Your comment was approved and is now visible to the community.",
       link: "/community",
       read: false,
       createdAt: now,
@@ -769,7 +784,7 @@ export async function approveComment(commentId: string): Promise<ActionResult> {
 
 export async function rejectComment(commentId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   await updateDb((db) => {
     const comment = db.comments.find((c) => c.id === commentId);
     if (comment) comment.status = "rejected";
@@ -783,7 +798,7 @@ export async function deleteComment(commentId: string): Promise<ActionResult> {
   await updateDb((db) => {
     const comment = db.comments.find((c) => c.id === commentId);
     if (!comment) return;
-    if (me.role !== "admin" && comment.authorId !== me.id) return;
+    if (me.role !== "admin" && me.role !== "manager" && comment.authorId !== me.id) return;
     db.comments = db.comments.filter((c) => c.id !== commentId);
   });
   return { ok: true };
@@ -791,7 +806,7 @@ export async function deleteComment(commentId: string): Promise<ActionResult> {
 
 export async function togglePin(postId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   await updateDb((db) => {
     const post = db.posts.find((p) => p.id === postId);
     if (post) post.pinned = !post.pinned;
