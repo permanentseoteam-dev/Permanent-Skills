@@ -17,8 +17,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geist.variable} h-full antialiased`}>
-      <body className="min-h-full bg-bg font-sans text-zinc-900">
+    <html
+      lang="en"
+      className={`${geist.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
+      <body className="min-h-full bg-bg font-sans text-zinc-900" suppressHydrationWarning>
         <AppProvider>
           <AuthGate>{children}</AuthGate>
         </AppProvider>
