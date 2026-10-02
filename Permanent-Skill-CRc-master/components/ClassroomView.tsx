@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Lock, Play } from "lucide-react";
+import { ArrowLeft, Check, ChevronLeft, Lock, Play, ShieldCheck, Sparkles } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { getLevel } from "@/lib/levels";
@@ -21,17 +21,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   // Available courses
   const availableCourses = courses.length > 0 ? courses : [];
 
-  const defaultCourse = useMemo(() => {
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(() => {
     if (initialCourseSlug) {
       const found = availableCourses.find((c) => c.slug === initialCourseSlug);
-      if (found) return found;
+      if (found) return found.id;
     }
-    return availableCourses[0] || null;
-  }, [availableCourses, initialCourseSlug]);
-
-  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(
-    defaultCourse?.id || null
-  );
+    return null;
+  });
 
   // Sync selected course when initialCourseSlug changes from navigation
   useEffect(() => {
@@ -46,13 +42,9 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   }, [initialCourseSlug, availableCourses]);
 
   const activeCourse = useMemo(() => {
-    return (
-      availableCourses.find((c) => c.id === selectedCourseId) ||
-      defaultCourse ||
-      availableCourses[0] ||
-      null
-    );
-  }, [availableCourses, selectedCourseId, defaultCourse]);
+    if (!selectedCourseId) return null;
+    return availableCourses.find((c) => c.id === selectedCourseId) || null;
+  }, [availableCourses, selectedCourseId]);
 
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
 
@@ -95,7 +87,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     return activeCourse.lessons[0];
   }, [activeCourse, activeLessonId]);
 
-  // Progress calculations
+  // Progress calculations for active course
   const row = progress.find(
     (p) => p.courseId === activeCourse?.id && p.userId === user?.id
   );
@@ -126,66 +118,186 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     completeLesson(activeCourse.id, activeLesson.id);
   }
 
+  // 1. PRIMARY VIEW: Classroom Course / Module Cards Grid (Displayed First)
   if (!activeCourse) {
     return (
-      <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center text-zinc-500">
-        <p className="text-lg font-medium">No courses available yet.</p>
+      <div className="space-y-6">
+        {/* Module Cards Grid matching Reference Image exactly */}
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {availableCourses.map((course, idx) => {
+            const cRow = progress.find(
+              (p) => p.courseId === course.id && p.userId === user?.id
+            );
+            const cCompleted = cRow?.completedLessonIds || [];
+            const cTotal = course.lessons.length;
+            const cDone = cTotal
+              ? course.lessons.filter((l) => cCompleted.includes(l.id)).length
+              : 0;
+            const cPct = cTotal ? Math.round((cDone / cTotal) * 100) : 0;
+
+            const userLevel = getLevel(user?.points || 0).level;
+            const isPurchased = user?.purchasedCourseIds?.includes(course.id);
+            const isCourseLocked =
+              course.unlockLevel > 1 &&
+              userLevel < course.unlockLevel &&
+              !user?.isPremium &&
+              user?.role !== "admin" &&
+              !isPurchased;
+
+            const bannerBrand = course.bannerBrand || "VEX MEDIA";
+            const bannerSubtitle =
+              course.bannerSubtitle || `MODULE ${idx + 1}.`;
+            const bannerTitle =
+              course.bannerTitle ||
+              course.title.replace(/^Module\s*\d+:\s*/i, "");
+
+            return (
+              <div
+                key={course.id}
+                onClick={() => {
+                  setSelectedCourseId(course.id);
+                  setActiveLessonId(null);
+                  setPlaying(false);
+                }}
+                className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs transition-all duration-200 hover:-translate-y-1 hover:shadow-xl cursor-pointer"
+              >
+                {/* Dark Banner with textured background & center title */}
+                <div className="relative h-48 w-full overflow-hidden bg-[#0c0d10] p-4 flex flex-col justify-between select-none">
+                  {/* Subtle radial background & overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-b from-zinc-800/40 via-zinc-950 to-black opacity-95" />
+                  
+                  {/* Top brand header */}
+                  <div className="relative z-10 flex items-center justify-between">
+                    <div className="flex items-center gap-1 font-bold text-xs text-zinc-300">
+                      <span className="font-extrabold tracking-tight text-white">
+                        {bannerBrand.split(" ")[0]}
+                      </span>
+                      {bannerBrand.split(" ").slice(1).join(" ") && (
+                        <span className="text-[10px] text-zinc-400 font-medium">
+                          {bannerBrand.split(" ").slice(1).join(" ")}
+                        </span>
+                      )}
+                    </div>
+                    {isCourseLocked && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 text-[10.5px] font-bold text-amber-300 backdrop-blur-xs border border-amber-500/30">
+                        <Lock size={10} /> Locked
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Center Module Number & Bold Title */}
+                  <div className="relative z-10 my-auto flex flex-col items-center justify-center px-2 text-center">
+                    <span className="text-xs md:text-sm font-bold uppercase tracking-widest text-[#22c55e] mb-1">
+                      {bannerSubtitle}
+                    </span>
+                    <h2 className="text-lg md:text-xl font-black uppercase tracking-wide text-white drop-shadow-md line-clamp-2">
+                      {bannerTitle}
+                    </h2>
+                  </div>
+
+                  {/* Bottom indicator space */}
+                  <div className="relative z-10 h-1" />
+                </div>
+
+                {/* Card Body */}
+                <div className="flex flex-1 flex-col justify-between p-5">
+                  <div>
+                    <h3 className="text-base font-bold text-zinc-900 group-hover:text-[#5051f9] transition-colors line-clamp-1">
+                      {course.title}
+                    </h3>
+                    <p className="mt-1 text-xs md:text-sm text-zinc-600 line-clamp-2 leading-relaxed min-h-[38px]">
+                      {course.description}
+                    </p>
+                  </div>
+
+                  {/* Skool-style Pill Progress Bar */}
+                  <div className="mt-5">
+                    <div className="relative h-6 w-full overflow-hidden rounded-full bg-zinc-200/90 flex items-center shadow-inner">
+                      {cPct > 0 ? (
+                        <>
+                          <div
+                            className="h-full rounded-full bg-[#10b981] transition-all duration-500 flex items-center"
+                            style={{ width: `${Math.max(cPct, 14)}%` }}
+                          />
+                          <span className="absolute left-3 text-[11.5px] font-extrabold text-white">
+                            {cPct}%
+                          </span>
+                        </>
+                      ) : (
+                        <span className="absolute left-3 text-[11.5px] font-extrabold text-zinc-500">
+                          0%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
 
-  // Active module name
-  const currentModuleName =
-    activeLesson?.module || modules[0]?.name || "Module 1: Introduction";
-
+  // 2. DETAILED MODULE / COURSE LESSON VIEW (Preserving current logic)
   return (
     <div className="space-y-6">
-      {/* Course Switcher Pills with Brand Styling */}
-      <div className="flex flex-wrap items-center gap-2.5 border-b border-zinc-200/90 pb-4">
-        <span className="text-xs font-bold uppercase tracking-wider text-zinc-500 mr-1">
-          Courses:
-        </span>
-        {availableCourses.map((c, idx) => {
-          const isSelected = c.id === activeCourse.id;
-          const cRow = progress.find(
-            (p) => p.courseId === c.id && p.userId === user?.id
-          );
-          const cDone = c.lessons.filter((l) =>
-            cRow?.completedLessonIds.includes(l.id)
-          ).length;
-          const cPct = c.lessons.length
-            ? Math.round((cDone / c.lessons.length) * 100)
-            : 0;
+      {/* Navigation Bar: Back to Classroom & Course Switcher */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/90 pb-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setSelectedCourseId(null);
+              setActiveLessonId(null);
+              setPlaying(false);
+            }}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 transition cursor-pointer shadow-xs"
+          >
+            <ChevronLeft size={16} /> Back to Classroom
+          </button>
 
-          return (
-            <button
-              key={c.id}
-              onClick={() => {
-                setSelectedCourseId(c.id);
-                setActiveLessonId(null);
-                setPlaying(false);
-              }}
-              className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all shadow-xs ${
-                isSelected
-                  ? "bg-[#5051f9] text-white ring-2 ring-[#5051f9]/30"
-                  : "bg-white text-zinc-700 border border-zinc-200 hover:border-[#5051f9]/40 hover:text-[#5051f9]"
-              }`}
-            >
-              <span>
-                {idx + 1}. {c.title}
-              </span>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10.5px] font-extrabold ${
+          <span className="text-zinc-300">/</span>
+
+          <h1 className="text-sm font-bold text-zinc-900 line-clamp-1">
+            {activeCourse.title}
+          </h1>
+        </div>
+
+        {/* Course Switcher Pills */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          {availableCourses.map((c, idx) => {
+            const isSelected = c.id === activeCourse.id;
+            const cRow = progress.find(
+              (p) => p.courseId === c.id && p.userId === user?.id
+            );
+            const cDone = c.lessons.filter((l) =>
+              cRow?.completedLessonIds.includes(l.id)
+            ).length;
+            const cPct = c.lessons.length
+              ? Math.round((cDone / c.lessons.length) * 100)
+              : 0;
+
+            return (
+              <button
+                key={c.id}
+                onClick={() => {
+                  setSelectedCourseId(c.id);
+                  setActiveLessonId(null);
+                  setPlaying(false);
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
                   isSelected
-                    ? "bg-white/25 text-white"
-                    : "bg-zinc-100 text-zinc-600"
+                    ? "bg-[#5051f9] text-white shadow-xs"
+                    : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                 }`}
+                title={c.title}
               >
-                {cPct}%
-              </span>
-            </button>
-          );
-        })}
+                <span>{idx + 1}</span>
+                <span className="text-[10px] opacity-80">{cPct}%</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {locked ? (

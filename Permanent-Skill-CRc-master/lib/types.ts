@@ -124,6 +124,10 @@ export interface Course {
   unlockLevel: number;
   price?: number;
   lessons: Lesson[];
+  bannerBrand?: string;
+  bannerSubtitle?: string;
+  bannerTitle?: string;
+  thumbnail?: string;
 }
 
 export interface Progress {
