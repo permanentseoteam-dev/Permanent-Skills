@@ -92,6 +92,10 @@ function migrate(db: Database) {
       }
     }
   }
+  if (!db.experimentEvents) {
+    db.experimentEvents = [];
+    changed = true;
+  }
   if (changed) persist(db);
 }
 

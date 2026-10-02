@@ -1,35 +1,60 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarDays, Check, Clock, MessageCircle, Pin, Star, ThumbsUp, Trash2, X } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Avatar, Card, PrimaryButton } from "@/components/ui";
 import { CATEGORIES, timeAgo } from "@/lib/format";
-import type { Comment, Post, PostCategory } from "@/lib/types";
+import { assignVariant } from "@/lib/experimentation/bucketing";
+import { trackExperimentEvent } from "@/lib/experimentation/telemetry";
+import { CommunityComposerVariantB } from "@/components/experimentation/CommunityComposerVariantB";
+import type { Comment, ExperimentVariant, Post, PostCategory } from "@/lib/types";
 
-export function PostComposer() {
+export function PostComposer({ variantOverride }: { variantOverride?: ExperimentVariant }) {
   const { createPost, user } = useApp();
+  const [variant, setVariant] = useState<ExperimentVariant>("control");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [category, setCategory] = useState<PostCategory>("chat");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  useEffect(() => {
+    const v = variantOverride || assignVariant(user?.id);
+    setVariant(v);
+    trackExperimentEvent("exposure", v, user?.id);
+  }, [user?.id, variantOverride]);
+
+  if (variant === "treatment") {
+    return <CommunityComposerVariantB />;
+  }
+
+  // Variant A: Control
+  function handleOpen() {
+    setOpen(true);
+    trackExperimentEvent("composer_open", "control", user?.id);
+  }
+
   async function submit() {
+    if (!body.trim()) return;
     setBusy(true);
-    await createPost(title, body, category);
-    setBusy(false);
-    setTitle("");
-    setBody("");
-    setOpen(false);
+    try {
+      await createPost(title, body, category);
+      trackExperimentEvent("post_submit", "control", user?.id, { category, charCount: body.length });
+      setTitle("");
+      setBody("");
+      setOpen(false);
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
-        className="flex w-full items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-sm hover:border-zinc-300"
+        onClick={handleOpen}
+        className="flex w-full items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-sm hover:border-zinc-300 transition"
       >
         <Avatar user={user} size={40} />
         <span className="text-zinc-400">Write something</span>
@@ -98,13 +123,16 @@ export function Feed({ category }: { category: "all" | PostCategory }) {
           onToggleComments={() => setOpenComments((s) => ({ ...s, [post.id]: !s[post.id] }))}
           draft={drafts[post.id] || ""}
           setDraft={(v) => setDrafts((s) => ({ ...s, [post.id]: v }))}
-          feedback={feedback[post.id] || ""}
-          onLike={() => toggleLike(post.id)}
+          onLike={() => {
+            toggleLike(post.id);
+            trackExperimentEvent("like_click", assignVariant(user?.id), user?.id, { postId: post.id });
+          }}
           onPin={() => togglePin(post.id)}
           onComment={async () => {
             const text = drafts[post.id];
             if (!text?.trim()) return;
             const res = await addComment(post.id, text);
+            trackExperimentEvent("comment_submit", assignVariant(user?.id), user?.id, { postId: post.id, charCount: text.length });
             setDrafts((s) => ({ ...s, [post.id]: "" }));
             if (res.message) {
               setFeedback((s) => ({ ...s, [post.id]: res.message! }));

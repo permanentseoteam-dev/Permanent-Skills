@@ -867,5 +867,6 @@ export function createSeed(): Database {
     sales,
     sessions: [],
     communities,
+    experimentEvents: [],
   };
 }
