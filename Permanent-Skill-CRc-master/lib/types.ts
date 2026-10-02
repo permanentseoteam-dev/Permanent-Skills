@@ -131,6 +131,12 @@ export interface Progress {
   completedLessonIds: string[];
 }
 
+export interface ProjectTask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
 export interface Project {
   id: string;
   title: string;
@@ -141,6 +147,7 @@ export interface Project {
   memberIds: string[];
   mentionedUsernames?: string[];
   progress: number;
+  tasks?: ProjectTask[];
   status: "active" | "completed" | "paused";
   thumbnail?: string;
   meetSyncTime?: string;

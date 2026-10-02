@@ -1102,6 +1102,7 @@ export async function saveProject(input: {
   memberIds: string[];
   mentionedUsernames?: string[];
   progress: number;
+  tasks?: { id: string; title: string; completed: boolean }[];
   status: "active" | "completed" | "paused";
   meetSyncTime?: string;
   meetRoom?: string;
@@ -1120,6 +1121,12 @@ export async function saveProject(input: {
     const lead = db.users.find((u) => u.id === input.leadId);
     const leadName = lead?.name || input.leadName || me.name;
 
+    let computedProgress = Math.min(100, Math.max(0, input.progress ?? 0));
+    if (input.tasks && input.tasks.length > 0) {
+      const done = input.tasks.filter((t) => t.completed).length;
+      computedProgress = Math.round((done / input.tasks.length) * 100);
+    }
+
     const project: Project = {
       id,
       title,
@@ -1129,8 +1136,9 @@ export async function saveProject(input: {
       leadName,
       memberIds: Array.from(new Set([input.leadId || me.id, ...(input.memberIds || [])])),
       mentionedUsernames: input.mentionedUsernames || [],
-      progress: Math.min(100, Math.max(0, input.progress ?? 0)),
-      status: input.status || "active",
+      progress: computedProgress,
+      tasks: input.tasks || [],
+      status: computedProgress === 100 ? "completed" : input.status || "active",
       meetSyncTime: input.meetSyncTime?.trim() || "Sprint Sync: Today, 3:00 PM",
       meetRoom: input.meetRoom?.trim() || "Nexus Meet #room-general",
       meetUrl: input.meetUrl?.trim() || "https://meet.google.com/new",
@@ -1170,6 +1178,69 @@ export async function saveProject(input: {
   });
 
   return { ok: true, id };
+}
+
+export async function updateProjectProgress(projectId: string, progress: number): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  const nextPct = Math.min(100, Math.max(0, Math.round(progress)));
+
+  await updateDb((db) => {
+    const proj = (db.projects || []).find((p) => p.id === projectId);
+    if (!proj) return;
+    proj.progress = nextPct;
+    if (nextPct === 100) {
+      proj.status = "completed";
+      if (proj.tasks && proj.tasks.length > 0) {
+        proj.tasks.forEach((t) => (t.completed = true));
+      }
+    } else if (proj.status === "completed") {
+      proj.status = "active";
+    }
+  });
+  return { ok: true };
+}
+
+export async function toggleProjectTask(projectId: string, taskId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+
+  await updateDb((db) => {
+    const proj = (db.projects || []).find((p) => p.id === projectId);
+    if (!proj || !proj.tasks) return;
+    const task = proj.tasks.find((t) => t.id === taskId);
+    if (!task) return;
+    task.completed = !task.completed;
+
+    const completedCount = proj.tasks.filter((t) => t.completed).length;
+    proj.progress = Math.round((completedCount / proj.tasks.length) * 100);
+    proj.status = proj.progress === 100 ? "completed" : "active";
+  });
+  return { ok: true };
+}
+
+export async function addProjectTask(projectId: string, title: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  if (!title.trim()) return { ok: false, error: "Milestone title cannot be empty." };
+
+  await updateDb((db) => {
+    const proj = (db.projects || []).find((p) => p.id === projectId);
+    if (!proj) return;
+    proj.tasks = proj.tasks || [];
+    proj.tasks.push({
+      id: `t-${token().slice(0, 6)}`,
+      title: title.trim(),
+      completed: false,
+    });
+
+    const completedCount = proj.tasks.filter((t) => t.completed).length;
+    proj.progress = Math.round((completedCount / proj.tasks.length) * 100);
+    if (proj.status === "completed" && proj.progress < 100) {
+      proj.status = "active";
+    }
+  });
+  return { ok: true };
 }
 
 export async function deleteProject(projectId: string): Promise<ActionResult> {

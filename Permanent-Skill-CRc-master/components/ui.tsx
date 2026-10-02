@@ -122,13 +122,75 @@ export function Card({
   );
 }
 
-export function ProgressBar({ value }: { value: number }) {
+export function ProgressBar({
+  value,
+  max = 100,
+  size = "md",
+  variant = "gradient",
+  showLabel = false,
+  interactive = false,
+  onChange,
+  className = "",
+}: {
+  value: number;
+  max?: number;
+  size?: "xs" | "sm" | "md" | "lg";
+  variant?: "gradient" | "emerald" | "indigo" | "primary" | "amber";
+  showLabel?: boolean;
+  interactive?: boolean;
+  onChange?: (val: number) => void;
+  className?: string;
+}) {
+  const percentage = Math.max(0, Math.min(100, Math.round((value / max) * 100)));
+
+  const heightClass =
+    size === "xs"
+      ? "h-1.5"
+      : size === "sm"
+        ? "h-2"
+        : size === "lg"
+          ? "h-3.5"
+          : "h-2.5";
+
+  const colorClass =
+    percentage === 100
+      ? "bg-emerald-500"
+      : variant === "emerald"
+        ? "bg-emerald-500"
+        : variant === "indigo"
+          ? "bg-[#5051F9]"
+          : variant === "amber"
+            ? "bg-amber-500"
+            : variant === "primary"
+              ? "bg-primary"
+              : "bg-gradient-to-r from-[#5051F9] to-indigo-500";
+
   return (
-    <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-200">
+    <div className={`w-full ${className}`}>
       <div
-        className="h-full rounded-full bg-emerald-500 transition-all"
-        style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
-      />
+        onClick={(e) => {
+          if (!interactive || !onChange) return;
+          const rect = e.currentTarget.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          const newPct = Math.round((clickX / rect.width) * max);
+          onChange(Math.max(0, Math.min(max, newPct)));
+        }}
+        className={`relative w-full overflow-hidden rounded-full bg-zinc-200/80 shadow-inner ${heightClass} ${
+          interactive ? "cursor-pointer transition hover:bg-zinc-300/80" : ""
+        }`}
+        title={interactive ? "Click to set progress" : `${percentage}%`}
+      >
+        <div
+          className={`h-full rounded-full transition-all duration-300 ease-out ${colorClass}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+      {showLabel && (
+        <div className="mt-1 flex items-center justify-between text-[11px] font-semibold text-zinc-500">
+          <span>Progress</span>
+          <span>{percentage}%</span>
+        </div>
+      )}
     </div>
   );
 }

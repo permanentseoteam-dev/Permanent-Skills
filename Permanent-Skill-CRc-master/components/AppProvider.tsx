@@ -33,6 +33,9 @@ import {
   saveLesson as saveLessonAction,
   saveProject as saveProjectAction,
   deleteProject as deleteProjectAction,
+  updateProjectProgress as updateProjectProgressAction,
+  toggleProjectTask as toggleProjectTaskAction,
+  addProjectTask as addProjectTaskAction,
   sendMessage as sendMessageAction,
   submitApplication,
   toggleLike as toggleLikeAction,
@@ -135,12 +138,16 @@ type AppContextValue = AppState & {
     memberIds: string[];
     mentionedUsernames?: string[];
     progress: number;
+    tasks?: { id: string; title: string; completed: boolean }[];
     status: "active" | "completed" | "paused";
     meetSyncTime?: string;
     meetRoom?: string;
     meetUrl?: string;
   }) => Promise<ActionResult>;
   deleteProject: (projectId: string) => Promise<ActionResult>;
+  updateProjectProgress: (projectId: string, progress: number) => Promise<ActionResult>;
+  toggleProjectTask: (projectId: string, taskId: string) => Promise<ActionResult>;
+  addProjectTask: (projectId: string, title: string) => Promise<ActionResult>;
   sendMessage: (receiverId: string, body: string) => Promise<ActionResult>;
   markThreadRead: (otherId: string) => Promise<ActionResult>;
   markNotificationsRead: () => Promise<ActionResult>;
@@ -292,6 +299,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       memberIds: string[];
       mentionedUsernames?: string[];
       progress: number;
+      tasks?: { id: string; title: string; completed: boolean }[];
       status: "active" | "completed" | "paused";
       meetSyncTime?: string;
       meetRoom?: string;
@@ -300,6 +308,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const deleteProjectFn = useCallback((projectId: string) => run(() => deleteProjectAction(projectId)), [run]);
+  const updateProjectProgressFn = useCallback(
+    (projectId: string, progress: number) => run(() => updateProjectProgressAction(projectId, progress)),
+    [run],
+  );
+  const toggleProjectTaskFn = useCallback(
+    (projectId: string, taskId: string) => run(() => toggleProjectTaskAction(projectId, taskId)),
+    [run],
+  );
+  const addProjectTaskFn = useCallback(
+    (projectId: string, title: string) => run(() => addProjectTaskAction(projectId, title)),
+    [run],
+  );
   const sendMessageFn = useCallback(
     (receiverId: string, body: string) => run(() => sendMessageAction(receiverId, body)),
     [run],
@@ -382,6 +402,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteLesson: deleteLessonFn,
       saveProject: saveProjectFn,
       deleteProject: deleteProjectFn,
+      updateProjectProgress: updateProjectProgressFn,
+      toggleProjectTask: toggleProjectTaskFn,
+      addProjectTask: addProjectTaskFn,
       sendMessage: sendMessageFn,
       markThreadRead: markThreadReadFn,
       markNotificationsRead: markNotificationsReadFn,
@@ -422,6 +445,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteLessonFn,
       saveProjectFn,
       deleteProjectFn,
+      updateProjectProgressFn,
+      toggleProjectTaskFn,
+      addProjectTaskFn,
       sendMessageFn,
       markThreadReadFn,
       markNotificationsReadFn,
