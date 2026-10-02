@@ -16,7 +16,7 @@ import {
   Lock,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Avatar, Card, PrimaryButton } from "@/components/ui";
+import { Avatar, Card, PrimaryButton, StaffRoleFavicon } from "@/components/ui";
 import { CATEGORIES, timeAgo } from "@/lib/format";
 import { getLevel } from "@/lib/levels";
 import type { Comment, Post, PostCategory, PublicUser } from "@/lib/types";
@@ -31,15 +31,30 @@ export function AvatarWithLevel({
   className?: string;
 }) {
   const lvl = getLevel(user?.points || 0).level;
+  const isStaff = user?.role === "admin" || user?.role === "manager";
+  const isAdmin = user?.role === "admin";
+
   return (
     <div className={`relative inline-block shrink-0 ${className}`}>
       <Avatar user={user} size={size} />
+      {/* Level badge on bottom right */}
       <span
         className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#0284c7] text-[10px] font-extrabold text-white ring-2 ring-white shadow-xs"
         title={`Level ${lvl}`}
       >
         {lvl}
       </span>
+      {/* Staff favicon on top left */}
+      {isStaff && (
+        <span
+          className={`absolute -top-1 -left-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white ring-2 ring-white shadow-xs ${
+            isAdmin ? "bg-black text-amber-300 border border-amber-400/50" : "bg-blue-700 text-blue-100 border border-blue-300/50"
+          }`}
+          title={isAdmin ? "Admin Verified" : "Manager Verified"}
+        >
+          {isAdmin ? "⚡" : "★"}
+        </span>
+      )}
     </div>
   );
 }
@@ -343,9 +358,12 @@ function PostCard({
             <AvatarWithLevel user={author} size={40} />
           </Link>
           <div>
-            <Link href={`/profile/${author?.id || ""}`} className="font-bold text-sm text-zinc-950 hover:underline">
-              {author?.name || "Vex Media Group Admin"}
-            </Link>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link href={`/profile/${author?.id || ""}`} className="font-bold text-sm text-zinc-950 hover:underline">
+                {author?.name || "Vex Media Group Admin"}
+              </Link>
+              <StaffRoleFavicon role={author?.role} size="xs" />
+            </div>
             <p className="text-xs text-zinc-500 font-normal">
               {timeAgo(post.createdAt)} · {categoryLabel}
             </p>
@@ -438,14 +456,26 @@ function PostCard({
         <div className="mt-4 space-y-3 border-t border-zinc-100 pt-4">
           {visibleComments.map((c) => {
             const isPending = c.status === "pending";
+            const commentAuthor = userById(c.authorId);
+            const isCommentStaff = commentAuthor?.role === "admin" || commentAuthor?.role === "manager";
             const canDelete = isStaff || c.authorId === currentUserId;
             return (
-              <div key={c.id} className="flex items-start justify-between gap-2 rounded-xl p-1.5 hover:bg-zinc-50/70 transition">
+              <div
+                key={c.id}
+                className={`flex items-start justify-between gap-2 rounded-xl p-2 transition ${
+                  isCommentStaff
+                    ? commentAuthor?.role === "admin"
+                      ? "border border-amber-200/80 bg-amber-50/30"
+                      : "border border-blue-200/80 bg-blue-50/30"
+                    : "hover:bg-zinc-50/70"
+                }`}
+              >
                 <div className="flex gap-2.5 min-w-0 flex-1">
-                  <AvatarWithLevel user={userById(c.authorId)} size={30} />
-                  <div className="rounded-xl bg-zinc-50 px-3 py-2 flex-1 min-w-0 border border-zinc-100">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="text-xs font-bold text-zinc-900">{userById(c.authorId)?.name}</p>
+                  <AvatarWithLevel user={commentAuthor} size={30} />
+                  <div className={`rounded-xl px-3 py-2 flex-1 min-w-0 border ${isCommentStaff ? "bg-white border-zinc-200/80 shadow-2xs" : "bg-zinc-50 border-zinc-100"}`}>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <p className="text-xs font-bold text-zinc-900">{commentAuthor?.name}</p>
+                      <StaffRoleFavicon role={commentAuthor?.role} size="xs" />
                       <span className="text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
                       {isPending && (
                         <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">

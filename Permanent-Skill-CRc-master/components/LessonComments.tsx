@@ -13,7 +13,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Avatar, PrimaryButton } from "@/components/ui";
+import { Avatar, PrimaryButton, StaffRoleFavicon } from "@/components/ui";
 import { timeAgo } from "@/lib/format";
 import type { Comment } from "@/lib/types";
 
@@ -229,8 +229,7 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
         ) : (
           displayedComments.map((comment) => {
             const author = users.find((u) => u.id === comment.authorId);
-            const isAuthorAdmin = author?.role === "admin";
-            const isAuthorManager = author?.isPremium && !isAuthorAdmin;
+            const isStaffAuthor = author?.role === "admin" || author?.role === "manager";
             const isPending = comment.status === "pending";
 
             return (
@@ -239,7 +238,11 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
                 className={`rounded-xl border p-4 transition ${
                   isPending
                     ? "border-amber-200 bg-amber-50/40 shadow-2xs"
-                    : "border-zinc-100 bg-zinc-50/40 hover:bg-zinc-50/80"
+                    : isStaffAuthor
+                      ? author?.role === "admin"
+                        ? "border-amber-200/70 bg-amber-50/30"
+                        : "border-blue-200/70 bg-blue-50/30"
+                      : "border-zinc-100 bg-zinc-50/40 hover:bg-zinc-50/80"
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -251,22 +254,12 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
                     )}
 
                     <div>
-                      <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="text-xs font-bold text-zinc-900">
                           {author?.name || "Community Member"}
                         </span>
 
-                        {isAuthorAdmin && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.2 text-[10px] font-bold text-primary">
-                            <ShieldCheck size={10} /> Admin
-                          </span>
-                        )}
-
-                        {isAuthorManager && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.2 text-[10px] font-bold text-indigo-700">
-                            <UserCheck size={10} /> Manager
-                          </span>
-                        )}
+                        <StaffRoleFavicon role={author?.role} size="xs" />
 
                         {isPending && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.2 text-[10px] font-bold text-amber-800 border border-amber-200">

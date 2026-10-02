@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, Send, X } from "lucide-react";
 import { useApp } from "./AppProvider";
-import { Avatar } from "./ui";
+import { Avatar, StaffRoleFavicon } from "./ui";
 import { timeAgo } from "@/lib/format";
 
 export function ChatDrawer({ userId, onClose }: { userId: string | null; onClose: () => void }) {
@@ -82,7 +82,10 @@ export function ChatDrawer({ userId, onClose }: { userId: string | null; onClose
             </button>
             <Avatar user={person} size={36} />
             <div>
-              <p className="text-sm font-semibold text-zinc-900">{person.name}</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <p className="text-sm font-semibold text-zinc-900">{person.name}</p>
+                <StaffRoleFavicon role={person.role} size="xs" />
+              </div>
               <p className="text-xs text-zinc-500">{person.isOnline ? "Online now" : "Offline"}</p>
             </div>
           </div>

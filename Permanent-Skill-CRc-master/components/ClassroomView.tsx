@@ -19,6 +19,7 @@ import { useApp } from "@/components/AppProvider";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { WordDocumentNotes } from "@/components/WordDocumentNotes";
 import { LessonComments } from "@/components/LessonComments";
+import { StaffRoleFavicon } from "@/components/ui";
 import { getLevel } from "@/lib/levels";
 import { formatMoney } from "@/lib/format";
 import { getVideoThumbnail, renderNotes, toEmbed } from "@/lib/video";
@@ -560,6 +561,16 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                 {/* 1. SECTION 1: Lesson Description & Notes matching Image 1 */}
                 {activeBottomTab === "overview" && (
                   <div className="space-y-4 rounded-2xl border border-zinc-200/90 bg-white p-6 md:p-8 shadow-xs">
+                    <div className="flex items-center justify-between pb-3 border-b border-zinc-100 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black text-[10px] font-black text-white">
+                          EEM
+                        </span>
+                        <span className="text-xs font-bold text-zinc-900">VEX Media Instructor Note</span>
+                        <StaffRoleFavicon role="admin" size="xs" />
+                      </div>
+                      <span className="text-[11px] text-zinc-400 font-medium">Official Course Material</span>
+                    </div>
                     <div className="prose max-w-none text-[15px] leading-relaxed text-zinc-800">
                       {renderNotes(activeLesson.notes || "No notes provided for this lesson.")}
                     </div>

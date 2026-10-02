@@ -194,3 +194,58 @@ export function ProgressBar({
     </div>
   );
 }
+
+export function StaffRoleFavicon({
+  role,
+  size = "sm",
+  showLabel = true,
+  className = "",
+}: {
+  role?: string;
+  size?: "xs" | "sm" | "md";
+  showLabel?: boolean;
+  className?: string;
+}) {
+  if (role !== "admin" && role !== "manager") return null;
+
+  const isAdmin = role === "admin";
+
+  if (size === "xs") {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide shadow-2xs ${
+          isAdmin
+            ? "bg-zinc-950 text-amber-300 border border-amber-500/40"
+            : "bg-blue-900 text-blue-100 border border-blue-400/40"
+        } ${className}`}
+        title={isAdmin ? "Verified Community Admin" : "Verified Community Manager"}
+      >
+        <span className="flex h-3 w-3 shrink-0 items-center justify-center rounded-xs bg-white/20 text-[8px] font-black">
+          {isAdmin ? "⚡" : "★"}
+        </span>
+        {showLabel && <span>{isAdmin ? "Admin" : "Manager"}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-bold tracking-tight shadow-xs ${
+        isAdmin
+          ? "bg-zinc-950 text-amber-300 border border-amber-500/40 ring-1 ring-zinc-900/10"
+          : "bg-blue-900 text-blue-100 border border-blue-400/40 ring-1 ring-blue-900/10"
+      } ${className}`}
+      title={isAdmin ? "Verified Community Admin" : "Verified Community Manager"}
+    >
+      <span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-white/20 text-[9px] font-black">
+        {isAdmin ? "⚡" : "★"}
+      </span>
+      {showLabel && (
+        <span className="uppercase text-[10px] font-black">
+          {isAdmin ? "Admin" : "Manager"}
+        </span>
+      )}
+    </span>
+  );
+}
+
