@@ -59,7 +59,15 @@ function migrate(db: Database) {
     db.progress = db.progress.filter((row) => catalogIds.includes(row.courseId));
     changed = true;
   }
+  const seedCourses = createClassroomCourses();
   for (const course of db.courses) {
+    const match = seedCourses.find((c) => c.id === course.id);
+    if (match && match.lessons.length > 0) {
+      if (!course.lessons || course.lessons.length === 0 || course.lessons.length < match.lessons.length) {
+        course.lessons = match.lessons;
+        changed = true;
+      }
+    }
     const next = course.lessons.map((item) => normalizeLesson(item as Lesson & { content?: string }));
     if (JSON.stringify(next) !== JSON.stringify(course.lessons)) {
       course.lessons = next;
