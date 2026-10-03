@@ -1064,6 +1064,9 @@ export default function AdminPage() {
                 {pendingComments.map((c) => {
                   const author = users.find((u) => u.id === c.authorId);
                   const post = posts.find((p) => p.id === c.postId);
+                  const lesson = !post ? courses.flatMap((crs) => crs.lessons).find((l) => l.id === c.postId) : null;
+                  const contextTitle = post ? `Post: "${post.title}"` : lesson ? `Lesson: "${lesson.title}"` : "Community Discussion";
+                  const isLesson = !post && !!lesson;
 
                   return (
                     <div key={c.id} className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-2">
@@ -1072,19 +1075,22 @@ export default function AdminPage() {
                           <Avatar user={author} size={28} />
                           <span className="font-bold text-xs text-zinc-900">{author?.name}</span>
                           <span className="text-[11px] text-zinc-400">({author?.email})</span>
-                          <span className="text-[11px] text-zinc-500">• on &ldquo;{post?.title || "Community Post"}&rdquo;</span>
+                          <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${isLesson ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
+                            {isLesson ? "🎓 Lesson" : "💬 Post"}
+                          </span>
+                          <span className="text-[11px] text-zinc-600 font-medium truncate max-w-xs">• {contextTitle}</span>
                         </div>
 
                         <div className="flex items-center gap-2 self-end sm:self-auto">
                           <button
                             onClick={() => approveComment(c.id)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition"
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer"
                           >
                             <Check size={12} /> Approve (+2 pts)
                           </button>
                           <button
                             onClick={() => rejectComment(c.id)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-200 transition"
+                            className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-200 transition cursor-pointer"
                           >
                             <X size={12} /> Reject
                           </button>
@@ -1106,7 +1112,7 @@ export default function AdminPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-black text-zinc-900">Published Comments History</h3>
-                <p className="text-xs text-zinc-500">Live community comments currently visible to all members.</p>
+                <p className="text-xs text-zinc-500">Live community comments currently visible in Community and Classroom lessons.</p>
               </div>
 
               <div className="relative w-full sm:w-64">
@@ -1124,6 +1130,9 @@ export default function AdminPage() {
               {filteredApprovedComments.map((c) => {
                 const author = users.find((u) => u.id === c.authorId);
                 const post = posts.find((p) => p.id === c.postId);
+                const lesson = !post ? courses.flatMap((crs) => crs.lessons).find((l) => l.id === c.postId) : null;
+                const contextTitle = post ? `Post: "${post.title}"` : lesson ? `Lesson: "${lesson.title}"` : "Community Discussion";
+                const isLesson = !post && !!lesson;
 
                 return (
                   <div key={c.id} className="pt-3 flex items-start justify-between gap-3">
@@ -1133,7 +1142,10 @@ export default function AdminPage() {
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-xs font-bold text-zinc-900">{author?.name}</span>
                           <span className="text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
-                          <span className="text-[11px] text-zinc-500 font-medium">• Post: &ldquo;{post?.title}&rdquo;</span>
+                          <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.2 text-[10px] font-semibold ${isLesson ? "bg-purple-50 text-purple-700 border border-purple-200" : "bg-blue-50 text-blue-700 border border-blue-200"}`}>
+                            {isLesson ? "🎓 Lesson" : "💬 Post"}
+                          </span>
+                          <span className="text-[11px] text-zinc-600 font-medium truncate max-w-sm">• {contextTitle}</span>
                         </div>
                         <p className="mt-1 text-xs text-zinc-700 bg-zinc-50 p-2.5 rounded-lg break-words">
                           {c.body}
@@ -1145,7 +1157,7 @@ export default function AdminPage() {
                       onClick={() => {
                         if (confirm("Delete this comment permanently?")) deleteComment(c.id);
                       }}
-                      className="p-1.5 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-zinc-100 transition"
+                      className="p-1.5 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-zinc-100 transition cursor-pointer"
                       title="Delete Comment"
                     >
                       <Trash2 size={13} />
@@ -1332,33 +1344,85 @@ export default function AdminPage() {
           </Field>
 
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 space-y-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.isPremium}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.isPremium}
+                  onChange={(e) => {
+                    const checked = e.target.checked;
+                    setForm((f) => ({
+                      ...f,
+                      isPremium: checked,
+                      saleAmount: checked ? (f.saleAmount > 0 ? f.saleAmount : 199) : f.saleAmount,
+                      planName: checked ? (f.planName || "The Daily Pulse 🔥 VIP Mastermind") : f.planName,
+                    }));
+                  }}
+                  className="h-4 w-4 rounded-md border-zinc-300 text-primary"
+                />
+                <Crown size={14} className="text-amber-500" />
+                <span className="text-xs font-bold text-zinc-900">👑 VIP Member Access</span>
+              </label>
+            </div>
+
+            <Field label="Enrolled Course / Membership Tier">
+              <select
+                className={inputClass}
+                value={
+                  form.saleAmount === 199
+                    ? "dp-199"
+                    : form.saleAmount === 149
+                    ? "ba-149"
+                    : form.saleAmount === 129
+                    ? "mk-129"
+                    : form.saleAmount === 99
+                    ? "bc-99"
+                    : form.saleAmount === 89
+                    ? "n8n-89"
+                    : form.saleAmount === 49
+                    ? "aca-49"
+                    : form.saleAmount === 0
+                    ? "free-0"
+                    : "custom"
+                }
                 onChange={(e) => {
-                  const checked = e.target.checked;
-                  setForm((f) => ({
-                    ...f,
-                    isPremium: checked,
-                    saleAmount: checked ? (f.saleAmount > 0 ? f.saleAmount : 97) : f.saleAmount,
-                    planName: checked ? (f.planName || "VIP Mastermind") : f.planName,
-                  }));
+                  const val = e.target.value;
+                  if (val === "dp-199") {
+                    setForm((f) => ({ ...f, isPremium: true, saleAmount: 199, planName: "The Daily Pulse 🔥 VIP Mastermind" }));
+                  } else if (val === "ba-149") {
+                    setForm((f) => ({ ...f, saleAmount: 149, planName: "Learn to Build Apps" }));
+                  } else if (val === "mk-129") {
+                    setForm((f) => ({ ...f, saleAmount: 129, planName: "Make.com Course + Templates" }));
+                  } else if (val === "bc-99") {
+                    setForm((f) => ({ ...f, saleAmount: 99, planName: "Business Clarity Course" }));
+                  } else if (val === "n8n-89") {
+                    setForm((f) => ({ ...f, saleAmount: 89, planName: "n8n Course + Templates" }));
+                  } else if (val === "aca-49") {
+                    setForm((f) => ({ ...f, saleAmount: 49, planName: "Academy Basic Membership" }));
+                  } else if (val === "free-0") {
+                    setForm((f) => ({ ...f, saleAmount: 0, planName: "Getting Started (Free)" }));
+                  }
                 }}
-                className="h-4 w-4 rounded-md border-zinc-300 text-primary"
-              />
-              <Crown size={14} className="text-amber-500" />
-              <span className="text-xs font-bold text-zinc-900">👑 VIP Member Access</span>
-            </label>
+              >
+                <option value="custom">-- Custom Price / Manual Entry --</option>
+                <option value="dp-199">The Daily Pulse 🔥 VIP Mastermind ($199)</option>
+                <option value="ba-149">Learn to Build Apps ($149)</option>
+                <option value="mk-129">Make.com Course + Templates ($129)</option>
+                <option value="bc-99">Business Clarity Course ($99)</option>
+                <option value="n8n-89">n8n Course + Templates ($89)</option>
+                <option value="aca-49">Academy Basic Membership ($49)</option>
+                <option value="free-0">Getting Started Onboarding ($0 Free)</option>
+              </select>
+            </Field>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-zinc-200/60">
-              <Field label="Recorded Sale / Fee ($)">
+              <Field label="Recorded Sale / Revenue ($)">
                 <input
                   className={inputClass}
                   type="number"
                   min="0"
                   step="1"
-                  placeholder="e.g. 97 (or 0 for free)"
+                  placeholder="e.g. 99 (or 0 for free)"
                   value={form.saleAmount}
                   onChange={(e) => setForm((f) => ({ ...f, saleAmount: Number(e.target.value) || 0 }))}
                 />
@@ -1367,7 +1431,7 @@ export default function AdminPage() {
               <Field label="Plan / Product Name">
                 <input
                   className={inputClass}
-                  placeholder="e.g. VIP Mastermind / Pro Plan"
+                  placeholder="e.g. Business Clarity Course"
                   value={form.planName}
                   onChange={(e) => setForm((f) => ({ ...f, planName: e.target.value }))}
                 />

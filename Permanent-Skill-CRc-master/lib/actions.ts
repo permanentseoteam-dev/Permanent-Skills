@@ -416,19 +416,51 @@ export async function approveUser(userId: string): Promise<ActionResult> {
     if (!user) return;
     user.status = "approved";
 
-    // Ensure member has a sales record upon approval
+    // Ensure member has a sales record upon approval matched to course/membership pricing
     if (!db.sales) db.sales = [];
     const hasExistingSale = db.sales.some((s) => s.userId === user.id);
     if (!hasExistingSale) {
-      const amount = user.isPremium ? 97 : 49;
-      const plan = user.isPremium ? "VIP Mastermind" : "Academy Membership";
-      db.sales.push({
-        id: `sale-${token().slice(0, 8)}`,
-        userId: user.id,
-        amount,
-        plan,
-        createdAt: now,
-      });
+      let amount = 99; // Business Clarity default
+      let plan = "Business Clarity Course ($99)";
+
+      if (user.isPremium) {
+        amount = 199;
+        plan = "The Daily Pulse 🔥 VIP Mastermind ($199)";
+      } else if (user.purchasedCourseIds && user.purchasedCourseIds.length > 0) {
+        const course = db.courses.find((c) => user.purchasedCourseIds?.includes(c.id));
+        if (course && course.price !== undefined) {
+          amount = course.price;
+          plan = `${course.title} ($${course.price})`;
+        }
+      } else {
+        const notes = (user.notes || user.application?.goals || user.application?.notes || "").toLowerCase();
+        if (notes.includes("app") || notes.includes("developer") || notes.includes("coding")) {
+          amount = 149;
+          plan = "Learn to Build Apps ($149)";
+        } else if (notes.includes("n8n")) {
+          amount = 89;
+          plan = "n8n Course + Templates ($89)";
+        } else if (notes.includes("make") || notes.includes("airtable")) {
+          amount = 129;
+          plan = "Make.com Course + Templates ($129)";
+        } else if (notes.includes("seo") || notes.includes("consult") || notes.includes("agency")) {
+          amount = 99;
+          plan = "Business Clarity Course ($99)";
+        } else {
+          amount = 99;
+          plan = "Academy Course Enrollment ($99)";
+        }
+      }
+
+      if (amount > 0) {
+        db.sales.push({
+          id: `sale-${token().slice(0, 8)}`,
+          userId: user.id,
+          amount,
+          plan,
+          createdAt: now,
+        });
+      }
     }
 
     db.notifications.unshift({
