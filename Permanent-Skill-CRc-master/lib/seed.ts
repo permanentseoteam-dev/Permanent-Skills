@@ -907,11 +907,11 @@ export function createSeed(): Database {
     if (day === 4) {
       events.push({
         id: `e-prem-${y}-${m}-${date}`,
-        title: "👑 VIP Mastermind",
+        title: "Premium Mastermind",
         start: atDate(y, m, date, 21, 0),
         end: atDate(y, m, date, 22, 30),
         type: "premium",
-        description: "Deep-dive working session for VIP members.",
+        description: "Deep-dive working session for Premium members.",
       });
     }
   }
@@ -925,7 +925,7 @@ export function createSeed(): Database {
   });
   events.push({
     id: "e-prem-18",
-    title: "👑 VIP Mastermind",
+    title: "Premium Mastermind",
     start: atDate(2026, 9, 18, 22, 30),
     end: atDate(2026, 9, 18, 23, 30),
     type: "premium",

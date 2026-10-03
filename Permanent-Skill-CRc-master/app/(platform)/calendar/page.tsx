@@ -777,37 +777,28 @@ export default function MeetPage() {
                 </div>
                 <div className="space-y-1">
                   {dayEvents.map((e) => {
-                    const isRsvped = rsvpEventIds.includes(e.id);
-                    const isOlder = isMeetingOlder(e);
+                    const displayTitle = e.title
+                      .replace(/^👑\s*/, "")
+                      .replace(/VIP Mastermind/, "Premium Mastermind");
+                    const isPrem =
+                      e.type === "premium" ||
+                      e.title.toLowerCase().includes("premium") ||
+                      e.title.toLowerCase().includes("vip");
 
                     return (
                       <button
                         key={e.id}
                         onClick={() => setSelectedEvent(e)}
                         className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
-                          isRsvped
-                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
-                            : isOlder
-                              ? "bg-zinc-100 text-zinc-600 border border-zinc-200/80 hover:bg-zinc-200/60"
-                              : e.type === "premium"
-                                ? "bg-primary/10 text-primary hover:bg-primary/20"
-                                : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                          isPrem
+                            ? "bg-[#f3f0ff] text-[#6d28d9] hover:bg-[#eae5ff]"
+                            : "bg-[#eef4ff] text-[#1d4ed8] hover:bg-[#e0ecff]"
                         }`}
-                        title={`${e.title} (${formatDateTime(e.start)})${isRsvped ? " • In My Schedule" : ""}${isOlder ? " • Meeting Ended" : ""}`}
+                        title={`${displayTitle} (${formatDateTime(e.start)})`}
                       >
-                        <div className="flex items-center justify-between gap-1 truncate">
-                          <span className="flex items-center gap-1 truncate min-w-0 flex-1">
-                            {isRsvped && <span className="text-emerald-600 font-bold shrink-0">✓</span>}
-                            <span className={`truncate ${isOlder ? "line-through text-zinc-400 font-normal" : ""}`}>
-                              {eventTimeLabel(e.start)} - {e.title}
-                            </span>
-                          </span>
-                          {isOlder && (
-                            <span className="shrink-0 rounded bg-amber-100 px-1 py-0.2 text-[9px] font-bold text-amber-800">
-                              Ended
-                            </span>
-                          )}
-                        </div>
+                        <span className="truncate block">
+                          {eventTimeLabel(e.start)} - {displayTitle}
+                        </span>
                       </button>
                     );
                   })}
