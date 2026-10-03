@@ -10,23 +10,24 @@ export const LEVELS = [
   { level: 9, name: "Skill Whisperer", min: 460, unlock: null },
 ];
 
-export function getLevel(points: number) {
+export function getLevel(points?: number | null) {
+  const safePoints = Math.max(0, typeof points === "number" && !isNaN(points) ? points : 0);
   let current = LEVELS[0];
   for (const level of LEVELS) {
-    if (points >= level.min) current = level;
+    if (safePoints >= level.min) current = level;
   }
   const next = LEVELS.find((l) => l.level === current.level + 1);
-  const span = next ? next.min - current.min : 1;
-  const into = next ? Math.max(0, points - current.min) : span;
-  const pointsToNext = next ? Math.max(0, next.min - points) : 0;
-  const progress = next ? Math.min(100, Math.round((into / span) * 100) || 2) : 100;
+  const span = next ? Math.max(1, next.min - current.min) : 1;
+  const into = next ? Math.max(0, safePoints - current.min) : span;
+  const pointsToNext = next ? Math.max(0, next.min - safePoints) : 0;
+  const progress = next ? Math.min(100, Math.max(0, Math.round((into / span) * 100))) : 100;
   return { ...current, next, pointsToNext, progress };
 }
 
-export function levelShare(users: { points: number }[]) {
+export function levelShare(users: { points?: number | null }[] = []) {
   const approved = users.length || 1;
   return LEVELS.map((level) => {
-    const count = users.filter((u) => getLevel(u.points).level === level.level).length;
+    const count = users.filter((u) => getLevel(u?.points || 0).level === level.level).length;
     return { ...level, percent: Math.round((count / approved) * 100) };
   });
 }
