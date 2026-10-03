@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Calendar as CalendarIcon,
   Check,
   CheckCircle2,
@@ -28,7 +29,20 @@ import {
 import { useApp } from "@/components/AppProvider";
 import { Avatar, Card, Field, Modal, PrimaryButton, ProgressBar, inputClass } from "@/components/ui";
 import { eventTimeLabel, formatDateTime } from "@/lib/format";
-import type { CalendarEvent, Project, ProjectTask, PublicUser } from "@/lib/types";
+import type { CalendarEvent, EventType, Project, ProjectTask, PublicUser } from "@/lib/types";
+
+function toLocalDatetimeInputString(dateStrOrDate?: string | Date): string {
+  if (!dateStrOrDate) return "";
+  const d = new Date(dateStrOrDate);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const YYYY = d.getFullYear();
+  const MM = pad(d.getMonth() + 1);
+  const DD = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const mm = pad(d.getMinutes());
+  return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
+}
 
 function isMeetingOlder(event?: CalendarEvent | null): boolean {
   if (!event) return false;
@@ -105,6 +119,8 @@ export default function MeetPage() {
     user,
     saveProject,
     deleteProject,
+    saveCalendarEvent,
+    deleteCalendarEvent,
     updateProjectStatus,
     updateProjectMeetSync,
     updateProjectProgress,
@@ -117,6 +133,26 @@ export default function MeetPage() {
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [rsvpEventIds, setRsvpEventIds] = useState<string[]>([]);
+
+  // Event CRUD State
+  const [eventModalOpen, setEventModalOpen] = useState(false);
+  const [eventModalMode, setEventModalMode] = useState<"view" | "edit" | "create">("view");
+  const [eventForm, setEventForm] = useState<{
+    id?: string;
+    title: string;
+    start: string;
+    end: string;
+    type: EventType;
+    description: string;
+  }>({
+    title: "",
+    start: "",
+    end: "",
+    type: "live",
+    description: "",
+  });
+  const [eventBusy, setEventBusy] = useState(false);
+  const [eventError, setEventError] = useState("");
 
   useEffect(() => {
     try {
@@ -136,6 +172,83 @@ export default function MeetPage() {
       } catch (e) {}
       return next;
     });
+  }
+
+  // Event CRUD Handlers
+  function openViewMeeting(ev: CalendarEvent) {
+    setSelectedEvent(ev);
+    setEventModalMode("view");
+    setEventError("");
+    setEventModalOpen(true);
+  }
+
+  function openCreateMeeting(defaultDate?: Date) {
+    const baseDate = defaultDate ? new Date(defaultDate) : new Date(Date.now() + 24 * 60 * 60 * 1000);
+    baseDate.setHours(15, 0, 0, 0);
+    const endBase = new Date(baseDate.getTime() + 90 * 60 * 1000);
+
+    setEventForm({
+      title: "",
+      start: toLocalDatetimeInputString(baseDate),
+      end: toLocalDatetimeInputString(endBase),
+      type: "live",
+      description: "",
+    });
+    setSelectedEvent(null);
+    setEventModalMode("create");
+    setEventError("");
+    setEventModalOpen(true);
+  }
+
+  function openEditMeeting(ev: CalendarEvent) {
+    setEventForm({
+      id: ev.id,
+      title: ev.title,
+      start: toLocalDatetimeInputString(ev.start),
+      end: toLocalDatetimeInputString(ev.end),
+      type: ev.type || "live",
+      description: ev.description || "",
+    });
+    setSelectedEvent(ev);
+    setEventModalMode("edit");
+    setEventError("");
+    setEventModalOpen(true);
+  }
+
+  async function onSaveMeeting() {
+    if (!eventForm.title.trim()) {
+      setEventError("Please enter a meeting title.");
+      return;
+    }
+    if (!eventForm.start || !eventForm.end) {
+      setEventError("Please specify start and end dates and times.");
+      return;
+    }
+    setEventBusy(true);
+    setEventError("");
+    const res = await saveCalendarEvent({
+      ...eventForm,
+      start: new Date(eventForm.start).toISOString(),
+      end: new Date(eventForm.end).toISOString(),
+    });
+    setEventBusy(false);
+    if (!res.ok) {
+      setEventError(res.error || "Could not save meeting.");
+      return;
+    }
+    setEventModalOpen(false);
+    setSelectedEvent(null);
+  }
+
+  async function onDeleteMeeting(id: string) {
+    if (!confirm("Are you sure you want to delete this meeting?")) return;
+    setEventBusy(true);
+    const res = await deleteCalendarEvent(id);
+    setEventBusy(false);
+    if (res.ok) {
+      setEventModalOpen(false);
+      setSelectedEvent(null);
+    }
   }
 
   // Project Modal State

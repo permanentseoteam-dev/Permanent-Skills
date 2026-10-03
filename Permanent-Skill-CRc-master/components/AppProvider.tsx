@@ -36,6 +36,8 @@ import {
   saveLesson as saveLessonAction,
   saveProject as saveProjectAction,
   deleteProject as deleteProjectAction,
+  saveCalendarEvent as saveCalendarEventAction,
+  deleteCalendarEvent as deleteCalendarEventAction,
   updateProjectStatus as updateProjectStatusAction,
   updateProjectMeetSync as updateProjectMeetSyncAction,
   updateProjectProgress as updateProjectProgressAction,
@@ -55,7 +57,9 @@ import type {
   ActionResult,
   AppState,
   Application,
+  CalendarEvent,
   Community,
+  EventType,
   PostCategory,
   PublicUser,
   Role,
@@ -160,6 +164,15 @@ type AppContextValue = AppState & {
     meetUrl?: string;
   }) => Promise<ActionResult>;
   deleteProject: (projectId: string) => Promise<ActionResult>;
+  saveCalendarEvent: (input: {
+    id?: string;
+    title: string;
+    start: string;
+    end: string;
+    type: EventType;
+    description: string;
+  }) => Promise<ActionResult>;
+  deleteCalendarEvent: (id: string) => Promise<ActionResult>;
   updateProjectStatus: (projectId: string, status: "active" | "completed" | "paused") => Promise<ActionResult>;
   updateProjectMeetSync: (projectId: string, meetSyncTime: string, meetRoom: string, meetUrl: string) => Promise<ActionResult>;
   updateProjectProgress: (projectId: string, progress: number) => Promise<ActionResult>;
@@ -331,6 +344,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const deleteProjectFn = useCallback((projectId: string) => run(() => deleteProjectAction(projectId)), [run]);
+  const saveCalendarEventFn = useCallback(
+    (input: {
+      id?: string;
+      title: string;
+      start: string;
+      end: string;
+      type: EventType;
+      description: string;
+    }) => run(() => saveCalendarEventAction(input)),
+    [run],
+  );
+  const deleteCalendarEventFn = useCallback(
+    (id: string) => run(() => deleteCalendarEventAction(id)),
+    [run],
+  );
   const updateProjectStatusFn = useCallback(
     (projectId: string, status: "active" | "completed" | "paused") =>
       run(() => updateProjectStatusAction(projectId, status)),
@@ -456,6 +484,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteLesson: deleteLessonFn,
       saveProject: saveProjectFn,
       deleteProject: deleteProjectFn,
+      saveCalendarEvent: saveCalendarEventFn,
+      deleteCalendarEvent: deleteCalendarEventFn,
       updateProjectStatus: updateProjectStatusFn,
       updateProjectMeetSync: updateProjectMeetSyncFn,
       updateProjectProgress: updateProjectProgressFn,
@@ -506,6 +536,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteLessonFn,
       saveProjectFn,
       deleteProjectFn,
+      saveCalendarEventFn,
+      deleteCalendarEventFn,
       updateProjectStatusFn,
       updateProjectMeetSyncFn,
       updateProjectProgressFn,
