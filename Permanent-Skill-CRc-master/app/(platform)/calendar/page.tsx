@@ -79,6 +79,8 @@ export default function MeetPage() {
     user,
     saveProject,
     deleteProject,
+    updateProjectStatus,
+    updateProjectMeetSync,
     updateProjectProgress,
     toggleProjectTask,
     addProjectTask,
@@ -411,7 +413,12 @@ export default function MeetPage() {
                 .map((id) => users.find((u) => u.id === id))
                 .filter(Boolean) as PublicUser[];
 
-              const isCompleted = proj.progress === 100 || proj.status === "completed";
+              const currentStatus: "active" | "completed" | "paused" =
+                proj.status || (proj.progress === 100 ? "completed" : "active");
+              const isCompleted = currentStatus === "completed";
+              const isPaused = currentStatus === "paused";
+
+              const otherProjects = projects.filter((p) => p.id !== proj.id);
 
               return (
                 <Card
@@ -426,11 +433,15 @@ export default function MeetPage() {
                           <div className="flex items-center gap-1.5">
                             <span
                               className={`h-2 w-2 rounded-full ${
-                                isCompleted ? "bg-emerald-500" : "bg-[#5051F9]"
+                                isCompleted
+                                  ? "bg-emerald-500"
+                                  : isPaused
+                                  ? "bg-amber-500"
+                                  : "bg-[#5051F9]"
                               }`}
                             />
-                            <span className="text-[10px] font-bold text-zinc-700">
-                              {isCompleted ? "Completed" : "Active"}
+                            <span className="text-[10px] font-bold text-zinc-700 capitalize">
+                              {currentStatus}
                             </span>
                           </div>
                           <span className="text-[9px] font-mono text-zinc-400">#meet-sync</span>
@@ -452,17 +463,34 @@ export default function MeetPage() {
                       {/* Middle: Details & Team */}
                       <div className="min-w-0 flex-1 space-y-3">
                         <div>
-                          <div className="flex items-center gap-2 flex-wrap">
+                          <div className="flex items-center gap-2.5 flex-wrap">
                             <h3 className="text-lg font-bold text-zinc-900">{proj.title}</h3>
-                            <span
-                              className={`rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize border ${
-                                isCompleted
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : "bg-indigo-50 text-indigo-700 border-indigo-200"
-                              }`}
-                            >
-                              {isCompleted ? "✓ Completed" : "● Active"}
-                            </span>
+                            
+                            {/* Interactive Status Selector Dropdown on Card */}
+                            <div className="relative inline-flex items-center">
+                              <select
+                                value={currentStatus}
+                                onChange={(e) =>
+                                  updateProjectStatus(
+                                    proj.id,
+                                    e.target.value as "active" | "completed" | "paused"
+                                  )
+                                }
+                                className={`cursor-pointer appearance-none rounded-full px-2.5 py-0.5 pr-5 text-[11px] font-bold capitalize border outline-none transition shadow-2xs ${
+                                  isCompleted
+                                    ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                    : isPaused
+                                    ? "bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
+                                    : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+                                }`}
+                                title="Click to change project status"
+                              >
+                                <option value="active">● Active</option>
+                                <option value="paused">⏸ Paused</option>
+                                <option value="completed">✓ Completed</option>
+                              </select>
+                              <ChevronDown size={11} className="pointer-events-none absolute right-1.5 opacity-60" />
+                            </div>
                           </div>
                           <p className="mt-1 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
                             {proj.description.split(" ").map((word, i) => {
@@ -517,7 +545,7 @@ export default function MeetPage() {
                             >
                               <div
                                 className={`h-full rounded-full transition-all duration-300 ${
-                                  isCompleted ? "bg-emerald-500" : "bg-[#5051F9]"
+                                  isCompleted ? "bg-emerald-500" : isPaused ? "bg-amber-500" : "bg-[#5051F9]"
                                 }`}
                                 style={{ width: `${proj.progress}%` }}
                               />
@@ -633,25 +661,114 @@ export default function MeetPage() {
                       </div>
                     </div>
 
-                    {/* Right: MEET SYNC STATUS Box */}
+                    {/* Right: MEET SYNC STATUS Box with Dropdown & Fallback Button */}
                     <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0">
-                      <div className="w-full lg:w-[260px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2">
-                        <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
-                          MEET SYNC STATUS
-                        </span>
-                        <div className="flex items-start gap-2.5">
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#5051F9] text-white shadow-xs">
-                            <CalendarIcon size={15} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-bold text-zinc-900 truncate">
-                              {proj.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}
-                            </p>
-                            <p className="text-[11px] text-zinc-500 truncate">
-                              {proj.meetRoom || "Nexus Meet #room-design"}
-                            </p>
-                          </div>
+                      <div className="w-full lg:w-[275px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
+                            MEET SYNC STATUS
+                          </span>
+                          <span className="text-[9px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded">
+                            Live Synced
+                          </span>
                         </div>
+
+                        {events.length > 0 || otherProjects.length > 0 ? (
+                          <div className="space-y-2">
+                            {/* Dropdown showing upcoming meeting or project */}
+                            <div className="relative">
+                              <select
+                                value={proj.meetSyncTime || ""}
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  const matchedEvent = events.find(
+                                    (ev) =>
+                                      `${ev.title} (${formatDateTime(ev.start)})` === val ||
+                                      ev.id === val ||
+                                      ev.title === val
+                                  );
+                                  const matchedProj = projects.find(
+                                    (p) => p.title === val || `Sync with ${p.title}` === val
+                                  );
+
+                                  let nextTime = val;
+                                  let nextRoom = proj.meetRoom || "Nexus Meet #room-general";
+                                  let nextUrl = proj.meetUrl || "https://meet.google.com/new";
+
+                                  if (matchedEvent) {
+                                    nextTime = `${matchedEvent.title} (${formatDateTime(matchedEvent.start)})`;
+                                    nextRoom = matchedEvent.type === "live" ? "Live Stream Room" : "VIP Mastermind Room";
+                                  } else if (matchedProj) {
+                                    nextTime = `Sync with ${matchedProj.title}`;
+                                    nextRoom = matchedProj.meetRoom || "Nexus Meet #room-sync";
+                                  }
+
+                                  updateProjectMeetSync(proj.id, nextTime, nextRoom, nextUrl);
+                                }}
+                                className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-2.5 py-1.5 pr-7 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
+                              >
+                                <option value={proj.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}>
+                                  {proj.meetSyncTime || "Select meeting or project..."}
+                                </option>
+
+                                {events.length > 0 && (
+                                  <optgroup label="Upcoming Calendar Meetings">
+                                    {events.map((ev) => (
+                                      <option key={ev.id} value={`${ev.title} (${formatDateTime(ev.start)})`}>
+                                        📅 {ev.title} • {formatDateTime(ev.start)}
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+
+                                {otherProjects.length > 0 && (
+                                  <optgroup label="Other Projects">
+                                    {otherProjects.map((p) => (
+                                      <option key={p.id} value={`Sync with ${p.title}`}>
+                                        🚀 {p.title} ({p.version || "v1.0"})
+                                      </option>
+                                    ))}
+                                  </optgroup>
+                                )}
+
+                                <optgroup label="Custom Sprint Syncs">
+                                  <option value="Sprint Sync: Today, 3:00 PM">Sprint Sync: Today, 3:00 PM</option>
+                                  <option value="Weekly Strategy: Tomorrow, 4:00 PM">Weekly Strategy: Tomorrow, 4:00 PM</option>
+                                  <option value="Deliverable Review: Friday, 2:00 PM">Deliverable Review: Friday, 2:00 PM</option>
+                                </optgroup>
+                              </select>
+                              <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400" />
+                            </div>
+
+                            <div className="flex items-start gap-2.5 pt-0.5">
+                              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[#5051F9] text-white shadow-xs">
+                                <CalendarIcon size={14} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-bold text-zinc-900 truncate">
+                                  {proj.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}
+                                </p>
+                                <p className="text-[11px] text-zinc-500 truncate">
+                                  {proj.meetRoom || "Nexus Meet #room-design"}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          /* Fallback when NO meeting or project: shows button to Add Project */
+                          <div className="space-y-2 text-center py-1">
+                            <p className="text-xs text-zinc-500 font-medium">
+                              No upcoming meeting or project
+                            </p>
+                            <button
+                              type="button"
+                              onClick={openCreateProject}
+                              className="inline-flex items-center justify-center gap-1.5 w-full rounded-lg bg-[#5051F9] hover:bg-[#4041d8] text-white text-xs font-bold py-1.5 shadow-xs transition cursor-pointer"
+                            >
+                              <Plus size={13} /> Add Project
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       {/* Project actions (Join Meet, Edit, Delete) */}
@@ -921,10 +1038,85 @@ export default function MeetPage() {
                 onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as ProjectForm["status"] }))}
               >
                 <option value="active">Active</option>
-                <option value="completed">Completed</option>
                 <option value="paused">Paused</option>
+                <option value="completed">Completed</option>
               </select>
             </Field>
+
+            <div className="sm:col-span-2">
+              <Field label="Meet Sync Status (Linked Meeting or Project)">
+                {events.length > 0 || projects.length > 0 ? (
+                  <select
+                    className={inputClass}
+                    value={form.meetSyncTime}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const matchedEvent = events.find(
+                        (ev) =>
+                          `${ev.title} (${formatDateTime(ev.start)})` === val ||
+                          ev.id === val ||
+                          ev.title === val
+                      );
+                      let nextRoom = form.meetRoom || "Nexus Meet #room-general";
+                      let nextUrl = form.meetUrl || "https://meet.google.com/new";
+                      if (matchedEvent) {
+                        nextRoom = matchedEvent.type === "live" ? "Live Stream Room" : "VIP Mastermind Room";
+                      }
+                      setForm((f) => ({
+                        ...f,
+                        meetSyncTime: val,
+                        meetRoom: nextRoom,
+                        meetUrl: nextUrl,
+                      }));
+                    }}
+                  >
+                    <option value={form.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}>
+                      {form.meetSyncTime || "Select upcoming meeting or project..."}
+                    </option>
+
+                    {events.length > 0 && (
+                      <optgroup label="Upcoming Calendar Meetings">
+                        {events.map((ev) => (
+                          <option key={ev.id} value={`${ev.title} (${formatDateTime(ev.start)})`}>
+                            📅 {ev.title} • {formatDateTime(ev.start)}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+
+                    {projects.length > 0 && (
+                      <optgroup label="Projects">
+                        {projects.map((p) => (
+                          <option key={p.id} value={`Sync with ${p.title}`}>
+                            🚀 {p.title} ({p.version || "v1.0"})
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+
+                    <optgroup label="Custom Sprint Syncs">
+                      <option value="Sprint Sync: Today, 3:00 PM">Sprint Sync: Today, 3:00 PM</option>
+                      <option value="Weekly Strategy: Tomorrow, 4:00 PM">Weekly Strategy: Tomorrow, 4:00 PM</option>
+                      <option value="Deliverable Review: Friday, 2:00 PM">Deliverable Review: Friday, 2:00 PM</option>
+                    </optgroup>
+                  </select>
+                ) : (
+                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 border border-zinc-200">
+                    <span className="text-xs text-zinc-500">No upcoming meetings or projects</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProjectModalOpen(false);
+                        openCreateProject();
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline cursor-pointer"
+                    >
+                      <Plus size={12} /> Add Project
+                    </button>
+                  </div>
+                )}
+              </Field>
+            </div>
           </div>
 
           {/* Description field with interactive @ mentions */}

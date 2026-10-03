@@ -1261,7 +1261,7 @@ export async function saveProject(input: {
       mentionedUsernames: input.mentionedUsernames || [],
       progress: computedProgress,
       tasks: input.tasks || [],
-      status: computedProgress === 100 ? "completed" : input.status || "active",
+      status: input.status ? input.status : computedProgress === 100 ? "completed" : "active",
       meetSyncTime: input.meetSyncTime?.trim() || "Sprint Sync: Today, 3:00 PM",
       meetRoom: input.meetRoom?.trim() || "Nexus Meet #room-general",
       meetUrl: input.meetUrl?.trim() || "https://meet.google.com/new",
@@ -1301,6 +1301,46 @@ export async function saveProject(input: {
   });
 
   return { ok: true, id };
+}
+
+export async function updateProjectStatus(
+  projectId: string,
+  status: "active" | "completed" | "paused"
+): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+
+  await updateDb((db) => {
+    const proj = (db.projects || []).find((p) => p.id === projectId);
+    if (!proj) return;
+    proj.status = status;
+    if (status === "completed") {
+      proj.progress = 100;
+      if (proj.tasks && proj.tasks.length > 0) {
+        proj.tasks.forEach((t) => (t.completed = true));
+      }
+    }
+  });
+  return { ok: true };
+}
+
+export async function updateProjectMeetSync(
+  projectId: string,
+  meetSyncTime: string,
+  meetRoom: string,
+  meetUrl: string
+): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+
+  await updateDb((db) => {
+    const proj = (db.projects || []).find((p) => p.id === projectId);
+    if (!proj) return;
+    proj.meetSyncTime = meetSyncTime;
+    proj.meetRoom = meetRoom;
+    proj.meetUrl = meetUrl;
+  });
+  return { ok: true };
 }
 
 export async function updateProjectProgress(projectId: string, progress: number): Promise<ActionResult> {

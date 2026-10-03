@@ -35,6 +35,8 @@ import {
   saveLesson as saveLessonAction,
   saveProject as saveProjectAction,
   deleteProject as deleteProjectAction,
+  updateProjectStatus as updateProjectStatusAction,
+  updateProjectMeetSync as updateProjectMeetSyncAction,
   updateProjectProgress as updateProjectProgressAction,
   toggleProjectTask as toggleProjectTaskAction,
   addProjectTask as addProjectTaskAction,
@@ -149,6 +151,8 @@ type AppContextValue = AppState & {
     meetUrl?: string;
   }) => Promise<ActionResult>;
   deleteProject: (projectId: string) => Promise<ActionResult>;
+  updateProjectStatus: (projectId: string, status: "active" | "completed" | "paused") => Promise<ActionResult>;
+  updateProjectMeetSync: (projectId: string, meetSyncTime: string, meetRoom: string, meetUrl: string) => Promise<ActionResult>;
   updateProjectProgress: (projectId: string, progress: number) => Promise<ActionResult>;
   toggleProjectTask: (projectId: string, taskId: string) => Promise<ActionResult>;
   addProjectTask: (projectId: string, title: string) => Promise<ActionResult>;
@@ -315,6 +319,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const deleteProjectFn = useCallback((projectId: string) => run(() => deleteProjectAction(projectId)), [run]);
+  const updateProjectStatusFn = useCallback(
+    (projectId: string, status: "active" | "completed" | "paused") =>
+      run(() => updateProjectStatusAction(projectId, status)),
+    [run],
+  );
+  const updateProjectMeetSyncFn = useCallback(
+    (projectId: string, meetSyncTime: string, meetRoom: string, meetUrl: string) =>
+      run(() => updateProjectMeetSyncAction(projectId, meetSyncTime, meetRoom, meetUrl)),
+    [run],
+  );
   const updateProjectProgressFn = useCallback(
     (projectId: string, progress: number) => run(() => updateProjectProgressAction(projectId, progress)),
     [run],
@@ -411,6 +425,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteLesson: deleteLessonFn,
       saveProject: saveProjectFn,
       deleteProject: deleteProjectFn,
+      updateProjectStatus: updateProjectStatusFn,
+      updateProjectMeetSync: updateProjectMeetSyncFn,
       updateProjectProgress: updateProjectProgressFn,
       toggleProjectTask: toggleProjectTaskFn,
       addProjectTask: addProjectTaskFn,
@@ -456,6 +472,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteLessonFn,
       saveProjectFn,
       deleteProjectFn,
+      updateProjectStatusFn,
+      updateProjectMeetSyncFn,
       updateProjectProgressFn,
       toggleProjectTaskFn,
       addProjectTaskFn,
