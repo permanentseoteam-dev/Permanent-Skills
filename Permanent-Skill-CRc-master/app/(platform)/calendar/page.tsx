@@ -75,6 +75,33 @@ function downloadIcsFile(event: CalendarEvent) {
   URL.revokeObjectURL(url);
 }
 
+function isMeetingOlder(event?: CalendarEvent | null): boolean {
+  if (!event) return false;
+  try {
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    
+    const eventDate = new Date(event.start || event.end);
+    const startOfEventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate()).getTime();
+
+    // 1. Any date strictly before today is an older meeting
+    if (startOfEventDay < startOfToday) {
+      return true;
+    }
+
+    // 2. Future dates are upcoming meetings (not older)
+    if (startOfEventDay > startOfToday) {
+      return false;
+    }
+
+    // 3. Current date meeting (today): older only if its end time has already elapsed
+    const eventEnd = new Date(event.end || event.start);
+    return eventEnd.getTime() < now.getTime();
+  } catch {
+    return false;
+  }
+}
+
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function startOfMonth(date: Date) {
@@ -837,16 +864,34 @@ export default function MeetPage() {
 
                       {/* Project actions (Join Meet, Edit, Delete) */}
                       <div className="flex items-center gap-2 shrink-0">
-                        {proj.meetUrl && (
-                          <a
-                            href={proj.meetUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 rounded-lg bg-[#5051F9]/10 hover:bg-[#5051F9]/20 px-2.5 py-1.5 text-xs font-semibold text-primary transition cursor-pointer"
-                          >
-                            <Video size={13} /> Join Meet
-                          </a>
-                        )}
+                        {proj.meetUrl && (() => {
+                          const matchedEvent = events.find(
+                            (ev) =>
+                              `${ev.title} (${formatDateTime(ev.start)})` === proj.meetSyncTime ||
+                              ev.title === proj.meetSyncTime ||
+                              ev.id === proj.meetSyncTime
+                          );
+                          const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
+                          const targetUrl = isProjMeetOlder && matchedEvent
+                            ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
+                            : proj.meetUrl;
+
+                          return (
+                            <a
+                              href={targetUrl}
+                              target={isProjMeetOlder ? "_self" : "_blank"}
+                              rel="noopener noreferrer"
+                              className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+                                isProjMeetOlder
+                                  ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                                  : "bg-[#5051F9]/10 hover:bg-[#5051F9]/20 text-primary"
+                              }`}
+                            >
+                              {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
+                              <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
+                            </a>
+                          );
+                        })()}
 
                         <button
                           onClick={() => openEditProject(proj)}
@@ -992,7 +1037,7 @@ export default function MeetPage() {
                 <div className="space-y-1">
                   {dayEvents.map((e) => {
                     const isRsvped = rsvpEventIds.includes(e.id);
-                    const isOver = new Date(e.end).getTime() < Date.now();
+                    const isOlder = isMeetingOlder(e);
 
                     return (
                       <button
@@ -1007,8 +1052,8 @@ export default function MeetPage() {
                             : e.type === "premium"
                               ? "bg-primary/10 text-primary hover:bg-primary/20"
                               : "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                        } ${isOver && !isRsvped ? "opacity-75" : ""}`}
-                        title={`${e.title} (${formatDateTime(e.start)})${isRsvped ? " • In My Schedule" : ""}${isOver ? " • Ended" : ""}`}
+                        } ${isOlder && !isRsvped ? "opacity-75" : ""}`}
+                        title={`${e.title} (${formatDateTime(e.start)})${isRsvped ? " • In My Schedule" : ""}${isOlder ? " • Meeting Ended" : ""}`}
                       >
                         <span className="flex items-center gap-1 truncate">
                           {isRsvped && <span className="text-emerald-600 font-bold shrink-0">✓</span>}
@@ -1034,9 +1079,13 @@ export default function MeetPage() {
         title={selectedEvent?.title || "Meet Session"}
       >
         {selectedEvent && (() => {
-          const isEventOver = new Date(selectedEvent.end).getTime() < Date.now();
+          const isEventOver = isMeetingOlder(selectedEvent);
           const isRsvped = rsvpEventIds.includes(selectedEvent.id);
           const endedUrl = `/meeting-ended?title=${encodeURIComponent(selectedEvent.title)}&start=${encodeURIComponent(selectedEvent.start)}&end=${encodeURIComponent(selectedEvent.end)}&type=${selectedEvent.type}&desc=${encodeURIComponent(selectedEvent.description)}`;
+
+          const now = new Date();
+          const eventDate = new Date(selectedEvent.start || selectedEvent.end);
+          const isToday = eventDate.toDateString() === now.toDateString();
 
           return (
             <div className="space-y-4">
@@ -1047,12 +1096,16 @@ export default function MeetPage() {
                   <span>{formatDateTime(selectedEvent.start)} - {eventTimeLabel(selectedEvent.end)}</span>
                 </div>
                 {isEventOver ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200 shrink-0">
-                    <VideoOff size={12} /> Concluded
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200 shrink-0">
+                    <VideoOff size={12} /> Meeting Ended
+                  </span>
+                ) : isToday ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" /> Live Today
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" /> Upcoming
+                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200 shrink-0">
+                    <CalendarIcon size={12} /> Upcoming Session
                   </span>
                 )}
               </div>
@@ -1088,7 +1141,7 @@ export default function MeetPage() {
                   }`}
                 >
                   {isEventOver ? <VideoOff size={16} /> : <Video size={16} />}
-                  <span>{isEventOver ? "Join Video Room" : "Join Video Room"}</span>
+                  <span>{isEventOver ? "Join Video Room (Meeting Ended)" : "Join Video Room"}</span>
                 </a>
 
                 {/* Add to my schedule / RSVP with sync options */}
