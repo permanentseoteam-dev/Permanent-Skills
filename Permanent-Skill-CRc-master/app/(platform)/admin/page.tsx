@@ -490,7 +490,7 @@ export default function AdminPage() {
           className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
         >
           <Card className={`p-4 shadow-2xs ${pending.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pending Apps</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pending Requests</span>
             <p className="mt-1 text-xl font-black text-amber-700 flex items-center gap-1.5">
               {pending.length}
               {pending.length > 0 && <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
@@ -537,7 +537,7 @@ export default function AdminPage() {
         <TabButton
           active={tab === "pending"}
           onClick={() => setTab("pending")}
-          label={`Pending Apps (${pending.length})`}
+          label={`Pending Requests (${pending.length})`}
           badgeColor={pending.length > 0 ? "bg-amber-500 text-zinc-950 font-black animate-pulse" : undefined}
         />
         <TabButton

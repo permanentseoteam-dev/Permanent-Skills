@@ -134,10 +134,29 @@ function migrate(db: Database) {
       changed = true;
     }
   }
-  for (const comment of db.comments || []) {
-    if (!comment.status) {
-      comment.status = "approved";
+  const seedUsers = createSeed().users;
+  for (const su of seedUsers) {
+    if (!db.users.some((u) => u.id === su.id)) {
+      db.users.push(su);
       changed = true;
+    }
+  }
+  if (!db.comments || db.comments.length === 0) {
+    db.comments = createSeed().comments;
+    changed = true;
+  } else {
+    const seedComments = createSeed().comments;
+    for (const sc of seedComments) {
+      if (!db.comments.some((c) => c.id === sc.id)) {
+        db.comments.push(sc);
+        changed = true;
+      }
+    }
+    for (const comment of db.comments) {
+      if (!comment.status) {
+        comment.status = "approved";
+        changed = true;
+      }
     }
   }
   if (!db.projects || db.projects.length === 0) {
