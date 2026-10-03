@@ -134,24 +134,28 @@ function migrate(db: Database) {
       changed = true;
     }
   }
-  const seedUsers = createSeed().users;
-  for (const su of seedUsers) {
-    if (!db.users.some((u) => u.id === su.id)) {
-      db.users.push(su);
+  if (!db.users || db.users.length === 0) {
+    db.users = createSeed().users;
+    changed = true;
+  } else {
+    // Only guarantee root admin exists
+    const rootAdmin = createSeed().users.find((u) => u.id === "u-admin");
+    if (rootAdmin && !db.users.some((u) => u.id === rootAdmin.id)) {
+      db.users.unshift(rootAdmin);
       changed = true;
+    }
+    // Demote legacy seed users if they still have hardcoded manager role
+    for (const u of db.users) {
+      if ((u.id === "u-manager" || u.id === "u-ayaan") && u.role === "manager") {
+        u.role = "member";
+        changed = true;
+      }
     }
   }
   if (!db.comments || db.comments.length === 0) {
     db.comments = createSeed().comments;
     changed = true;
   } else {
-    const seedComments = createSeed().comments;
-    for (const sc of seedComments) {
-      if (!db.comments.some((c) => c.id === sc.id)) {
-        db.comments.push(sc);
-        changed = true;
-      }
-    }
     for (const comment of db.comments) {
       if (!comment.status) {
         comment.status = "approved";
