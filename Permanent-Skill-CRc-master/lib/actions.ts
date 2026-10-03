@@ -192,9 +192,9 @@ export async function getAppState(): Promise<AppState> {
   const stats =
     isStaff
       ? {
-          totalUsers: db.users.length,
-          totalSales: db.sales.reduce((sum, s) => sum + s.amount, 0),
-          totalLogins: db.users.reduce((sum, u) => sum + u.loginCount, 0),
+          totalUsers: approved.length,
+          totalSales: (db.sales || []).reduce((sum, s) => sum + s.amount, 0),
+          totalLogins: approved.reduce((sum, u) => sum + u.loginCount, 0),
           pendingCount: db.users.filter((u) => u.status === "pending").length,
         }
       : null;
@@ -415,6 +415,22 @@ export async function approveUser(userId: string): Promise<ActionResult> {
     const user = db.users.find((u) => u.id === userId);
     if (!user) return;
     user.status = "approved";
+
+    // Ensure member has a sales record upon approval
+    if (!db.sales) db.sales = [];
+    const hasExistingSale = db.sales.some((s) => s.userId === user.id);
+    if (!hasExistingSale) {
+      const amount = user.isPremium ? 97 : 49;
+      const plan = user.isPremium ? "VIP Mastermind" : "Academy Membership";
+      db.sales.push({
+        id: `sale-${token().slice(0, 8)}`,
+        userId: user.id,
+        amount,
+        plan,
+        createdAt: now,
+      });
+    }
+
     db.notifications.unshift({
       id: `n-${token().slice(0, 8)}`,
       userId: user.id,
@@ -443,6 +459,9 @@ export async function rejectUser(userId: string): Promise<ActionResult> {
     if (!user) return;
     user.status = "rejected";
     d.sessions = d.sessions.filter((s) => s.userId !== userId);
+    if (d.sales) {
+      d.sales = d.sales.filter((s) => s.userId !== userId);
+    }
   });
   return { ok: true };
 }

@@ -157,6 +157,7 @@ export default function AdminPage() {
   const isAdmin = user?.role === "admin";
 
   // Data pools
+  const approvedUsers = useMemo(() => users.filter((u) => u.status === "approved" || u.role === "admin" || u.role === "manager"), [users]);
   const pending = useMemo(() => users.filter((u) => u.status === "pending"), [users]);
   const pendingComments = useMemo(() => comments.filter((c) => c.status === "pending"), [comments]);
   const approvedComments = useMemo(() => comments.filter((c) => c.status === "approved" || !c.status), [comments]);
@@ -468,7 +469,7 @@ export default function AdminPage() {
         >
           <Card className="p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs">
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Users</span>
-            <p className="mt-1 text-xl font-black text-zinc-900">{users.length}</p>
+            <p className="mt-1 text-xl font-black text-zinc-900">{approvedUsers.length}</p>
           </Card>
         </button>
 

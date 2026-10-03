@@ -4,8 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Film,
+  Pencil,
   Play,
   Star,
+  Video,
   X,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
@@ -13,7 +15,9 @@ import { Sidebar } from "@/components/Sidebar";
 import {
   Avatar,
   Card,
+  Field,
   GoldButton,
+  Modal,
   PrimaryButton,
   UserRoleBadge,
   inputClass,
@@ -43,7 +47,9 @@ const defaultVideoConfig: VideoConfig = {
 };
 
 export default function AboutPage() {
-  const { reviews, users, user, userById, addReview, activeCommunity, videoResources } = useApp();
+  const { reviews, users, user, userById, addReview, activeCommunity, videoResources, saveVideoResource } = useApp();
+  const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
+
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
@@ -53,6 +59,64 @@ export default function AboutPage() {
   // Video Player state
   const [playing, setPlaying] = useState(false);
   const [videoConfig, setVideoConfig] = useState<VideoConfig>(defaultVideoConfig);
+
+  // Edit Video Modal state
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editVideoUrl, setEditVideoUrl] = useState("");
+  const [editThumbnailUrl, setEditThumbnailUrl] = useState("");
+  const [savingVideo, setSavingVideo] = useState(false);
+  const [videoSaveError, setVideoSaveError] = useState("");
+
+  function openEditModal() {
+    setEditVideoUrl(videoConfig.videoUrl || "");
+    setEditThumbnailUrl(videoConfig.thumbnailUrl || "");
+    setVideoSaveError("");
+    setEditModalOpen(true);
+  }
+
+  async function handleSaveVideo(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editVideoUrl.trim()) {
+      setVideoSaveError("Please enter a valid video URL.");
+      return;
+    }
+
+    setSavingVideo(true);
+    setVideoSaveError("");
+
+    try {
+      const updatedConfig: VideoConfig = {
+        videoUrl: editVideoUrl.trim(),
+        thumbnailUrl: editThumbnailUrl.trim() || undefined,
+      };
+
+      // 1. Save to localStorage immediately as local cache
+      try {
+        localStorage.setItem("ps_about_video_config", JSON.stringify(updatedConfig));
+      } catch {}
+
+      setVideoConfig(updatedConfig);
+
+      // 2. Persist to DB & Supabase through saveVideoResource action
+      const targetId = dbVideo?.id || `vid-about-${activeCommunity?.id || "default"}`;
+      await saveVideoResource({
+        id: targetId,
+        title: `${activeCommunity?.name || "Community"} Welcome Video`,
+        videoUrl: editVideoUrl.trim(),
+        thumbnailUrl: editThumbnailUrl.trim() || undefined,
+        category: "about",
+        isFeatured: true,
+        communityId: activeCommunity?.id || "comm-students",
+      });
+
+      setEditModalOpen(false);
+    } catch (err) {
+      console.error(err);
+      setVideoSaveError("Failed to save video. Please try again.");
+    } finally {
+      setSavingVideo(false);
+    }
+  }
 
   // Find active video resource from Supabase / DB
   const dbVideo = useMemo(() => {
