@@ -179,37 +179,53 @@ export function Header() {
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b border-zinc-200 bg-white isolate shadow-xs">
-        <div className="relative flex h-14 w-full items-center gap-3 px-4 sm:px-6 lg:px-8">
-          {/* Community Switcher with Badge & Up/Down indicator */}
-          <div ref={communityRef} className="relative shrink-0 flex items-center gap-2">
-            <button
-              onClick={() => setOpen(open === "community" ? null : "community")}
-              className="flex items-center gap-2 rounded-xl p-1 transition-colors hover:bg-zinc-100/80 cursor-pointer"
-              aria-label="Select community"
+        <div className="relative flex h-14 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          {/* Left: Brand Logo & Community Switcher */}
+          <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+            <Link
+              href="/community"
+              className="flex items-center shrink-0 transition-opacity hover:opacity-90"
+              aria-label="Permanent Skill Strategy"
             >
-              {/* Community Icon Badge */}
-              {activeCommunity?.slug === "ai-architects" || activeCommunity?.name.toLowerCase().includes("ai") ? (
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-black border border-amber-500/60 font-mono text-xs font-black text-amber-400 shadow-xs">
-                  &gt;_
-                </span>
-              ) : activeCommunity?.type === "team" || activeCommunity?.slug === "team-members" || activeCommunity?.id === "comm-team" ? (
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl overflow-hidden shadow-xs border border-blue-500/30 bg-blue-600">
-                  <Image src="/team-icon.png" alt="Team" width={32} height={32} className="h-full w-full object-cover" />
-                </span>
-              ) : (
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-black text-xs font-black text-white shadow-xs">
-                  {(activeCommunity?.name || "PS").slice(0, 2).toUpperCase()}
-                </span>
-              )}
+              <Image
+                src="/logo.png"
+                alt="Permanent Skill Strategy"
+                width={190}
+                height={42}
+                className="h-8 sm:h-9 w-auto object-contain"
+                priority
+              />
+            </Link>
 
-              <span className="truncate max-w-[130px] sm:max-w-[220px] font-bold text-sm text-zinc-950">
-                {activeCommunity?.name || "AI Architects"}
-              </span>
+            {/* Community Switcher Dropdown */}
+            <div ref={communityRef} className="relative shrink-0 flex items-center">
+              <button
+                onClick={() => setOpen(open === "community" ? null : "community")}
+                className="flex items-center gap-1.5 rounded-full border border-zinc-200/90 bg-zinc-50/90 hover:bg-zinc-100/90 px-2.5 py-1 text-xs font-semibold text-zinc-800 transition cursor-pointer shadow-2xs"
+                aria-label="Select community"
+                title="Switch active community"
+              >
+                {/* Community Icon Badge */}
+                {activeCommunity?.slug === "ai-architects" || activeCommunity?.name.toLowerCase().includes("ai") ? (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-black border border-amber-500/60 font-mono text-[9px] font-black text-amber-400">
+                    &gt;_
+                  </span>
+                ) : activeCommunity?.type === "team" || activeCommunity?.slug === "team-members" || activeCommunity?.id === "comm-team" ? (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md overflow-hidden border border-blue-500/30 bg-blue-600">
+                    <Image src="/team-icon.png" alt="Team" width={20} height={20} className="h-full w-full object-cover" />
+                  </span>
+                ) : (
+                  <span className="flex h-5 w-5 items-center justify-center rounded-md bg-black text-[9px] font-black text-white">
+                    {(activeCommunity?.name || "PS").slice(0, 2).toUpperCase()}
+                  </span>
+                )}
 
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 transition">
-                <ChevronsUpDown size={13} />
-              </span>
-            </button>
+                <span className="hidden xs:inline truncate max-w-[90px] sm:max-w-[140px] text-zinc-900 font-bold text-xs">
+                  {activeCommunity?.name || "AI Architects"}
+                </span>
+
+                <ChevronsUpDown size={12} className="text-zinc-500 shrink-0" />
+              </button>
 
             {open === "community" && (
               <div className="absolute left-0 top-full mt-2 z-50 w-[310px] overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl p-2.5 animate-in fade-in zoom-in-95 duration-100">
@@ -320,6 +336,7 @@ export function Header() {
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Search Bar */}
