@@ -9,8 +9,6 @@ import {
   ChevronRight,
   ChevronUp,
   Clock,
-  Download,
-  ExternalLink,
   Layers,
   ListTodo,
   Minus,
@@ -30,18 +28,8 @@ import { Avatar, Card, Field, Modal, PrimaryButton, ProgressBar, inputClass } fr
 import { eventTimeLabel, formatDateTime } from "@/lib/format";
 import type { CalendarEvent, Project, ProjectTask, PublicUser } from "@/lib/types";
 
-function formatGoogleDate(d: string | Date) {
-  const date = new Date(d);
-  return date.toISOString().replace(/-|:|\.\d\d\d/g, "");
-}
 
-function getGoogleCalendarUrl(event: CalendarEvent) {
-  const start = formatGoogleDate(event.start);
-  const end = formatGoogleDate(event.end);
-  const title = encodeURIComponent(event.title);
-  const details = encodeURIComponent(`${event.description}\n\nSession Type: ${event.type.toUpperCase()}\nPlatform: Permanent Skills Nexus`);
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=Nexus%20Meet`;
-}
+
 
 function downloadIcsFile(event: CalendarEvent) {
   const start = formatGoogleDate(event.start);
@@ -476,51 +464,203 @@ export default function MeetPage() {
               key={activeProject.id}
               className="overflow-hidden border border-zinc-200/80 bg-white p-5 shadow-sm transition hover:shadow-md"
             >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                {/* Left: UI Mockup / Thumbnail Box */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1 min-w-0">
-                  <div className="relative h-28 w-full sm:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner">
-                    <div className="flex items-center justify-between border-b border-zinc-200/60 pb-1.5">
-                      <span className="text-[10px] font-bold text-zinc-700 truncate max-w-[110px]">
-                        {activeProject.title}
+              {isAdminOrManager ? (
+                /* Admin & Manager View */
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                  {/* Left: UI Mockup / Thumbnail Box */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1 min-w-0">
+                    <div className="relative h-28 w-full sm:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner">
+                      <div className="flex items-center justify-between border-b border-zinc-200/60 pb-1.5">
+                        <span className="text-[10px] font-bold text-zinc-700 truncate max-w-[110px]">
+                          {activeProject.title}
+                        </span>
+                        <span className="text-[9px] font-mono text-zinc-400">#meet-sync</span>
+                      </div>
+                      <div className="mt-2 space-y-1.5">
+                        <div className="h-2 w-3/4 rounded bg-indigo-200/70" />
+                        <div className="h-2 w-1/2 rounded bg-zinc-200" />
+                        <div className="grid grid-cols-3 gap-1 pt-1">
+                          <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                          <div className="h-5 rounded bg-indigo-500/10 border border-indigo-100" />
+                          <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                        </div>
+                      </div>
+                      <span className="absolute bottom-2 right-2 rounded bg-zinc-900/80 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs">
+                        {activeProject.version || "v1.0.0"}
                       </span>
-                      <span className="text-[9px] font-mono text-zinc-400">#meet-sync</span>
                     </div>
-                    <div className="mt-2 space-y-1.5">
-                      <div className="h-2 w-3/4 rounded bg-indigo-200/70" />
-                      <div className="h-2 w-1/2 rounded bg-zinc-200" />
-                      <div className="grid grid-cols-3 gap-1 pt-1">
-                        <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
-                        <div className="h-5 rounded bg-indigo-500/10 border border-indigo-100" />
-                        <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+
+                    {/* Middle: Details, Host, Team & Time of Meeting in Square Box */}
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <div>
+                        <h3 className="text-lg font-bold text-zinc-900">{activeProject.title}</h3>
+                        <p className="mt-1 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                          {activeProject.description.split(" ").map((word, i) => {
+                            if (word.startsWith("@")) {
+                              return (
+                                <span key={i} className="font-semibold text-primary bg-primary/10 px-1 py-0.5 rounded mx-0.5">
+                                  {word}{" "}
+                                </span>
+                              );
+                            }
+                            return word + " ";
+                          })}
+                        </p>
+                      </div>
+
+                      {/* Metadata row: Avatars, Host, and Time of Meeting in Square Box */}
+                      <div className="flex items-center gap-3.5 flex-wrap pt-0.5">
+                        {/* Member Avatars */}
+                        <div className="flex items-center -space-x-2">
+                          {teamMembers.slice(0, 4).map((m) => (
+                            <Avatar
+                              key={m.id}
+                              user={m}
+                              size={28}
+                              className="ring-2 ring-white shadow-2xs"
+                            />
+                          ))}
+                          {teamMembers.length > 4 && (
+                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-700 ring-2 ring-white">
+                              +{teamMembers.length - 4}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Host Badge */}
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1.5 text-xs font-medium text-zinc-800 shadow-2xs">
+                          <Users size={13} className="text-[#5051F9]" />
+                          <span>Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
+                        </div>
+
+                        {/* Time of Meeting in Square Box */}
+                        <div className="inline-flex items-center gap-2.5 rounded-xl border border-red-200/80 bg-red-50/70 px-3.5 py-1.5 text-zinc-900 shadow-2xs">
+                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-100 text-red-600 shrink-0">
+                            <Clock size={14} />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="block text-[9px] font-bold uppercase tracking-wider text-red-600 font-mono leading-none mb-0.5">
+                              Time of Meeting
+                            </span>
+                            <span className="text-sm font-bold text-zinc-900 truncate block leading-tight">
+                              {activeProject.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <span className="absolute bottom-2 right-2 rounded bg-zinc-900/80 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs">
-                      {activeProject.version || "v1.0.0"}
-                    </span>
                   </div>
 
-                  {/* Middle: Details, Host, Team & Time of Meeting in Square Box */}
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-zinc-900">{activeProject.title}</h3>
-                      <p className="mt-1 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
-                        {activeProject.description.split(" ").map((word, i) => {
-                          if (word.startsWith("@")) {
-                            return (
-                              <span key={i} className="font-semibold text-primary bg-primary/10 px-1 py-0.5 rounded mx-0.5">
-                                {word}{" "}
-                              </span>
-                            );
-                          }
-                          return word + " ";
-                        })}
-                      </p>
+                  {/* Right: Join now Box with Single Project Selector Dropdown & Actions */}
+                  <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0">
+                    <div className="w-full lg:w-[280px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
+                          Join now
+                        </span>
+                      </div>
+
+                      {/* Single Dropdown showing current projects */}
+                      <div className="relative">
+                        <select
+                          value={activeProject.id}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__CREATE_NEW_PROJECT__") {
+                              openCreateProject();
+                              return;
+                            }
+                            setSelectedProjectId(val);
+                          }}
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-2.5 py-1.5 pr-7 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
+                        >
+                          {currentProjects.length > 0 ? (
+                            currentProjects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.title}
+                              </option>
+                            ))
+                          ) : (
+                            projects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.title}
+                              </option>
+                            ))
+                          )}
+                          <option value="__CREATE_NEW_PROJECT__">+ Create New Project...</option>
+                        </select>
+                        <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      </div>
+
+                      {/* Fallback button if no projects exist */}
+                      {projects.length === 0 && (
+                        <button
+                          type="button"
+                          onClick={openCreateProject}
+                          className="inline-flex items-center justify-center gap-1.5 w-full rounded-lg bg-[#5051F9] hover:bg-[#4041d8] text-white text-xs font-bold py-1.5 shadow-xs transition cursor-pointer"
+                        >
+                          <Plus size={13} /> Create Project
+                        </button>
+                      )}
                     </div>
 
-                    {/* Metadata row: Avatars, Host, and Time of Meeting in Square Box */}
-                    <div className="flex items-center gap-3.5 flex-wrap pt-0.5">
-                      {/* Member Avatars */}
+                    {/* Project actions (Join Meet, Edit, Delete) */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {activeProject.meetUrl && (() => {
+                        const matchedEvent = events.find(
+                          (ev) =>
+                            `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
+                            ev.title === activeProject.meetSyncTime ||
+                            ev.id === activeProject.meetSyncTime
+                        );
+                        const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
+                        const targetUrl = isProjMeetOlder && matchedEvent
+                          ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
+                          : activeProject.meetUrl;
+
+                        return (
+                          <a
+                            href={targetUrl}
+                            target={isProjMeetOlder ? "_self" : "_blank"}
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer ${
+                              isProjMeetOlder
+                                ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                                : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
+                            }`}
+                          >
+                            {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
+                            <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
+                          </a>
+                        );
+                      })()}
+
+                      <button
+                        onClick={() => openEditProject(activeProject)}
+                        className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition cursor-pointer"
+                        title="Edit Project"
+                      >
+                        <Pencil size={15} />
+                      </button>
+                      <button
+                        onClick={() => onDeleteProject(activeProject.id)}
+                        className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
+                        title="Delete Project"
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Regular User View: Only title, profile icons, host along name, dropdown block with Join now button and time in red below it */
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                  {/* Left: Title, Profile Icons, Host Name */}
+                  <div className="min-w-0 flex-1 space-y-3">
+                    <h3 className="text-lg font-bold text-zinc-900">{activeProject.title}</h3>
+
+                    <div className="flex items-center gap-3.5 flex-wrap">
+                      {/* Profile Icons */}
                       <div className="flex items-center -space-x-2">
                         {teamMembers.slice(0, 4).map((m) => (
                           <Avatar
@@ -537,137 +677,88 @@ export default function MeetPage() {
                         )}
                       </div>
 
-                      {/* Host Badge */}
+                      {/* Host Name Badge */}
                       <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1.5 text-xs font-medium text-zinc-800 shadow-2xs">
                         <Users size={13} className="text-[#5051F9]" />
                         <span>Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Time of Meeting in Square Box */}
-                      <div className="inline-flex items-center gap-2.5 rounded-xl border border-red-200/80 bg-red-50/70 px-3.5 py-1.5 text-zinc-900 shadow-2xs">
-                        <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-100 text-red-600 shrink-0">
-                          <Clock size={14} />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="block text-[9px] font-bold uppercase tracking-wider text-red-600 font-mono leading-none mb-0.5">
-                            Time of Meeting
-                          </span>
-                          <span className="text-sm font-bold text-zinc-900 truncate block leading-tight">
-                            {activeProject.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}
-                          </span>
-                        </div>
+                  {/* Right: Dropdown block with Join now button and time of meeting in red below it */}
+                  <div className="flex flex-col items-start sm:items-end gap-2.5 border-t sm:border-t-0 sm:border-l border-zinc-100 pt-3 sm:pt-0 sm:pl-6 shrink-0 w-full sm:w-auto">
+                    <div className="w-full sm:w-[280px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
+                          Join now
+                        </span>
+                      </div>
+
+                      {/* Dropdown showing current projects */}
+                      <div className="relative">
+                        <select
+                          value={activeProject.id}
+                          onChange={(e) => setSelectedProjectId(e.target.value)}
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-2.5 py-1.5 pr-7 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
+                        >
+                          {currentProjects.length > 0 ? (
+                            currentProjects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.title}
+                              </option>
+                            ))
+                          ) : (
+                            projects.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.title}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                        <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      </div>
+                    </div>
+
+                    {/* Only Join now button and below it Time of Meeting in red */}
+                    <div className="flex flex-col items-start sm:items-end gap-1.5 w-full sm:w-auto">
+                      {activeProject.meetUrl && (() => {
+                        const matchedEvent = events.find(
+                          (ev) =>
+                            `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
+                            ev.title === activeProject.meetSyncTime ||
+                            ev.id === activeProject.meetSyncTime
+                        );
+                        const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
+                        const targetUrl = isProjMeetOlder && matchedEvent
+                          ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
+                          : activeProject.meetUrl;
+
+                        return (
+                          <a
+                            href={targetUrl}
+                            target={isProjMeetOlder ? "_self" : "_blank"}
+                            rel="noopener noreferrer"
+                            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer w-full sm:w-auto ${
+                              isProjMeetOlder
+                                ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                                : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
+                            }`}
+                          >
+                            {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
+                            <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
+                          </a>
+                        );
+                      })()}
+
+                      {/* Time of the meeting in red colored below the button */}
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
+                        <Clock size={13} className="text-red-500 shrink-0" />
+                        <span>{activeProject.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}</span>
                       </div>
                     </div>
                   </div>
                 </div>
-
-                {/* Right: Join now Box with Single Project Selector Dropdown & Actions */}
-                <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0">
-                  <div className="w-full lg:w-[280px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
-                        Join now
-                      </span>
-                    </div>
-
-                    {/* Single Dropdown showing current projects */}
-                    <div className="relative">
-                      <select
-                        value={activeProject.id}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "__CREATE_NEW_PROJECT__") {
-                            openCreateProject();
-                            return;
-                          }
-                          setSelectedProjectId(val);
-                        }}
-                        className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-2.5 py-1.5 pr-7 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
-                      >
-                        {currentProjects.length > 0 ? (
-                          currentProjects.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.title}
-                            </option>
-                          ))
-                        ) : (
-                          projects.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.title}
-                            </option>
-                          ))
-                        )}
-                        {isAdminOrManager && (
-                          <option value="__CREATE_NEW_PROJECT__">+ Create New Project...</option>
-                        )}
-                      </select>
-                      <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    </div>
-
-                    {/* Fallback button if no projects exist */}
-                    {projects.length === 0 && (
-                      <button
-                        type="button"
-                        onClick={openCreateProject}
-                        className="inline-flex items-center justify-center gap-1.5 w-full rounded-lg bg-[#5051F9] hover:bg-[#4041d8] text-white text-xs font-bold py-1.5 shadow-xs transition cursor-pointer"
-                      >
-                        <Plus size={13} /> Create Project
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Project actions (Join Meet, Edit, Delete) */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {activeProject.meetUrl && (() => {
-                      const matchedEvent = events.find(
-                        (ev) =>
-                          `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
-                          ev.title === activeProject.meetSyncTime ||
-                          ev.id === activeProject.meetSyncTime
-                      );
-                      const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
-                      const targetUrl = isProjMeetOlder && matchedEvent
-                        ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
-                        : activeProject.meetUrl;
-
-                      return (
-                        <a
-                          href={targetUrl}
-                          target={isProjMeetOlder ? "_self" : "_blank"}
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer ${
-                            isProjMeetOlder
-                              ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
-                              : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
-                          }`}
-                        >
-                          {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
-                          <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
-                        </a>
-                      );
-                    })()}
-
-                    {isAdminOrManager && (
-                      <>
-                        <button
-                          onClick={() => openEditProject(activeProject)}
-                          className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition cursor-pointer"
-                          title="Edit Project"
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          onClick={() => onDeleteProject(activeProject.id)}
-                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
-                          title="Delete Project"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
+              )}
             </Card>
           );
         })()}
@@ -811,133 +902,30 @@ export default function MeetPage() {
       >
         {selectedEvent && (() => {
           const isEventOver = isMeetingOlder(selectedEvent);
-          const isRsvped = rsvpEventIds.includes(selectedEvent.id);
           const endedUrl = `/meeting-ended?title=${encodeURIComponent(selectedEvent.title)}&start=${encodeURIComponent(selectedEvent.start)}&end=${encodeURIComponent(selectedEvent.end)}&type=${selectedEvent.type}&desc=${encodeURIComponent(selectedEvent.description)}`;
 
-          const now = new Date();
-          const eventDate = new Date(selectedEvent.start || selectedEvent.end);
-          const isToday = eventDate.toDateString() === now.toDateString();
-
           return (
-            <div className="space-y-4">
-              {/* Meeting date and status banner */}
-              <div className="flex items-center justify-between gap-2 text-sm text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
-                <div className="flex items-center gap-2">
-                  <CalendarIcon size={16} className="text-primary shrink-0" />
-                  <span>{formatDateTime(selectedEvent.start)} - {eventTimeLabel(selectedEvent.end)}</span>
-                </div>
-                {isEventOver ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200 shrink-0">
-                    <VideoOff size={12} /> Meeting Ended
-                  </span>
-                ) : isToday ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" /> Live Today
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200 shrink-0">
-                    <CalendarIcon size={12} /> Upcoming Session
-                  </span>
-                )}
-              </div>
-
-              <p className="text-sm text-zinc-700 leading-relaxed">{selectedEvent.description}</p>
-              
-              <div className="flex items-center justify-between text-xs font-semibold">
-                <span className={`rounded px-2.5 py-1 uppercase tracking-wider font-bold ${
-                  selectedEvent.type === "premium"
-                    ? "bg-primary/10 text-primary border border-primary/20"
-                    : "bg-blue-50 text-blue-700 border border-blue-200"
-                }`}>
-                  {selectedEvent.type === "premium" ? "👑 VIP session" : "Live session"}
-                </span>
-                <span className="text-zinc-500 font-medium">{userTz}</span>
-              </div>
-
-              <div className="pt-2 space-y-2.5">
-                {/* Join Video Room Button (directs to /meeting-ended for older meetings) */}
-                {isEventOver ? (
-                  <div className="space-y-2">
-                    <div className="rounded-xl bg-amber-50/70 border border-amber-200 p-3 text-left">
-                      <p className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
-                        <VideoOff size={14} className="text-amber-600" />
-                        This Meeting Has Concluded
-                      </p>
-                      <p className="text-[11px] text-amber-700 mt-0.5 leading-normal">
-                        This session took place before today. Click below to view the post-meeting interface, recap, notes, and recording details.
-                      </p>
-                    </div>
-
-                    <a
-                      href={endedUrl}
-                      onClick={() => setSelectedEvent(null)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-4 py-2.5 font-bold text-white shadow-md transition text-sm cursor-pointer"
-                    >
-                      <VideoOff size={16} className="text-amber-400" />
-                      <span>Meeting Ended — View Session Recap</span>
-                    </a>
-                  </div>
-                ) : (
-                  <a
-                    href="https://meet.google.com/new"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-2.5 font-bold text-white shadow-md transition text-sm cursor-pointer"
-                  >
-                    <Video size={16} />
-                    <span>Join Video Room</span>
-                  </a>
-                )}
-
-                {/* Add to my schedule / RSVP with sync options */}
-                <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        toggleRsvp(selectedEvent.id);
-                        setRsvpSuccess(true);
-                      }}
-                      className={`flex-1 inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
-                        isRsvped
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
-                          : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
-                      }`}
-                    >
-                      {isRsvped ? (
-                        <>
-                          <CheckCircle2 size={15} className="text-emerald-600" />
-                          <span>Added to My Schedule (Click to remove)</span>
-                        </>
-                      ) : (
-                        <>
-                          <CalendarIcon size={15} />
-                          <span>Add to my schedule / RSVP</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  {/* External Calendar Sync Options */}
-                  <div className="flex items-center gap-2 pt-1">
-                    <a
-                      href={getGoogleCalendarUrl(selectedEvent)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
-                    >
-                      <ExternalLink size={12} className="text-blue-500" /> Google Calendar
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() => downloadIcsFile(selectedEvent)}
-                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
-                    >
-                      <Download size={12} className="text-purple-500" /> Apple / Outlook (.ics)
-                    </button>
-                  </div>
-                </div>
-              </div>
+            <div className="pt-2">
+              {isEventOver ? (
+                <a
+                  href={endedUrl}
+                  onClick={() => setSelectedEvent(null)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
+                >
+                  <VideoOff size={16} className="text-amber-400" />
+                  <span>Meeting Ended — View Session Recap</span>
+                </a>
+              ) : (
+                <a
+                  href="https://meet.google.com/new"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
+                >
+                  <Video size={16} />
+                  <span>Join Video Room</span>
+                </a>
+              )}
             </div>
           );
         })()}

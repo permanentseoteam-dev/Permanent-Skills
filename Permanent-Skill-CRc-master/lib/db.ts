@@ -152,6 +152,18 @@ function migrate(db: Database) {
       }
     }
   }
+  if (!db.events || db.events.length === 0) {
+    db.events = createSeed().events;
+    changed = true;
+  } else {
+    const seedEvents = createSeed().events;
+    for (const se of seedEvents) {
+      if (!db.events.some((e) => e.id === se.id)) {
+        db.events.push(se);
+        changed = true;
+      }
+    }
+  }
   if (!db.videoResources || db.videoResources.length === 0) {
     db.videoResources = createSeed().videoResources || [];
     changed = true;
@@ -178,6 +190,7 @@ function loadFromDisk(): Database | null {
 export async function refreshFromSupabase(): Promise<Database> {
   const remoteDb = await fetchDatabaseFromSupabase();
   if (remoteDb && remoteDb.users.length > 0) {
+    migrate(remoteDb);
     cache = remoteDb;
     persist(remoteDb);
     isInitialFetchDone = true;
