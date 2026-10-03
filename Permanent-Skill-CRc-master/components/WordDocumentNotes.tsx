@@ -1,372 +1,841 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  AlignCenter,
-  AlignJustify,
-  AlignLeft,
-  AlignRight,
+  ArrowLeft,
   Bold,
   Check,
+  Clock,
   Copy,
   Download,
   FileText,
-  Highlighter,
+  Heading,
   Italic,
   List,
   ListOrdered,
+  Plus,
   Save,
   Search,
-  Share2,
-  Strikethrough,
-  Subscript,
-  Superscript,
-  Type,
+  Sparkles,
+  Tag,
+  Trash2,
   Underline,
-  User,
+  Strikethrough,
+  Code,
+  Quote,
+  Eye,
+  SlidersHorizontal,
 } from "lucide-react";
+
+export interface LessonNote {
+  id: string;
+  title: string;
+  body: string;
+  tag: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface WordDocumentNotesProps {
   lessonId: string;
   lessonTitle: string;
 }
 
+export const AVAILABLE_TAGS = [
+  { name: "Architecture", bg: "bg-blue-50 text-blue-600 border-blue-200/80 hover:bg-blue-100/70", dot: "bg-blue-500" },
+  { name: "Sprint Review", bg: "bg-emerald-50 text-emerald-600 border-emerald-200/80 hover:bg-emerald-100/70", dot: "bg-emerald-500" },
+  { name: "Design System", bg: "bg-amber-50 text-amber-700 border-amber-200/80 hover:bg-amber-100/70", dot: "bg-amber-500" },
+  { name: "Action Items", bg: "bg-purple-50 text-purple-600 border-purple-200/80 hover:bg-purple-100/70", dot: "bg-purple-500" },
+  { name: "Research", bg: "bg-rose-50 text-rose-600 border-rose-200/80 hover:bg-rose-100/70", dot: "bg-rose-500" },
+  { name: "General", bg: "bg-zinc-100 text-zinc-700 border-zinc-200/80 hover:bg-zinc-200/70", dot: "bg-zinc-400" },
+];
+
+function getTagStyle(tagName: string) {
+  const found = AVAILABLE_TAGS.find((t) => t.name.toLowerCase() === tagName.toLowerCase());
+  if (found) return found;
+  return {
+    name: tagName,
+    bg: "bg-indigo-50 text-indigo-600 border-indigo-200/80 hover:bg-indigo-100/70",
+    dot: "bg-indigo-500",
+  };
+}
+
+function formatRelativeTime(isoString: string): string {
+  try {
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (diffSec < 60) return "Just now";
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour}h ago`;
+    const diffDays = Math.floor(diffHour / 24);
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch {
+    return "Recently";
+  }
+}
+
+function getInitialDemoNotes(lessonTitle: string): LessonNote[] {
+  const now = new Date();
+  const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+  const threeDaysAgo = new Date(now.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString();
+
+  return [
+    {
+      id: "note-1",
+      title: "Micro-frontend state synchronization",
+      tag: "Architecture",
+      body: "Investigating shared event buses across isolated React DOM trees to prevent multi-tab race conditions during high frequency..",
+      createdAt: twoHoursAgo,
+      updatedAt: twoHoursAgo,
+    },
+    {
+      id: "note-2",
+      title: "Q3 Milestone Retrospective & Velocity",
+      tag: "Sprint Review",
+      body: "Team velocity increased by 14% following the migration to Tailwind CSS tokens and standardized component slots. Bottlenecks..",
+      createdAt: yesterday,
+      updatedAt: yesterday,
+    },
+    {
+      id: "note-3",
+      title: "Color token harmonization audit",
+      tag: "Design System",
+      body: "Reviewing contrast ratios across surface variants to ensure WCAG AAA compliance on data-dense dashboards and modal..",
+      createdAt: threeDaysAgo,
+      updatedAt: threeDaysAgo,
+    },
+  ];
+}
+
 export function WordDocumentNotes({ lessonId, lessonTitle }: WordDocumentNotesProps) {
-  const storageKey = `pss_word_notes_${lessonId}`;
+  const storageKey = `pss_lesson_notes_v2_${lessonId}`;
+  const oldStorageKey = `pss_word_notes_${lessonId}`;
+  const autoSaveSettingKey = "pss_notes_autosave_enabled";
 
-  const [notes, setNotes] = useState<string>("");
-  const [activeTab, setActiveTab] = useState("Home");
-  const [fontSize, setFontSize] = useState("11");
-  const [fontFamily, setFontFamily] = useState("Calibri (Body)");
-  const [isBold, setIsBold] = useState(false);
-  const [isItalic, setIsItalic] = useState(false);
-  const [isUnderline, setIsUnderline] = useState(false);
-  const [isStrike, setIsStrike] = useState(false);
-  const [alignment, setAlignment] = useState<"left" | "center" | "right" | "justify">("left");
+  const [notesList, setNotesList] = useState<LessonNote[]>([]);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(null);
+  const [selectedTagFilter, setSelectedTagFilter] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Auto-save toggle state
+  const [autoSave, setAutoSave] = useState<boolean>(true);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "unsaved">("saved");
   const [copied, setCopied] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [exported, setExported] = useState(false);
 
-  // Load saved notes for this lesson from localStorage
+  // Active Note Editing Buffers
+  const [editTitle, setEditTitle] = useState("");
+  const [editBody, setEditBody] = useState("");
+  const [editTag, setEditTag] = useState("Architecture");
+
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // 1. Load notes and auto-save setting
   useEffect(() => {
     try {
-      const savedText = localStorage.getItem(storageKey);
-      if (savedText !== null) {
-        setNotes(savedText);
-      } else {
-        setNotes("");
+      // Auto-save preference
+      const savedAutoSave = localStorage.getItem(autoSaveSettingKey);
+      if (savedAutoSave !== null) {
+        setAutoSave(savedAutoSave === "true");
       }
-    } catch {
-      setNotes("");
-    }
-  }, [storageKey]);
 
-  // Handle note changes
-  function handleNotesChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    const val = e.target.value;
-    setNotes(val);
+      // Notes list
+      const savedRaw = localStorage.getItem(storageKey);
+      if (savedRaw) {
+        const parsed = JSON.parse(savedRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setNotesList(parsed);
+          return;
+        }
+      }
+
+      // Fallback migration from single old note if exists
+      const oldNote = localStorage.getItem(oldStorageKey);
+      if (oldNote && oldNote.trim()) {
+        const migrated: LessonNote[] = [
+          {
+            id: `note-${Date.now()}`,
+            title: `${lessonTitle} Notes`,
+            body: oldNote,
+            tag: "General",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+        ];
+        setNotesList(migrated);
+        localStorage.setItem(storageKey, JSON.stringify(migrated));
+        return;
+      }
+
+      // Initial realistic demo notes matching reference
+      const initial = getInitialDemoNotes(lessonTitle);
+      setNotesList(initial);
+      localStorage.setItem(storageKey, JSON.stringify(initial));
+    } catch {
+      setNotesList(getInitialDemoNotes(lessonTitle));
+    }
+  }, [lessonId, lessonTitle, storageKey, oldStorageKey]);
+
+  // When activeNoteId changes, populate editing buffers
+  useEffect(() => {
+    if (activeNoteId) {
+      const active = notesList.find((n) => n.id === activeNoteId);
+      if (active) {
+        setEditTitle(active.title);
+        setEditBody(active.body);
+        setEditTag(active.tag || "General");
+        setSaveStatus("saved");
+      }
+    }
+  }, [activeNoteId]);
+
+  // Save notesList to localStorage helper
+  function persistNotes(updated: LessonNote[]) {
+    setNotesList(updated);
     try {
-      localStorage.setItem(storageKey, val);
+      localStorage.setItem(storageKey, JSON.stringify(updated));
     } catch {
       // ignore
     }
   }
 
-  function handleSave() {
+  // Toggle Auto-save setting
+  function handleToggleAutoSave() {
+    const nextVal = !autoSave;
+    setAutoSave(nextVal);
     try {
-      localStorage.setItem(storageKey, notes);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      localStorage.setItem(autoSaveSettingKey, String(nextVal));
     } catch {
       // ignore
     }
+    if (nextVal && activeNoteId && saveStatus === "unsaved") {
+      performSave(editTitle, editBody, editTag);
+    }
   }
 
-  function handleCopy() {
-    navigator.clipboard.writeText(notes);
+  // Perform Save logic
+  function performSave(title: string, body: string, tag: string) {
+    if (!activeNoteId) return;
+    setSaveStatus("saving");
+
+    const updated = notesList.map((n) => {
+      if (n.id === activeNoteId) {
+        return {
+          ...n,
+          title: title.trim() || "Untitled Note",
+          body,
+          tag,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return n;
+    });
+
+    persistNotes(updated);
+    setTimeout(() => {
+      setSaveStatus("saved");
+    }, 300);
+  }
+
+  // Auto-save debounce trigger on content edits
+  function triggerAutoSave(newTitle: string, newBody: string, newTag: string) {
+    if (autoSave) {
+      setSaveStatus("saving");
+      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+      autoSaveTimerRef.current = setTimeout(() => {
+        performSave(newTitle, newBody, newTag);
+      }, 500);
+    } else {
+      setSaveStatus("unsaved");
+    }
+  }
+
+  // Create new note
+  function handleCreateNewNote() {
+    const newNote: LessonNote = {
+      id: `note-${Date.now()}`,
+      title: "Untitled Note",
+      body: "",
+      tag: "Architecture",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const updated = [newNote, ...notesList];
+    persistNotes(updated);
+    setActiveNoteId(newNote.id);
+    setEditTitle(newNote.title);
+    setEditBody(newNote.body);
+    setEditTag(newNote.tag);
+    setSaveStatus("saved");
+  }
+
+  // Delete note
+  function handleDeleteNote(noteId: string, e?: React.MouseEvent) {
+    if (e) e.stopPropagation();
+    if (confirm("Are you sure you want to delete this note?")) {
+      const updated = notesList.filter((n) => n.id !== noteId);
+      persistNotes(updated);
+      if (activeNoteId === noteId) {
+        setActiveNoteId(null);
+      }
+    }
+  }
+
+  // Copy Note to Clipboard
+  function handleCopyCurrentNote() {
+    const fullText = `${editTitle}\n[Tag: ${editTag}]\n\n${editBody}`;
+    navigator.clipboard.writeText(fullText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function handleDownload() {
-    const blob = new Blob([notes], { type: "text/plain;charset=utf-8" });
+  // Quick Copy from Card
+  function handleQuickCopyCard(note: LessonNote, e: React.MouseEvent) {
+    e.stopPropagation();
+    const fullText = `${note.title}\n[Tag: ${note.tag}]\n\n${note.body}`;
+    navigator.clipboard.writeText(fullText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  // Export Note as file (.txt / .doc)
+  function handleExportNote(noteToExport?: LessonNote) {
+    const title = noteToExport ? noteToExport.title : editTitle;
+    const tag = noteToExport ? noteToExport.tag : editTag;
+    const body = noteToExport ? noteToExport.body : editBody;
+
+    const fileContent = `=====================================================
+${title.toUpperCase()}
+Lesson: ${lessonTitle}
+Category / Tag: ${tag}
+Last Updated: ${new Date().toLocaleString()}
+=====================================================
+
+${body}
+`;
+
+    const blob = new Blob([fileContent], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `${lessonTitle.replace(/[^a-z0-9]/gi, "_")}_Notes.txt`;
+    link.download = `${(title || "Lesson_Note").replace(/[^a-z0-9]/gi, "_")}.txt`;
     link.click();
     URL.revokeObjectURL(url);
+
+    setExported(true);
+    setTimeout(() => setExported(false), 2000);
   }
 
-  const wordCount = notes.trim() ? notes.trim().split(/\s+/).length : 0;
-  const charCount = notes.length;
+  // Quick Formatting Helpers for Textarea
+  function insertFormatting(prefix: string, suffix: string = "") {
+    if (!textareaRef.current) return;
+    const ta = textareaRef.current;
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = editBody.substring(start, end);
+    const newText =
+      editBody.substring(0, start) +
+      prefix +
+      (selected || "text") +
+      suffix +
+      editBody.substring(end);
+    setEditBody(newText);
+    triggerAutoSave(editTitle, newText, editTag);
 
-  return (
-    <div className="overflow-hidden rounded-xl border border-zinc-300/90 bg-[#f3f4f6] shadow-sm select-none">
-      {/* 1. Word Ribbon Menu Tabs & Action Buttons */}
-      <div className="flex items-center justify-between bg-[#f3f4f6] px-2 pt-1 border-b border-zinc-200 text-xs">
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {["File", "Home", "Insert", "Draw", "Design", "Layout", "References", "Review", "View", "Help"].map(
-            (tab) => {
-              const isActive = activeTab === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1 text-xs font-medium transition cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? "border-b-2 border-[#185abd] bg-white font-bold text-zinc-900 shadow-2xs rounded-t"
-                      : "text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200/60 rounded"
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            }
-          )}
-        </div>
+    setTimeout(() => {
+      ta.focus();
+      ta.setSelectionRange(start + prefix.length, end + prefix.length);
+    }, 50);
+  }
 
-        {/* Action Buttons: Save, Download, Copy */}
-        <div className="flex items-center gap-1.5 pb-1 shrink-0">
-          <button
-            type="button"
-            onClick={handleSave}
-            className="flex items-center gap-1 rounded bg-white hover:bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition shadow-2xs cursor-pointer"
-            title="Save Notes"
-          >
-            {saved ? <Check size={12} className="text-emerald-600" /> : <Save size={12} />}
-            <span>{saved ? "Saved" : "Save"}</span>
-          </button>
+  // Filter notes for grid
+  const filteredNotes = notesList.filter((note) => {
+    const matchesTag =
+      selectedTagFilter === "All" ||
+      note.tag.toLowerCase() === selectedTagFilter.toLowerCase();
+    const matchesQuery =
+      searchQuery.trim() === "" ||
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.body.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.tag.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesTag && matchesQuery;
+  });
 
-          <button
-            type="button"
-            onClick={handleDownload}
-            className="flex items-center gap-1 rounded bg-white hover:bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition shadow-2xs cursor-pointer"
-            title="Download Notes (.txt)"
-          >
-            <Download size={12} />
-            <span className="hidden sm:inline">Export</span>
-          </button>
+  const activeNote = notesList.find((n) => n.id === activeNoteId);
 
-          <button
-            type="button"
-            onClick={handleCopy}
-            className="flex items-center gap-1 rounded bg-white hover:bg-zinc-100 border border-zinc-200 px-2.5 py-1 text-[11px] font-semibold text-zinc-700 transition shadow-2xs cursor-pointer"
-            title="Copy all notes to clipboard"
-          >
-            {copied ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-            <span className="hidden sm:inline">Copy</span>
-          </button>
-        </div>
-      </div>
+  // -------------------------------------------------------------
+  // VIEW 1: NOTE EDITOR (When a note is open)
+  // -------------------------------------------------------------
+  if (activeNoteId && activeNote) {
+    const currentTagStyle = getTagStyle(editTag);
+    const wordCount = editBody.trim() ? editBody.trim().split(/\s+/).length : 0;
+    const charCount = editBody.length;
 
-      {/* 3. Word Ribbon Toolbar (Home Tab) */}
-      <div className="flex flex-wrap items-center gap-3 bg-white p-2 border-b border-zinc-200 text-zinc-700 shadow-2xs">
-        {/* Font Group */}
-        <div className="flex items-center gap-1.5 border-r border-zinc-200 pr-3">
-          <select
-            value={fontFamily}
-            onChange={(e) => setFontFamily(e.target.value)}
-            className="rounded border border-zinc-200 bg-white px-2 py-1 text-xs text-zinc-800 outline-none hover:border-zinc-300 cursor-pointer"
-          >
-            <option value="Calibri (Body)">Calibri (Body)</option>
-            <option value="Arial">Arial</option>
-            <option value="Times New Roman">Times New Roman</option>
-            <option value="Segoe UI">Segoe UI</option>
-            <option value="Consolas">Consolas (Code)</option>
-          </select>
-
-          <select
-            value={fontSize}
-            onChange={(e) => setFontSize(e.target.value)}
-            className="rounded border border-zinc-200 bg-white px-1.5 py-1 text-xs text-zinc-800 outline-none hover:border-zinc-300 cursor-pointer"
-          >
-            <option value="10">10</option>
-            <option value="11">11</option>
-            <option value="12">12</option>
-            <option value="14">14</option>
-            <option value="16">16</option>
-            <option value="18">18</option>
-          </select>
-
-          <div className="flex items-center gap-0.5 ml-1">
+    return (
+      <div className="space-y-4">
+        {/* Top Clean Action Bar (No Word Ribbon / Ruler) */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 shadow-xs">
+          {/* Left: Back button & Tag Selector */}
+          <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
-              onClick={() => setIsBold(!isBold)}
-              className={`rounded p-1 transition cursor-pointer ${
-                isBold ? "bg-[#185abd]/15 text-[#185abd] font-bold" : "hover:bg-zinc-100 text-zinc-700"
+              onClick={() => {
+                if (autoSave || saveStatus === "unsaved") {
+                  performSave(editTitle, editBody, editTag);
+                }
+                setActiveNoteId(null);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-zinc-50/80 px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 transition cursor-pointer"
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Notes</span>
+            </button>
+
+            {/* Tag Selector Pill */}
+            <div className="relative inline-flex items-center">
+              <select
+                value={editTag}
+                onChange={(e) => {
+                  const newTag = e.target.value;
+                  setEditTag(newTag);
+                  triggerAutoSave(editTitle, editBody, newTag);
+                }}
+                className={`cursor-pointer appearance-none rounded-lg border px-2.5 py-1 text-xs font-semibold pr-7 outline-none transition ${currentTagStyle.bg}`}
+              >
+                {AVAILABLE_TAGS.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <Tag size={12} className="pointer-events-none absolute right-2 opacity-60" />
+            </div>
+
+            {/* Auto-save Status indicator */}
+            <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-zinc-500 pl-1">
+              {saveStatus === "saving" && (
+                <span className="flex items-center gap-1 text-amber-600 font-medium">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                  Saving...
+                </span>
+              )}
+              {saveStatus === "saved" && (
+                <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                  <Check size={12} className="text-emerald-600" />
+                  {autoSave ? "Auto-saved" : "Saved"}
+                </span>
+              )}
+              {saveStatus === "unsaved" && (
+                <span className="flex items-center gap-1 text-zinc-400">
+                  <span className="h-2 w-2 rounded-full bg-zinc-300" />
+                  Unsaved changes
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Right Action Buttons: Auto-save Toggle, Save, Export, Copy, Delete */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Auto-save Switch */}
+            <button
+              type="button"
+              onClick={handleToggleAutoSave}
+              className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-semibold transition cursor-pointer shadow-2xs ${
+                autoSave
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : "border-zinc-200 bg-zinc-50 text-zinc-600 hover:bg-zinc-100"
               }`}
-              title="Bold (Ctrl+B)"
+              title="Toggle Auto-save mode"
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  autoSave ? "bg-emerald-500 animate-pulse" : "bg-zinc-400"
+                }`}
+              />
+              <span>Auto-save: {autoSave ? "ON" : "OFF"}</span>
+            </button>
+
+            {/* Save Button */}
+            <button
+              type="button"
+              onClick={() => performSave(editTitle, editBody, editTag)}
+              className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1.5 text-xs font-bold text-zinc-800 transition cursor-pointer shadow-2xs"
+              title="Save Note Now"
+            >
+              {saveStatus === "saved" ? (
+                <Check size={13} className="text-emerald-600" />
+              ) : (
+                <Save size={13} className="text-zinc-600" />
+              )}
+              <span>{saveStatus === "saved" ? "Saved" : "Save"}</span>
+            </button>
+
+            {/* Export Button */}
+            <button
+              type="button"
+              onClick={() => handleExportNote()}
+              className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition cursor-pointer shadow-2xs"
+              title="Download / Export Note as Text file"
+            >
+              {exported ? (
+                <Check size={13} className="text-emerald-600" />
+              ) : (
+                <Download size={13} />
+              )}
+              <span>{exported ? "Exported" : "Export"}</span>
+            </button>
+
+            {/* Copy Button */}
+            <button
+              type="button"
+              onClick={handleCopyCurrentNote}
+              className="flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700 transition cursor-pointer shadow-2xs"
+              title="Copy note text to clipboard"
+            >
+              {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+              <span>{copied ? "Copied!" : "Copy"}</span>
+            </button>
+
+            {/* Delete Button */}
+            <button
+              type="button"
+              onClick={() => handleDeleteNote(activeNoteId)}
+              className="flex items-center gap-1 rounded-xl border border-rose-200/80 bg-rose-50/50 hover:bg-rose-100/80 p-1.5 text-xs font-semibold text-rose-600 transition cursor-pointer shadow-2xs"
+              title="Delete this note"
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Editor Main Canvas */}
+        <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm">
+          {/* Note Title Input */}
+          <div className="border-b border-zinc-100 px-6 pt-5 pb-3">
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => {
+                const nextTitle = e.target.value;
+                setEditTitle(nextTitle);
+                triggerAutoSave(nextTitle, editBody, editTag);
+              }}
+              placeholder="Note Title..."
+              className="w-full text-lg sm:text-xl font-bold text-zinc-900 placeholder:text-zinc-300 outline-none bg-transparent"
+            />
+          </div>
+
+          {/* Clean Markdown/Formatting Toolbar */}
+          <div className="flex flex-wrap items-center gap-1 bg-zinc-50/70 px-4 py-2 border-b border-zinc-100 text-zinc-600 text-xs">
+            <button
+              type="button"
+              onClick={() => insertFormatting("**", "**")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Bold (**text**)"
             >
               <Bold size={14} />
             </button>
             <button
               type="button"
-              onClick={() => setIsItalic(!isItalic)}
-              className={`rounded p-1 transition cursor-pointer ${
-                isItalic ? "bg-[#185abd]/15 text-[#185abd]" : "hover:bg-zinc-100 text-zinc-700"
-              }`}
-              title="Italic (Ctrl+I)"
+              onClick={() => insertFormatting("*", "*")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Italic (*text*)"
             >
               <Italic size={14} />
             </button>
             <button
               type="button"
-              onClick={() => setIsUnderline(!isUnderline)}
-              className={`rounded p-1 transition cursor-pointer ${
-                isUnderline ? "bg-[#185abd]/15 text-[#185abd]" : "hover:bg-zinc-100 text-zinc-700"
-              }`}
-              title="Underline (Ctrl+U)"
+              onClick={() => insertFormatting("__", "__")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Underline"
             >
               <Underline size={14} />
             </button>
             <button
               type="button"
-              onClick={() => setIsStrike(!isStrike)}
-              className={`rounded p-1 transition cursor-pointer ${
-                isStrike ? "bg-[#185abd]/15 text-[#185abd]" : "hover:bg-zinc-100 text-zinc-700"
-              }`}
+              onClick={() => insertFormatting("~~", "~~")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
               title="Strikethrough"
             >
               <Strikethrough size={14} />
             </button>
+
+            <span className="mx-1 h-3.5 w-px bg-zinc-200" />
+
+            <button
+              type="button"
+              onClick={() => insertFormatting("### ")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Heading (### )"
+            >
+              <Heading size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => insertFormatting("- ")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Bullet List (- item)"
+            >
+              <List size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => insertFormatting("1. ")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Numbered List (1. item)"
+            >
+              <ListOrdered size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => insertFormatting("`", "`")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Inline Code (`code`)"
+            >
+              <Code size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => insertFormatting("> ")}
+              className="rounded-lg p-1.5 hover:bg-zinc-200/70 hover:text-zinc-900 transition cursor-pointer"
+              title="Quote (> quote)"
+            >
+              <Quote size={14} />
+            </button>
+
+            <div className="ml-auto text-[11px] text-zinc-400 font-medium">
+              Markdown Supported
+            </div>
+          </div>
+
+          {/* Note Body Textarea */}
+          <div className="p-6">
+            <textarea
+              ref={textareaRef}
+              value={editBody}
+              onChange={(e) => {
+                const nextBody = e.target.value;
+                setEditBody(nextBody);
+                triggerAutoSave(editTitle, nextBody, editTag);
+              }}
+              placeholder="Start typing your notes, key takeaways, code snippets, or sprint points here... (Auto-saves continuously)"
+              className="w-full min-h-[320px] sm:min-h-[380px] resize-none bg-transparent outline-none text-zinc-800 placeholder:text-zinc-400 text-sm leading-relaxed"
+            />
+          </div>
+
+          {/* Bottom Status Bar */}
+          <div className="flex flex-wrap items-center justify-between bg-zinc-50/80 px-6 py-2.5 text-[11px] text-zinc-500 border-t border-zinc-100">
+            <div className="flex items-center gap-4">
+              <span>{wordCount} words</span>
+              <span>{charCount} characters</span>
+              <span className="hidden sm:inline">
+                Last updated: {formatRelativeTime(activeNote.updatedAt)}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1 font-medium text-zinc-600">
+                <FileText size={12} /> {lessonTitle}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // -------------------------------------------------------------
+  // VIEW 2: MULTI-NOTE CARD GRID VIEW (Matching Reference Image 2)
+  // -------------------------------------------------------------
+  return (
+    <div className="space-y-4">
+      {/* Top Header & Toolbar: Filter pills, Search, + New Note */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-zinc-200/90 bg-white p-3.5 sm:p-4 shadow-xs">
+        {/* Left: Title + Tag filter chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 mr-2">
+            <h3 className="text-sm font-bold text-zinc-900">Lesson Notes</h3>
+            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] font-bold text-zinc-600">
+              {notesList.length}
+            </span>
+          </div>
+
+          {/* Tag filter selector chips */}
+          <div className="flex flex-wrap items-center gap-1.5 overflow-x-auto py-0.5">
+            {["All", ...AVAILABLE_TAGS.map((t) => t.name)].map((tag) => {
+              const isSelected = selectedTagFilter === tag;
+              return (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setSelectedTagFilter(tag)}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer whitespace-nowrap ${
+                    isSelected
+                      ? "bg-zinc-900 text-white shadow-2xs"
+                      : "bg-zinc-100/80 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900"
+                  }`}
+                >
+                  {tag}
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Paragraph & Alignment Group */}
-        <div className="flex items-center gap-1 border-r border-zinc-200 pr-3">
-          <button
-            type="button"
-            onClick={() => setAlignment("left")}
-            className={`rounded p-1 transition cursor-pointer ${
-              alignment === "left" ? "bg-[#185abd]/15 text-[#185abd]" : "hover:bg-zinc-100 text-zinc-700"
-            }`}
-            title="Align Left"
-          >
-            <AlignLeft size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setAlignment("center")}
-            className={`rounded p-1 transition cursor-pointer ${
-              alignment === "center" ? "bg-[#185abd]/15 text-[#185abd]" : "hover:bg-zinc-100 text-zinc-700"
-            }`}
-            title="Align Center"
-          >
-            <AlignCenter size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setAlignment("right")}
-            className={`rounded p-1 transition cursor-pointer ${
-              alignment === "right" ? "bg-[#185abd]/15 text-[#185abd]" : "hover:bg-zinc-100 text-zinc-700"
-            }`}
-            title="Align Right"
-          >
-            <AlignRight size={14} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setAlignment("justify")}
-            className={`rounded p-1 transition cursor-pointer ${
-              alignment === "justify" ? "bg-[#185abd]/15 text-[#185abd]" : "hover:bg-zinc-100 text-zinc-700"
-            }`}
-            title="Justify"
-          >
-            <AlignJustify size={14} />
-          </button>
-        </div>
+        {/* Right: Search box & "+ New Note" button */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-48">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search notes..."
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50/60 pl-8 pr-3 py-1.5 text-xs text-zinc-800 placeholder:text-zinc-400 outline-none focus:border-primary focus:bg-white transition"
+            />
+          </div>
 
-        {/* Quick Styles Gallery (Normal, No Spacing, Heading 1) */}
-        <div className="hidden sm:flex items-center gap-1 border-r border-zinc-200 pr-3">
-          <div className="rounded border border-[#185abd] bg-[#185abd]/10 px-2 py-0.5 text-center">
-            <span className="block text-[10px] font-bold text-[#185abd]">AaBbCcDc</span>
-            <span className="block text-[9px] text-zinc-600">Normal</span>
-          </div>
-          <div className="rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-center hover:bg-zinc-100 cursor-pointer">
-            <span className="block text-[10px] font-medium text-zinc-800">AaBbCcDc</span>
-            <span className="block text-[9px] text-zinc-500">No Spacing</span>
-          </div>
-          <div className="rounded border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-center hover:bg-zinc-100 cursor-pointer">
-            <span className="block text-[10px] font-bold text-[#185abd]">AaBbCcDc</span>
-            <span className="block text-[9px] text-zinc-500">Heading 1</span>
-          </div>
-        </div>
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-1.5 ml-auto">
           <button
             type="button"
-            onClick={handleCopy}
-            className="flex items-center gap-1 rounded border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 text-xs font-medium text-zinc-700 transition cursor-pointer shadow-2xs"
-            title="Copy all notes"
+            onClick={handleCreateNewNote}
+            className="inline-flex items-center gap-1.5 rounded-xl bg-primary hover:bg-primary-dark px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition cursor-pointer shrink-0"
           >
-            {copied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
-            <span>{copied ? "Copied!" : "Copy"}</span>
+            <Plus size={14} />
+            <span>New Note</span>
           </button>
         </div>
       </div>
 
-      {/* 4. Word Margin Ruler */}
-      <div className="hidden sm:flex items-center justify-between bg-[#e5e7eb] px-12 py-0.5 text-[9px] font-mono text-zinc-500 border-b border-zinc-300 select-none">
-        <div className="flex items-center justify-between w-full max-w-3xl mx-auto px-4">
-          <span>1</span>
-          <span>·</span>
-          <span>2</span>
-          <span>·</span>
-          <span>3</span>
-          <span>·</span>
-          <span>4</span>
-          <span>·</span>
-          <span>5</span>
-          <span>·</span>
-          <span>6</span>
-          <span>·</span>
-          <span>7</span>
-          <span>·</span>
-          <span>8</span>
-        </div>
-      </div>
+      {/* Grid of Note Cards matching Image 2 */}
+      {filteredNotes.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredNotes.map((note) => {
+            const tagStyle = getTagStyle(note.tag);
+            return (
+              <div
+                key={note.id}
+                onClick={() => setActiveNoteId(note.id)}
+                className="group relative flex flex-col justify-between rounded-2xl border border-zinc-200/90 bg-white p-5 shadow-2xs hover:border-zinc-300 hover:shadow-md transition-all duration-200 cursor-pointer min-h-[160px]"
+              >
+                <div>
+                  {/* Top Row: Tag Pill (Left) & Relative Timestamp (Right) */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tracking-tight transition ${tagStyle.bg}`}
+                    >
+                      {note.tag}
+                    </span>
+                    <span className="text-[11px] font-medium text-zinc-400 shrink-0">
+                      {formatRelativeTime(note.updatedAt)}
+                    </span>
+                  </div>
 
-      {/* 5. Document Canvas (White Page styled like Microsoft Word) */}
-      <div className="bg-[#eef1f5] p-3 sm:p-6 md:p-8 flex justify-center">
-        <div className="w-full max-w-3xl min-h-[380px] md:min-h-[460px] rounded bg-white p-6 sm:p-10 md:p-14 shadow-md border border-zinc-300/80 flex flex-col justify-between">
-          <textarea
-            value={notes}
-            onChange={handleNotesChange}
-            placeholder="Type your lesson notes, action items, takeaways, and questions here... (Auto-saves automatically)"
-            style={{
-              fontWeight: isBold ? "bold" : "normal",
-              fontStyle: isItalic ? "italic" : "normal",
-              textDecoration: isUnderline ? "underline" : isStrike ? "line-through" : "none",
-              textAlign: alignment,
-              fontSize: `${fontSize}pt`,
-              fontFamily: fontFamily.split(" ")[0],
-            }}
-            className="w-full flex-1 resize-none bg-transparent outline-none text-zinc-900 placeholder:text-zinc-400 placeholder:italic leading-relaxed min-h-[300px]"
-          />
-        </div>
-      </div>
+                  {/* Card Title (Bold, crisp) */}
+                  <h4 className="mt-3.5 mb-1.5 text-[15px] font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1">
+                    {note.title || "Untitled Note"}
+                  </h4>
 
-      {/* 6. Word Status Bar at Bottom */}
-      <div className="flex flex-wrap items-center justify-between bg-[#f3f4f6] px-3 py-1 text-[11px] text-zinc-600 border-t border-zinc-300">
-        <div className="flex items-center gap-3">
-          <span>Page 1 of 1</span>
-          <span>{wordCount} words</span>
-          <span>{charCount} characters</span>
-          <span className="hidden sm:inline">English (United States)</span>
-          <span className="hidden md:inline text-emerald-700 font-medium">✓ Accessibility: Good to go</span>
-        </div>
+                  {/* Card Body Snippet (2-3 lines clean preview) */}
+                  <p className="text-xs sm:text-[12.5px] leading-relaxed text-zinc-500 line-clamp-3">
+                    {note.body || "Empty note. Click to start writing..."}
+                  </p>
+                </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-zinc-400">Word Document Notes</span>
-          <div className="flex items-center gap-1 font-mono text-[10px] text-zinc-500">
-            <span>-</span>
-            <span>100%</span>
-            <span>+</span>
+                {/* Subtle Hover Action Footer (Copy, Export, Delete) */}
+                <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-2.5 text-zinc-400 opacity-80 group-hover:opacity-100 transition-opacity">
+                  <span className="text-[10px] font-medium text-zinc-400">
+                    {note.body.trim() ? `${note.body.trim().split(/\s+/).length} words` : "Empty"}
+                  </span>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={(e) => handleQuickCopyCard(note, e)}
+                      className="rounded-lg p-1 hover:bg-zinc-100 hover:text-zinc-800 transition cursor-pointer"
+                      title="Copy note content"
+                    >
+                      <Copy size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleExportNote(note);
+                      }}
+                      className="rounded-lg p-1 hover:bg-zinc-100 hover:text-zinc-800 transition cursor-pointer"
+                      title="Export note"
+                    >
+                      <Download size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteNote(note.id, e)}
+                      className="rounded-lg p-1 hover:bg-rose-50 hover:text-rose-600 transition cursor-pointer"
+                      title="Delete note"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* "+ Add Note" Dashed Card */}
+          <button
+            type="button"
+            onClick={handleCreateNewNote}
+            className="flex min-h-[160px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-zinc-200 bg-zinc-50/50 p-6 text-zinc-400 hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-200 cursor-pointer group"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-xs group-hover:scale-110 transition-transform">
+              <Plus size={20} className="text-zinc-500 group-hover:text-primary" />
+            </div>
+            <span className="mt-2 text-xs font-bold text-zinc-600 group-hover:text-primary">
+              Create New Note
+            </span>
+            <span className="text-[11px] text-zinc-400 mt-0.5">
+              Add takeaways or action items
+            </span>
+          </button>
+        </div>
+      ) : (
+        /* Empty State */
+        <div className="rounded-2xl border border-zinc-200/90 bg-white p-12 text-center shadow-xs">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-500 mb-3">
+            <FileText size={24} />
+          </div>
+          <h4 className="text-base font-bold text-zinc-900">No notes found</h4>
+          <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto">
+            {searchQuery
+              ? `No notes matched "${searchQuery}". Try searching for another keyword.`
+              : "You don't have any notes with the selected filter yet."}
+          </p>
+          <div className="mt-4 flex items-center justify-center gap-2">
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50"
+              >
+                Clear Search
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleCreateNewNote}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-1.5 text-xs font-bold text-white hover:bg-primary-dark"
+            >
+              <Plus size={14} /> Create Note
+            </button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

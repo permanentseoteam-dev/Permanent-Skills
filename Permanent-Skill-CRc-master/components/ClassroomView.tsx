@@ -782,7 +782,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
                     }`}
                   >
-                    <FileText size={14} /> Word Document Notes
+                    <FileText size={14} /> Notes
                   </button>
 
                   <button
