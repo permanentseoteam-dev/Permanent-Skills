@@ -1112,7 +1112,7 @@ export async function saveCourse(input: {
       accent: "from-[#0b1b4a] via-[#5051F9] to-[#7c83ff]",
       badge: input.badge?.trim().toUpperCase() || input.title.trim().slice(0, 18).toUpperCase(),
       unlockLevel: input.unlockLevel || 1,
-      price: input.price || 49,
+      price: input.price !== undefined ? input.price : 0,
       isPremiumOnly: Boolean(input.isPremiumOnly),
       lessons: [],
     });
