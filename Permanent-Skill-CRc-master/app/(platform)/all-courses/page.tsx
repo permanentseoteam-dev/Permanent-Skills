@@ -392,7 +392,7 @@ export default function AllCoursesPage() {
                     </span>
                     {isAccessible ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 backdrop-blur-xs px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
-                        <ShieldCheck size={13} /> Unlocked
+                        <ShieldCheck size={13} /> {user?.role === "admin" ? "⚡ Unlocked for Admin" : "Unlocked"}
                       </span>
                     ) : course.isPremiumOnly ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/95 backdrop-blur-xs px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
