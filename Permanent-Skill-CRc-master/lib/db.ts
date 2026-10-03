@@ -6,8 +6,18 @@ import {
   fetchDatabaseFromSupabase,
   syncUserToSupabase,
   syncPostToSupabase,
+  deletePostFromSupabase,
   syncCommentToSupabase,
+  deleteCommentFromSupabase,
+  syncCourseToSupabase,
+  deleteCourseFromSupabase,
+  syncProjectToSupabase,
+  deleteProjectFromSupabase,
   syncProgressToSupabase,
+  syncMessageToSupabase,
+  syncNotificationToSupabase,
+  syncReviewToSupabase,
+  syncSaleToSupabase,
   syncSessionToSupabase,
   deleteSessionFromSupabase,
 } from "./supabase-db";
@@ -160,7 +170,7 @@ function loadFromDisk(): Database | null {
 // Background async loader from Supabase
 export async function refreshFromSupabase(): Promise<Database> {
   const remoteDb = await fetchDatabaseFromSupabase();
-  if (remoteDb) {
+  if (remoteDb && remoteDb.users.length > 0) {
     cache = remoteDb;
     persist(remoteDb);
     isInitialFetchDone = true;
@@ -175,7 +185,7 @@ export function readDb(): Database {
   cache = disk ?? createSeed();
   if (!disk) persist(cache);
 
-  // Trigger non-blocking Supabase sync if not yet loaded from remote
+  // Trigger Supabase sync if not yet loaded from remote
   if (!isInitialFetchDone) {
     refreshFromSupabase().catch(() => {});
   }
@@ -192,37 +202,96 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
   const prevUsers = new Map(db.users.map((u) => [u.id, u]));
   const prevPosts = new Map(db.posts.map((p) => [p.id, p]));
   const prevComments = new Map(db.comments.map((c) => [c.id, c]));
+  const prevCourses = new Map(db.courses.map((c) => [c.id, c]));
+  const prevProjects = new Map(db.projects.map((p) => [p.id, p]));
 
   const result = mutator(db);
   persist(db);
 
-  // Sync mutations asynchronously to Supabase
+  // Sync mutations reliably to Supabase
   try {
+    const promises: Promise<unknown>[] = [];
+
     // 1. Sync updated / new users
     for (const user of db.users) {
       const prev = prevUsers.get(user.id);
       if (!prev || JSON.stringify(prev) !== JSON.stringify(user)) {
-        syncUserToSupabase(user).catch(() => {});
+        promises.push(syncUserToSupabase(user));
       }
     }
 
     // 2. Sync updated / new posts
+    const currentPostIds = new Set(db.posts.map((p) => p.id));
     for (const post of db.posts) {
       const prev = prevPosts.get(post.id);
       if (!prev || JSON.stringify(prev) !== JSON.stringify(post)) {
-        syncPostToSupabase(post).catch(() => {});
+        promises.push(syncPostToSupabase(post));
+      }
+    }
+    // Check deleted posts
+    for (const [prevId] of prevPosts) {
+      if (!currentPostIds.has(prevId)) {
+        promises.push(deletePostFromSupabase(prevId));
       }
     }
 
     // 3. Sync updated / new comments
+    const currentCommentIds = new Set(db.comments.map((c) => c.id));
     for (const comment of db.comments) {
       const prev = prevComments.get(comment.id);
       if (!prev || JSON.stringify(prev) !== JSON.stringify(comment)) {
-        syncCommentToSupabase(comment).catch(() => {});
+        promises.push(syncCommentToSupabase(comment));
       }
     }
+    // Check deleted comments
+    for (const [prevId] of prevComments) {
+      if (!currentCommentIds.has(prevId)) {
+        promises.push(deleteCommentFromSupabase(prevId));
+      }
+    }
+
+    // 4. Sync courses
+    const currentCourseIds = new Set(db.courses.map((c) => c.id));
+    for (const course of db.courses) {
+      const prev = prevCourses.get(course.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(course)) {
+        promises.push(syncCourseToSupabase(course));
+      }
+    }
+    for (const [prevId] of prevCourses) {
+      if (!currentCourseIds.has(prevId)) {
+        promises.push(deleteCourseFromSupabase(prevId));
+      }
+    }
+
+    // 5. Sync projects
+    const currentProjectIds = new Set(db.projects.map((p) => p.id));
+    for (const project of db.projects) {
+      const prev = prevProjects.get(project.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(project)) {
+        promises.push(syncProjectToSupabase(project));
+      }
+    }
+    for (const [prevId] of prevProjects) {
+      if (!currentProjectIds.has(prevId)) {
+        promises.push(deleteProjectFromSupabase(prevId));
+      }
+    }
+
+    // 6. Progress
+    for (const prog of db.progress) {
+      promises.push(syncProgressToSupabase(prog));
+    }
+
+    // 7. Reviews
+    for (const rev of db.reviews) {
+      promises.push(syncReviewToSupabase(rev));
+    }
+
+    // Await all Supabase database mutations
+    await Promise.allSettled(promises);
   } catch (err) {
-    console.error("Async Supabase sync error in updateDb:", err);
+    console.error("Supabase sync error in updateDb:", err);
   }
 
   return result;
