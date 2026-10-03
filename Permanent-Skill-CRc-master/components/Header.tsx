@@ -232,7 +232,7 @@ export function Header() {
                   </Link>
                 </div>
 
-                {/* Create & Discover Actions matching Reference Screenshot */}
+                {/* Create & Discover & All Courses Actions matching Reference Screenshot */}
                 <div className="space-y-0.5">
                   <Link
                     href="/create-community"
@@ -254,6 +254,17 @@ export function Header() {
                       <Compass size={15} />
                     </div>
                     <span>Discover communities</span>
+                  </Link>
+
+                  <Link
+                    href="/all-courses"
+                    onClick={() => setOpen(null)}
+                    className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition"
+                  >
+                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                      <BookOpen size={15} />
+                    </div>
+                    <span>All courses</span>
                   </Link>
                 </div>
 
@@ -693,6 +704,9 @@ function UserMenu({
         </button>
         <button onClick={() => go("/discover")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
           <Compass size={16} className="text-zinc-500" /> Discover communities
+        </button>
+        <button onClick={() => go("/all-courses")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+          <BookOpen size={16} className="text-zinc-500" /> All courses
         </button>
         {(user?.role === "admin" || user?.role === "manager") && (
           <button onClick={() => go("/admin")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5">
