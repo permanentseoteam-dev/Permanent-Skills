@@ -1656,3 +1656,60 @@ export async function deleteVideoResource(id: string): Promise<ActionResult> {
   });
   return { ok: true };
 }
+
+export async function saveCalendarEvent(input: {
+  id?: string;
+  title: string;
+  start: string;
+  end: string;
+  type: EventType;
+  description: string;
+}): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  if (me.role !== "admin" && me.role !== "manager") {
+    return { ok: false, error: "Only admins and managers can create or edit meetings." };
+  }
+
+  const title = input.title.trim();
+  if (!title) return { ok: false, error: "Please enter a meeting title." };
+  if (!input.start || !input.end) return { ok: false, error: "Please specify start and end dates/times." };
+
+  const id = input.id || `ev-${token().slice(0, 8)}`;
+
+  await updateDb((db) => {
+    db.events = db.events || [];
+    const eventIndex = db.events.findIndex((e) => e.id === id);
+    const newEvent: CalendarEvent = {
+      id,
+      title,
+      start: input.start,
+      end: input.end,
+      type: input.type || "live",
+      description: input.description?.trim() || "",
+    };
+
+    if (eventIndex >= 0) {
+      db.events[eventIndex] = newEvent;
+    } else {
+      db.events.push(newEvent);
+    }
+  });
+
+  return { ok: true, id };
+}
+
+export async function deleteCalendarEvent(id: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  if (me.role !== "admin" && me.role !== "manager") {
+    return { ok: false, error: "Only admins and managers can delete meetings." };
+  }
+
+  await updateDb((db) => {
+    db.events = (db.events || []).filter((e) => e.id !== id);
+  });
+
+  return { ok: true };
+}
+
