@@ -184,6 +184,28 @@ CREATE TABLE IF NOT EXISTS public.sessions (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- 14. VIDEO RESOURCES TABLE (URLs, full video uploads, replays, and overviews)
+CREATE TABLE IF NOT EXISTS public.video_resources (
+  id TEXT PRIMARY KEY,
+  title TEXT NOT NULL,
+  description TEXT DEFAULT '',
+  video_url TEXT,
+  video_file_url TEXT,
+  video_file_data TEXT,
+  thumbnail_url TEXT,
+  duration TEXT,
+  category TEXT DEFAULT 'overview',
+  course_id TEXT REFERENCES public.courses(id) ON DELETE SET NULL,
+  community_id TEXT,
+  author_id TEXT REFERENCES public.users(id) ON DELETE SET NULL,
+  is_public BOOLEAN DEFAULT TRUE,
+  is_featured BOOLEAN DEFAULT FALSE,
+  view_count INTEGER DEFAULT 0,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- ==============================================================================
 -- INDEXES
 -- ==============================================================================
@@ -193,6 +215,10 @@ CREATE INDEX IF NOT EXISTS idx_comments_post_id ON public.comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_messages_participants ON public.messages(sender_id, receiver_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON public.notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON public.sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_video_resources_category ON public.video_resources(category);
+CREATE INDEX IF NOT EXISTS idx_video_resources_course_id ON public.video_resources(course_id);
+CREATE INDEX IF NOT EXISTS idx_video_resources_author_id ON public.video_resources(author_id);
+CREATE INDEX IF NOT EXISTS idx_video_resources_is_featured ON public.video_resources(is_featured);
 
 -- ==============================================================================
 -- PERMISSIONS & ROLES

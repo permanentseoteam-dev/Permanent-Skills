@@ -265,6 +265,33 @@ async function seed() {
     if (saleErr) console.error("Error seeding sales:", saleErr.message);
   }
 
+  // 13. Video Resources
+  if (data.videoResources && data.videoResources.length > 0) {
+    console.log(`Seeding ${data.videoResources.length} video resources...`);
+    const videosToInsert = data.videoResources.map((v) => ({
+      id: v.id,
+      title: v.title,
+      description: v.description || "",
+      video_url: v.videoUrl || null,
+      video_file_url: v.videoFileUrl || null,
+      video_file_data: v.videoFileData || null,
+      thumbnail_url: v.thumbnailUrl || null,
+      duration: v.duration || null,
+      category: v.category || "overview",
+      course_id: v.courseId || null,
+      community_id: v.communityId || null,
+      author_id: v.authorId || null,
+      is_public: v.isPublic ?? true,
+      is_featured: !!v.isFeatured,
+      view_count: v.viewCount || 0,
+      metadata: v.metadata || {},
+      created_at: v.createdAt || new Date().toISOString(),
+      updated_at: v.updatedAt || new Date().toISOString(),
+    }));
+    const { error: vidErr } = await supabase.from("video_resources").upsert(videosToInsert, { onConflict: "id" });
+    if (vidErr) console.error("Error seeding video resources:", vidErr.message);
+  }
+
   console.log("Database seeded successfully!");
 }
 

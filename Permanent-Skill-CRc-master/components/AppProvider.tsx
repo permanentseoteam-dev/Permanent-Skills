@@ -41,6 +41,8 @@ import {
   toggleProjectTask as toggleProjectTaskAction,
   addProjectTask as addProjectTaskAction,
   sendMessage as sendMessageAction,
+  saveVideoResource as saveVideoResourceAction,
+  deleteVideoResource as deleteVideoResourceAction,
   submitApplication,
   toggleLike as toggleLikeAction,
   togglePin as togglePinAction,
@@ -57,6 +59,7 @@ import type {
   PublicUser,
   Role,
   Status,
+  VideoResource,
 } from "@/lib/types";
 
 type MemberInput = {
@@ -103,6 +106,7 @@ const empty: AppState = {
   limited: false,
   communities: [],
   activeCommunityId: "comm-pss",
+  videoResources: [],
 };
 
 type AppContextValue = AppState & {
@@ -173,6 +177,8 @@ type AppContextValue = AppState & {
   switchCommunity: (communityId: string) => void;
   activeCommunity?: Community;
   purchaseCourse: (courseId: string) => Promise<ActionResult>;
+  saveVideoResource: (data: Partial<VideoResource>) => Promise<ActionResult & { resource?: VideoResource }>;
+  deleteVideoResource: (id: string) => Promise<ActionResult>;
   userById: (id: string) => PublicUser | undefined;
 };
 
@@ -390,6 +396,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     [run],
   );
+  const saveVideoResourceFn = useCallback(
+    (data: Partial<VideoResource>) =>
+      run(async () => {
+        const result = await saveVideoResourceAction(data);
+        if (result.ok) await refresh();
+        return result;
+      }),
+    [run, refresh],
+  );
+  const deleteVideoResourceFn = useCallback(
+    (id: string) =>
+      run(async () => {
+        const result = await deleteVideoResourceAction(id);
+        if (result.ok) await refresh();
+        return result;
+      }),
+    [run, refresh],
+  );
   const switchCommunity = useCallback((communityId: string) => {
     setState((prev) => ({ ...prev, activeCommunityId: communityId }));
   }, []);
@@ -445,6 +469,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteMember: inviteMemberFn,
       purchaseCourse: purchaseCourseFn,
       createCommunity: createCommunityFn,
+      saveVideoResource: saveVideoResourceFn,
+      deleteVideoResource: deleteVideoResourceFn,
       switchCommunity,
       activeCommunity,
       userById,
@@ -492,6 +518,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteMemberFn,
       purchaseCourseFn,
       createCommunityFn,
+      saveVideoResourceFn,
+      deleteVideoResourceFn,
       switchCommunity,
       activeCommunity,
       userById,

@@ -240,6 +240,27 @@ export interface AdminStats {
   pendingCount: number;
 }
 
+export interface VideoResource {
+  id: string;
+  title: string;
+  description?: string;
+  videoUrl?: string;
+  videoFileUrl?: string;
+  videoFileData?: string;
+  thumbnailUrl?: string;
+  duration?: string;
+  category?: "overview" | "about" | "mastermind" | "replays" | "tutorials" | "case_study" | "resources" | (string & {});
+  courseId?: string;
+  communityId?: string;
+  authorId?: string;
+  isPublic?: boolean;
+  isFeatured?: boolean;
+  viewCount?: number;
+  metadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Database {
   users: User[];
   posts: Post[];
@@ -254,6 +275,7 @@ export interface Database {
   sales: Sale[];
   sessions: Session[];
   communities: Community[];
+  videoResources?: VideoResource[];
 }
 
 export interface AppState {
@@ -273,6 +295,7 @@ export interface AppState {
   limited: boolean;
   communities: Community[];
   activeCommunityId: string;
+  videoResources?: VideoResource[];
 }
 
 export interface ActionResult {

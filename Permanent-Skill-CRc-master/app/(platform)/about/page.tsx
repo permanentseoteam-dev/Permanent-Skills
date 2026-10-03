@@ -59,7 +59,7 @@ const defaultVideoConfig: VideoConfig = {
 };
 
 export default function AboutPage() {
-  const { reviews, users, user, userById, addReview, activeCommunity } = useApp();
+  const { reviews, users, user, userById, addReview, activeCommunity, videoResources, saveVideoResource } = useApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
@@ -80,13 +80,48 @@ export default function AboutPage() {
   const [formUploadedFileName, setFormUploadedFileName] = useState<string>("");
   const [formThumbnailUrl, setFormThumbnailUrl] = useState<string>("");
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbInputRef = useRef<HTMLInputElement>(null);
 
   const canEdit = user?.role === "admin" || user?.role === "manager";
 
-  // Load saved video config from localStorage
+  // Find active video resource from Supabase / DB
+  const dbVideo = useMemo(() => {
+    return (
+      videoResources?.find(
+        (v) => (v.category === "about" || v.isFeatured) && (!v.communityId || v.communityId === activeCommunity?.id)
+      ) ||
+      videoResources?.find((v) => v.category === "about" || v.isFeatured) ||
+      videoResources?.[0]
+    );
+  }, [videoResources, activeCommunity?.id]);
+
+  // Load saved video config from Supabase DB or localStorage fallback
   useEffect(() => {
+    if (dbVideo) {
+      const activeUrl = dbVideo.videoUrl || dbVideo.videoFileUrl || dbVideo.videoFileData || defaultVideoConfig.videoUrl;
+      const isData = activeUrl.startsWith("data:");
+      const cfg: VideoConfig = {
+        title: dbVideo.title || defaultVideoConfig.title,
+        subtitle: dbVideo.description || defaultVideoConfig.subtitle,
+        videoUrl: activeUrl,
+        thumbnailUrl: dbVideo.thumbnailUrl || undefined,
+        videoFileName: isData ? "uploaded-video.mp4" : undefined,
+      };
+      setVideoConfig(cfg);
+      setFormTitle(cfg.title);
+      setFormSubtitle(cfg.subtitle);
+      setFormUrl(cfg.videoUrl);
+      setFormThumbnailUrl(cfg.thumbnailUrl || "");
+      if (isData) {
+        setVideoSourceType("upload");
+        setFormUploadedData(activeUrl);
+        setFormUploadedFileName("uploaded-video.mp4");
+      }
+      return;
+    }
+
     try {
       const saved = localStorage.getItem("ps_about_video_config");
       if (saved) {
@@ -102,10 +137,10 @@ export default function AboutPage() {
           setFormUploadedFileName(parsed.videoFileName || "uploaded-video.mp4");
         }
       }
-    } catch (e) {
+    } catch {
       // Fallback to defaults
     }
-  }, []);
+  }, [dbVideo]);
 
   const approvedUsers = useMemo(
     () => users.filter((u) => u.status !== "pending" && u.status !== "rejected"),
@@ -153,13 +188,17 @@ export default function AboutPage() {
     reader.readAsDataURL(file);
   }
 
-  // Save Video Settings
-  function handleSaveVideoConfig(e: React.FormEvent) {
+  // Save Video Settings to Supabase DB and local cache
+  async function handleSaveVideoConfig(e: React.FormEvent) {
     e.preventDefault();
+    setIsSaving(true);
     const finalUrl =
       videoSourceType === "upload" && formUploadedData
         ? formUploadedData
         : formUrl.trim() || defaultVideoConfig.videoUrl;
+
+    const isData = finalUrl.startsWith("data:");
+    const isFileUrl = !isData && (finalUrl.endsWith(".mp4") || finalUrl.endsWith(".webm") || finalUrl.endsWith(".mov") || finalUrl.includes("/uploads/"));
 
     const nextConfig: VideoConfig = {
       title: formTitle.trim() || "REAL STATS",
@@ -171,20 +210,39 @@ export default function AboutPage() {
 
     setVideoConfig(nextConfig);
     setPlaying(false);
+
     try {
       localStorage.setItem("ps_about_video_config", JSON.stringify(nextConfig));
+    } catch {}
+
+    try {
+      await saveVideoResource({
+        id: dbVideo?.id || "vid-about-overview",
+        title: formTitle.trim() || "REAL STATS",
+        description: formSubtitle.trim() || "real members · real compounding",
+        videoUrl: !isData && !isFileUrl ? finalUrl : undefined,
+        videoFileUrl: isFileUrl ? finalUrl : undefined,
+        videoFileData: isData ? finalUrl : undefined,
+        thumbnailUrl: formThumbnailUrl.trim() || undefined,
+        category: "about",
+        isFeatured: true,
+        isPublic: true,
+        communityId: activeCommunity?.id || "comm-pss",
+      });
       setSaveSuccess(true);
       setTimeout(() => {
         setSaveSuccess(false);
         setEditModalOpen(false);
-      }, 1000);
-    } catch (err) {
+      }, 800);
+    } catch {
       setEditModalOpen(false);
+    } finally {
+      setIsSaving(false);
     }
   }
 
-  // Reset Video Settings to default
-  function handleResetVideoConfig() {
+  // Reset Video Settings to default in Supabase DB and local cache
+  async function handleResetVideoConfig() {
     setVideoConfig(defaultVideoConfig);
     setFormTitle(defaultVideoConfig.title);
     setFormSubtitle(defaultVideoConfig.subtitle);
@@ -196,6 +254,22 @@ export default function AboutPage() {
     setPlaying(false);
     try {
       localStorage.removeItem("ps_about_video_config");
+    } catch {}
+
+    try {
+      await saveVideoResource({
+        id: dbVideo?.id || "vid-about-overview",
+        title: defaultVideoConfig.title,
+        description: defaultVideoConfig.subtitle,
+        videoUrl: defaultVideoConfig.videoUrl,
+        videoFileUrl: undefined,
+        videoFileData: undefined,
+        thumbnailUrl: undefined,
+        category: "about",
+        isFeatured: true,
+        isPublic: true,
+        communityId: activeCommunity?.id || "comm-pss",
+      });
     } catch {}
   }
 
@@ -734,8 +808,8 @@ export default function AboutPage() {
                 Cancel
               </button>
 
-              <PrimaryButton type="submit" className="text-xs py-2 px-5 cursor-pointer">
-                {saveSuccess ? "Saved!" : "Save Video Settings"}
+              <PrimaryButton type="submit" disabled={isSaving} className="text-xs py-2 px-5 cursor-pointer">
+                {saveSuccess ? "Saved!" : isSaving ? "Saving..." : "Save Video Settings"}
               </PrimaryButton>
             </div>
           </div>

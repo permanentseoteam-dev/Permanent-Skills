@@ -14,6 +14,7 @@ import type {
   Sale,
   Session,
   User,
+  VideoResource,
 } from "./types";
 
 export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
@@ -34,6 +35,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       { data: reviews, error: rErr },
       { data: sales, error: sErr },
       { data: sessions, error: sessErr },
+      { data: videoResources, error: vidErr },
     ] = await Promise.all([
       supabase.from("users").select("*"),
       supabase.from("communities").select("*"),
@@ -48,6 +50,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       supabase.from("reviews").select("*"),
       supabase.from("sales").select("*"),
       supabase.from("sessions").select("*"),
+      supabase.from("video_resources").select("*").order("created_at", { ascending: false }),
     ]);
 
     if (uErr) console.error("Error fetching users from Supabase:", uErr);
@@ -225,6 +228,27 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       createdAt: s.created_at,
     }));
 
+    const mappedVideoResources: VideoResource[] = (videoResources || []).map((v) => ({
+      id: v.id,
+      title: v.title,
+      description: v.description || "",
+      videoUrl: v.video_url || undefined,
+      videoFileUrl: v.video_file_url || undefined,
+      videoFileData: v.video_file_data || undefined,
+      thumbnailUrl: v.thumbnail_url || undefined,
+      duration: v.duration || undefined,
+      category: v.category || "overview",
+      courseId: v.course_id || undefined,
+      communityId: v.community_id || undefined,
+      authorId: v.author_id || undefined,
+      isPublic: v.is_public ?? true,
+      isFeatured: !!v.is_featured,
+      viewCount: Number(v.view_count || 0),
+      metadata: v.metadata || {},
+      createdAt: v.created_at || new Date().toISOString(),
+      updatedAt: v.updated_at || undefined,
+    }));
+
     return {
       users: mappedUsers,
       communities: mappedCommunities,
@@ -239,6 +263,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       reviews: mappedReviews,
       sales: mappedSales,
       sessions: mappedSessions,
+      videoResources: mappedVideoResources,
     };
   } catch (err) {
     console.error("Failed to load from Supabase:", err);
@@ -547,5 +572,45 @@ export async function deleteSessionFromSupabase(token: string) {
     await supabase.from("sessions").delete().eq("token", token);
   } catch (err) {
     console.error("Error deleting session from Supabase:", err);
+  }
+}
+
+export async function syncVideoResourceToSupabase(v: VideoResource) {
+  try {
+    const supabase = getAdminSupabase();
+    await supabase.from("video_resources").upsert(
+      {
+        id: v.id,
+        title: v.title,
+        description: v.description || "",
+        video_url: v.videoUrl || null,
+        video_file_url: v.videoFileUrl || null,
+        video_file_data: v.videoFileData || null,
+        thumbnail_url: v.thumbnailUrl || null,
+        duration: v.duration || null,
+        category: v.category || "overview",
+        course_id: v.courseId || null,
+        community_id: v.communityId || null,
+        author_id: v.authorId || null,
+        is_public: v.isPublic ?? true,
+        is_featured: !!v.isFeatured,
+        view_count: v.viewCount || 0,
+        metadata: v.metadata || {},
+        created_at: v.createdAt || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.error("Error syncing video resource to Supabase:", err);
+  }
+}
+
+export async function deleteVideoResourceFromSupabase(id: string) {
+  try {
+    const supabase = getAdminSupabase();
+    await supabase.from("video_resources").delete().eq("id", id);
+  } catch (err) {
+    console.error("Error deleting video resource from Supabase:", err);
   }
 }

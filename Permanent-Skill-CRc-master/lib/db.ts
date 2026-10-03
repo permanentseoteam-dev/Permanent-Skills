@@ -20,6 +20,8 @@ import {
   syncSaleToSupabase,
   syncSessionToSupabase,
   deleteSessionFromSupabase,
+  syncVideoResourceToSupabase,
+  deleteVideoResourceFromSupabase,
 } from "./supabase-db";
 import type { Database, Lesson, User } from "./types";
 
@@ -149,6 +151,10 @@ function migrate(db: Database) {
       }
     }
   }
+  if (!db.videoResources || db.videoResources.length === 0) {
+    db.videoResources = createSeed().videoResources || [];
+    changed = true;
+  }
   if (changed) persist(db);
 }
 
@@ -204,6 +210,7 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
   const prevComments = new Map(db.comments.map((c) => [c.id, c]));
   const prevCourses = new Map(db.courses.map((c) => [c.id, c]));
   const prevProjects = new Map(db.projects.map((p) => [p.id, p]));
+  const prevVideoResources = new Map((db.videoResources || []).map((v) => [v.id, v]));
 
   const result = mutator(db);
   persist(db);
@@ -286,6 +293,20 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 7. Reviews
     for (const rev of db.reviews) {
       promises.push(syncReviewToSupabase(rev));
+    }
+
+    // 8. Video Resources
+    const currentVideoIds = new Set((db.videoResources || []).map((v) => v.id));
+    for (const vid of db.videoResources || []) {
+      const prev = prevVideoResources.get(vid.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(vid)) {
+        promises.push(syncVideoResourceToSupabase(vid));
+      }
+    }
+    for (const [prevId] of prevVideoResources) {
+      if (!currentVideoIds.has(prevId)) {
+        promises.push(deleteVideoResourceFromSupabase(prevId));
+      }
     }
 
     // Await all Supabase database mutations

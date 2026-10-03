@@ -19,6 +19,7 @@ import type {
   Role,
   Status,
   User,
+  VideoResource,
 } from "./types";
 
 const COOKIE = "pss_session";
@@ -218,6 +219,7 @@ export async function getAppState(): Promise<AppState> {
     limited: false,
     communities: db.communities || [],
     activeCommunityId: db.communities?.[0]?.id || "comm-students",
+    videoResources: db.videoResources || [],
   };
 }
 
@@ -1411,6 +1413,94 @@ export async function deleteProject(projectId: string): Promise<ActionResult> {
   if (!me) return { ok: false, error: "Please log in first." };
   await updateDb((db) => {
     db.projects = (db.projects || []).filter((p) => p.id !== projectId);
+  });
+  return { ok: true };
+}
+
+export async function saveVideoResource(data: {
+  id?: string;
+  title?: string;
+  description?: string;
+  videoUrl?: string;
+  videoFileUrl?: string;
+  videoFileData?: string;
+  thumbnailUrl?: string;
+  duration?: string;
+  category?: "overview" | "about" | "mastermind" | "replays" | "tutorials" | "case_study" | "resources" | (string & {});
+  courseId?: string;
+  communityId?: string;
+  isPublic?: boolean;
+  isFeatured?: boolean;
+}): Promise<ActionResult & { resource?: VideoResource }> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in." };
+  const title = (data.title || "Video Resource").trim();
+  if (!title) return { ok: false, error: "Video title is required." };
+
+  let savedResource: VideoResource | null = null;
+  await updateDb((db) => {
+    db.videoResources = db.videoResources || [];
+    const now = new Date().toISOString();
+
+    if (data.id) {
+      const idx = db.videoResources.findIndex((v) => v.id === data.id);
+      if (idx >= 0) {
+        db.videoResources[idx] = {
+          ...db.videoResources[idx],
+          title,
+          description: data.description || "",
+          videoUrl: data.videoUrl || undefined,
+          videoFileUrl: data.videoFileUrl || undefined,
+          videoFileData: data.videoFileData || undefined,
+          thumbnailUrl: data.thumbnailUrl || undefined,
+          duration: data.duration || undefined,
+          category: (data.category as any) || "overview",
+          courseId: data.courseId || undefined,
+          communityId: data.communityId || undefined,
+          isPublic: data.isPublic ?? true,
+          isFeatured: !!data.isFeatured,
+          updatedAt: now,
+        };
+        savedResource = db.videoResources[idx];
+      }
+    }
+
+    if (!savedResource) {
+      const newResource: VideoResource = {
+        id: data.id || `vid-${token().slice(0, 8)}`,
+        title,
+        description: data.description || "",
+        videoUrl: data.videoUrl || undefined,
+        videoFileUrl: data.videoFileUrl || undefined,
+        videoFileData: data.videoFileData || undefined,
+        thumbnailUrl: data.thumbnailUrl || undefined,
+        duration: data.duration || undefined,
+        category: (data.category as any) || "overview",
+        courseId: data.courseId || undefined,
+        communityId: data.communityId || undefined,
+        authorId: me.id,
+        isPublic: data.isPublic ?? true,
+        isFeatured: !!data.isFeatured,
+        viewCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+      db.videoResources.unshift(newResource);
+      savedResource = newResource;
+    }
+  });
+
+  return { ok: true, resource: savedResource || undefined };
+}
+
+export async function deleteVideoResource(id: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in." };
+  if (me.role !== "admin" && me.role !== "manager") {
+    return { ok: false, error: "Only admins and managers can delete video resources." };
+  }
+  await updateDb((db) => {
+    db.videoResources = (db.videoResources || []).filter((v) => v.id !== id);
   });
   return { ok: true };
 }

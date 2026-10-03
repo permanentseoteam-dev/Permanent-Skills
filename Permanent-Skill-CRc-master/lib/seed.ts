@@ -12,6 +12,7 @@ import type {
   Review,
   Sale,
   User,
+  VideoResource,
 } from "./types";
 
 export const COURSE_CATALOG_IDS = [
@@ -1081,6 +1082,46 @@ export function createSeed(): Database {
     },
   ];
 
+  const videoResources: VideoResource[] = [
+    {
+      id: "vid-overview-1",
+      title: "REAL STATS — Community Overview & Framework",
+      description: "Comprehensive walkthrough of the Permanent Skill architecture, daily cadence, and mastermind systems.",
+      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      thumbnailUrl: "",
+      duration: "12:45",
+      category: "overview",
+      isPublic: true,
+      isFeatured: true,
+      viewCount: 245,
+      createdAt: daysAgo(30),
+    },
+    {
+      id: "vid-mastermind-1",
+      title: "Mastermind Strategy Teardown & High-Ticket Offers",
+      description: "Deep dive into value pricing, client onboarding automation, and multi-tier retargeting.",
+      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      duration: "45:10",
+      category: "mastermind",
+      isPublic: false,
+      isFeatured: false,
+      viewCount: 189,
+      createdAt: daysAgo(14),
+    },
+    {
+      id: "vid-tutorial-1",
+      title: "n8n Webhook Architecture & Make.com Blueprint Setup",
+      description: "Technical build of scalable lead ingestion and CRM sync workflows.",
+      videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      duration: "24:30",
+      category: "tutorials",
+      isPublic: true,
+      isFeatured: false,
+      viewCount: 310,
+      createdAt: daysAgo(7),
+    },
+  ];
+
   return {
     users,
     posts,
@@ -1095,5 +1136,6 @@ export function createSeed(): Database {
     sales,
     sessions: [],
     communities,
+    videoResources,
   };
 }
