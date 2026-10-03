@@ -1001,7 +1001,7 @@ export function createSeed(): Database {
       name: "Team Members",
       slug: "team-members",
       description: "Private internal hub for team specialists and staff members. Watch training modules, review SOPs, participate in discussions, and record workflow notes.",
-      icon: "/logo.png",
+      icon: "/team-icon.png",
       isPrivate: true,
       memberCount: 24,
       onlineCount: 3,

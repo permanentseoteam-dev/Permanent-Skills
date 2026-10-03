@@ -42,7 +42,13 @@ export function Sidebar() {
 
         <div className="p-4">
           <div className="mb-3 flex items-center gap-2">
-            <Image src="/logo.png" alt="" width={28} height={28} className="h-7 w-7 object-contain" />
+            <Image
+              src={activeCommunity?.type === "team" || activeCommunity?.slug === "team-members" || activeCommunity?.id === "comm-team" ? "/team-icon.png" : "/logo.png"}
+              alt=""
+              width={28}
+              height={28}
+              className={`h-7 w-7 ${activeCommunity?.type === "team" || activeCommunity?.slug === "team-members" || activeCommunity?.id === "comm-team" ? "object-cover rounded-lg" : "object-contain"}`}
+            />
             <div>
               <p className="font-semibold text-zinc-900">{communityName}</p>
               <p className="text-xs text-zinc-500">permanentseo.com</p>
