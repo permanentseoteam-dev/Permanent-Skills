@@ -444,7 +444,7 @@ export default function AllCoursesPage() {
                         <div>
                           <div className="font-bold text-zinc-800">
                             {course.isPremiumOnly
-                              ? "Premium VIP Mastermind"
+                              ? "👑 VIP Mastermind"
                               : `Unlocks at Level ${course.unlockLevel}`}
                           </div>
                           <div className="text-[11px] text-zinc-500 mt-0.5">

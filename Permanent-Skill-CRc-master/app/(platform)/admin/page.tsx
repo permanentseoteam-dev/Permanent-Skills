@@ -1328,7 +1328,7 @@ export default function AdminPage() {
                 className="h-4 w-4 rounded-md border-zinc-300 text-primary"
               />
               <Crown size={14} className="text-amber-500" />
-              <span className="text-xs font-bold text-zinc-900">VIP / Premium Member Access</span>
+              <span className="text-xs font-bold text-zinc-900">👑 VIP Member Access</span>
             </label>
           </div>
 

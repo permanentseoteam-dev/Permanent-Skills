@@ -634,7 +634,7 @@ function UserMenu({
       : user?.role === "manager"
         ? "★ Manager"
         : user?.isPremium
-          ? "Premium Member"
+          ? "💎 VIP Member"
           : "Team Member";
 
   return (

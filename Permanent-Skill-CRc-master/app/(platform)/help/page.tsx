@@ -17,7 +17,7 @@ const FAQS = [
   },
   {
     q: "How do I upgrade?",
-    a: "Use the Upgrade button in the sidebar. Premium is $9/month and unlocks mastermind calls plus member perks.",
+    a: "Use the Upgrade button in the sidebar. VIP is $9/month and unlocks mastermind calls plus member perks.",
   },
 ];
 

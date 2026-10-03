@@ -214,13 +214,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
           <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
             {isPremiumOnly
-              ? "Unlock with Premium"
+              ? "👑 Unlock with VIP"
               : `Unlock at Level ${course.unlockLevel}`}
           </span>
 
           {!isPremiumOnly && (
             <span className="text-[10.5px] text-zinc-400 font-medium">
-              or Upgrade to Premium
+              or Upgrade to VIP
             </span>
           )}
         </div>
@@ -357,13 +357,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
         <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center">
           <Lock className="mx-auto mb-3 text-primary" />
           <h2 className="text-xl font-bold text-zinc-900">
-            Unlock at Level {activeCourse.unlockLevel} or upgrade to Premium
+            Unlock at Level {activeCourse.unlockLevel} or upgrade to VIP
           </h2>
           <button
             onClick={() => setUpgradeOpen(true)}
-            className="mt-5 inline-flex items-center rounded-xl bg-primary px-5 py-2.5 font-bold text-white shadow-md hover:bg-primary-dark transition cursor-pointer"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 font-bold text-white shadow-md hover:bg-primary-dark transition cursor-pointer"
           >
-            Upgrade to Premium
+            👑 Upgrade to VIP
           </button>
         </div>
       ) : (

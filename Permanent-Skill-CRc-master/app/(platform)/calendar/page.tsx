@@ -1125,12 +1125,12 @@ export default function MeetPage() {
               <p className="text-sm text-zinc-700 leading-relaxed">{selectedEvent.description}</p>
               
               <div className="flex items-center justify-between text-xs font-semibold">
-                <span className={`rounded px-2.5 py-1 uppercase tracking-wider ${
+                <span className={`rounded px-2.5 py-1 uppercase tracking-wider font-bold ${
                   selectedEvent.type === "premium"
                     ? "bg-primary/10 text-primary border border-primary/20"
                     : "bg-blue-50 text-blue-700 border border-blue-200"
                 }`}>
-                  {selectedEvent.type} session
+                  {selectedEvent.type === "premium" ? "👑 VIP session" : "Live session"}
                 </span>
                 <span className="text-zinc-500 font-medium">{userTz}</span>
               </div>

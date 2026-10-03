@@ -1,6 +1,6 @@
 export const LEVELS = [
   { level: 1, name: "Skill Starter", min: 0, unlock: null as string | null },
-  { level: 2, name: "Strategy Explorer", min: 15, unlock: "Premium classroom extras" },
+  { level: 2, name: "Strategy Explorer", min: 15, unlock: "👑 VIP classroom extras" },
   { level: 3, name: "Link Builder", min: 40, unlock: null },
   { level: 4, name: "Conversion Hustler", min: 80, unlock: null },
   { level: 5, name: "Niche Dominator", min: 130, unlock: "Member chat perks" },

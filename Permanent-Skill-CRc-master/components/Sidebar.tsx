@@ -77,8 +77,8 @@ export function Sidebar() {
           </div>
 
           {!user?.isPremium && (
-            <GoldButton className="mt-4 w-full" onClick={() => setUpgradeOpen(true)}>
-              UPGRADE
+            <GoldButton className="mt-4 w-full cursor-pointer" onClick={() => setUpgradeOpen(true)}>
+              👑 UPGRADE TO VIP
             </GoldButton>
           )}
 

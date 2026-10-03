@@ -23,10 +23,10 @@ export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Upgrade to Premium">
+    <Modal open={open} onClose={onClose} title="👑 Upgrade to VIP">
       {user?.isPremium || done ? (
         <div className="space-y-4">
-          <p className="text-sm text-zinc-600">Premium is active. Masterminds, live calls, and member perks are unlocked.</p>
+          <p className="text-sm text-zinc-600">👑 VIP Membership is active. Masterminds, live calls, and member perks are unlocked.</p>
           <PrimaryButton onClick={onClose} className="w-full">Continue</PrimaryButton>
         </div>
       ) : (
@@ -35,14 +35,14 @@ export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => 
             $9<span className="text-base font-medium text-zinc-500">/month</span>
           </p>
           <ul className="space-y-2 text-sm text-zinc-700">
-            <li>✓ Unlock premium mastermind calls</li>
+            <li>✓ Unlock VIP mastermind calls</li>
             <li>✓ Full classroom across all courses</li>
-            <li>✓ Templates and member perks</li>
+            <li>✓ Templates and exclusive member perks</li>
             <li>✓ Cancel anytime</li>
           </ul>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <GoldButton className="w-full" disabled={busy} onClick={confirm}>
-            {busy ? "Processing..." : "Confirm $9/month"}
+          <GoldButton className="w-full cursor-pointer" disabled={busy} onClick={confirm}>
+            {busy ? "Processing..." : "👑 Confirm VIP Access ($9/month)"}
           </GoldButton>
         </div>
       )}

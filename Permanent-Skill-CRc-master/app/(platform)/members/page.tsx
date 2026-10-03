@@ -192,7 +192,7 @@ export default function MembersPage() {
               badgeColor="bg-blue-100 text-blue-900"
             />
             <PillButton
-              label="VIP / Premium"
+              label="VIP Members"
               count={premiumCount}
               active={tab === "premium"}
               onClick={() => setTab("premium")}

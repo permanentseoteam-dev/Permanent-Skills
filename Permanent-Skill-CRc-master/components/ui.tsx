@@ -364,7 +364,7 @@ export function UserRoleBadge({
       {isOnlyVip && (
         <span
           className={`inline-flex items-center gap-1 rounded-md font-bold uppercase tracking-wide bg-gradient-to-r from-amber-500 to-yellow-400 text-zinc-950 border border-amber-400 shadow-2xs ${sizeClass}`}
-          title="Premium VIP Member"
+          title="VIP Member"
         >
           <span>💎</span>
           <span>VIP</span>

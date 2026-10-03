@@ -659,7 +659,7 @@ export function AdminClassroom() {
               />
               <div className="flex items-center gap-1.5">
                 <Crown size={14} className="text-amber-500" />
-                <span className="text-xs font-bold text-zinc-900">VIP / Premium Only Course</span>
+                <span className="text-xs font-bold text-zinc-900">👑 VIP Only Course</span>
               </div>
             </label>
             <p className="text-[11px] text-zinc-500 mt-1 pl-6.5">

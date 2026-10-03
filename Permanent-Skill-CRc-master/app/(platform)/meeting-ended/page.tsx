@@ -103,7 +103,7 @@ function MeetingEndedContent() {
                     : "bg-blue-50 text-blue-700 border border-blue-200"
                 }`}
               >
-                {typeParam} Session
+                {typeParam === "premium" ? "👑 VIP Session" : "Live Session"}
               </span>
               <div className="flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
                 <Clock size={14} className="text-zinc-400" />

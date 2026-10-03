@@ -187,7 +187,7 @@ export function createClassroomCourses(): Course[] {
       title: "The Daily Pulse 🔥",
       description: "Daily live sessions neatly cut up and organized so everything is easy to find.",
       accent: "from-[#0a0a0c] via-[#1a1008] to-[#120a05]",
-      badge: "PREMIUM",
+      badge: "VIP",
       unlockLevel: 99,
       price: 199,
       bannerBrand: "PSS LIVE",
@@ -277,11 +277,11 @@ export function createClassroomCourses(): Course[] {
       title: "Make.com Course + Templates",
       description: "Step-by-step Make + Airtable automation course + templates that are ready for use.",
       accent: "from-[#0a0a0c] via-[#140b1e] to-[#0c0614]",
-      badge: "PREMIUM",
+      badge: "VIP",
       unlockLevel: 99,
       price: 129,
       bannerBrand: "PSS INTEGRATE",
-      bannerSubtitle: "PREMIUM ONLY",
+      bannerSubtitle: "VIP ONLY",
       bannerTitle: "MAKE.COM + AIRTABLE",
       watermark: "> make.com_",
       glowColor: "purple",
@@ -907,11 +907,11 @@ export function createSeed(): Database {
     if (day === 4) {
       events.push({
         id: `e-prem-${y}-${m}-${date}`,
-        title: "Premium Mastermind",
+        title: "👑 VIP Mastermind",
         start: atDate(y, m, date, 21, 0),
         end: atDate(y, m, date, 22, 30),
         type: "premium",
-        description: "Deep-dive working session for Premium members.",
+        description: "Deep-dive working session for VIP members.",
       });
     }
   }
@@ -925,11 +925,11 @@ export function createSeed(): Database {
   });
   events.push({
     id: "e-prem-18",
-    title: "Premium Mastermind",
+    title: "👑 VIP Mastermind",
     start: atDate(2026, 9, 18, 22, 30),
     end: atDate(2026, 9, 18, 23, 30),
     type: "premium",
-    description: "Extended premium teardown.",
+    description: "Extended VIP teardown.",
   });
 
   const messages: Message[] = [
@@ -938,7 +938,7 @@ export function createSeed(): Database {
     { id: "msg3", senderId: "u-admin", receiverId: "u-james", body: "Great win post — can you share the three pages that converted on the next call?", read: true, createdAt: daysAgo(4) },
     { id: "msg4", senderId: "u-sofia", receiverId: "u-admin", body: "Welcome note received. I just finished Start Here.", read: false, createdAt: daysAgo(2) },
     { id: "msg5", senderId: "u-wei", receiverId: "u-admin", body: "Is the Bonus Vault included if I upgrade today?", read: true, createdAt: daysAgo(8) },
-    { id: "msg6", senderId: "u-admin", receiverId: "u-wei", body: "Yes — Premium unlocks Bonus Vault immediately, or you can reach Level 2.", read: true, createdAt: daysAgo(8) },
+    { id: "msg6", senderId: "u-admin", receiverId: "u-wei", body: "Yes — VIP unlocks Bonus Vault immediately, or you can reach Level 2.", read: true, createdAt: daysAgo(8) },
   ];
 
   const notifications: Notification[] = [
@@ -954,16 +954,16 @@ export function createSeed(): Database {
     { id: "r2", userId: "u-james", rating: 5, body: "The method replaced a messy toolbox of tactics. Inbound is slower to start and much stronger after 60 days.", createdAt: daysAgo(14) },
     { id: "r3", userId: "u-priya", rating: 5, body: "Classroom path is clean. Live calls are the unlock. Worth it if you actually do the work.", createdAt: daysAgo(8) },
     { id: "r4", userId: "u-sofia", rating: 5, body: "Finally a system that does not expire when an ad account gets shaken up.", createdAt: daysAgo(5) },
-    { id: "r5", userId: "u-amira", rating: 5, body: "Premium mastermind is where my offer got sharp. Highly recommend upgrading if you serve clients.", createdAt: daysAgo(3) },
+    { id: "r5", userId: "u-amira", rating: 5, body: "VIP mastermind is where my offer got sharp. Highly recommend upgrading if you serve clients.", createdAt: daysAgo(3) },
     { id: "r6", userId: "u-wei", rating: 4, body: "Solid frameworks. I wanted more ecommerce examples — Business Models covered enough to adapt.", createdAt: daysAgo(1) },
   ];
 
   const sales: Sale[] = [
-    { id: "sale1", userId: "u-ayaan", amount: 9, plan: "Premium monthly", createdAt: "2026-03-04T10:10:00.000Z" },
-    { id: "sale2", userId: "u-priya", amount: 9, plan: "Premium monthly", createdAt: "2026-04-18T09:20:00.000Z" },
-    { id: "sale3", userId: "u-james", amount: 9, plan: "Premium monthly", createdAt: "2026-02-11T12:15:00.000Z" },
-    { id: "sale4", userId: "u-wei", amount: 9, plan: "Premium monthly", createdAt: "2026-06-20T08:30:00.000Z" },
-    { id: "sale5", userId: "u-amira", amount: 9, plan: "Premium monthly", createdAt: "2026-01-28T11:12:00.000Z" },
+    { id: "sale1", userId: "u-ayaan", amount: 9, plan: "VIP monthly", createdAt: "2026-03-04T10:10:00.000Z" },
+    { id: "sale2", userId: "u-priya", amount: 9, plan: "VIP monthly", createdAt: "2026-04-18T09:20:00.000Z" },
+    { id: "sale3", userId: "u-james", amount: 9, plan: "VIP monthly", createdAt: "2026-02-11T12:15:00.000Z" },
+    { id: "sale4", userId: "u-wei", amount: 9, plan: "VIP monthly", createdAt: "2026-06-20T08:30:00.000Z" },
+    { id: "sale5", userId: "u-amira", amount: 9, plan: "VIP monthly", createdAt: "2026-01-28T11:12:00.000Z" },
     { id: "sale6", userId: "u-admin", amount: 9, plan: "Founder", createdAt: "2025-01-12T08:00:00.000Z" },
   ];
 

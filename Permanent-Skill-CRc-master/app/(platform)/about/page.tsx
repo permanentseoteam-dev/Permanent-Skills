@@ -287,7 +287,7 @@ export default function AboutPage() {
             </div>
             {!user?.isPremium ? (
               <GoldButton onClick={() => setUpgradeOpen(true)} className="px-6 py-2.5 shadow-sm text-sm font-bold cursor-pointer">
-                Upgrade to Premium ($9/mo)
+                👑 Upgrade to VIP ($9/mo)
               </GoldButton>
             ) : (
               <span className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-2 text-xs font-bold text-primary">
