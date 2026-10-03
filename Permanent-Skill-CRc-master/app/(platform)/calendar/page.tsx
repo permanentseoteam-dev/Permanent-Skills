@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar as CalendarIcon,
   Check,
@@ -9,6 +9,8 @@ import {
   ChevronLeft,
   ChevronRight,
   ChevronUp,
+  Clock,
+  Download,
   ExternalLink,
   Layers,
   ListTodo,
@@ -21,12 +23,57 @@ import {
   Trash2,
   Users,
   Video,
+  VideoOff,
   X,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Avatar, Card, Field, Modal, PrimaryButton, ProgressBar, inputClass } from "@/components/ui";
 import { eventTimeLabel, formatDateTime } from "@/lib/format";
 import type { CalendarEvent, Project, ProjectTask, PublicUser } from "@/lib/types";
+
+function formatGoogleDate(d: string | Date) {
+  const date = new Date(d);
+  return date.toISOString().replace(/-|:|\.\d\d\d/g, "");
+}
+
+function getGoogleCalendarUrl(event: CalendarEvent) {
+  const start = formatGoogleDate(event.start);
+  const end = formatGoogleDate(event.end);
+  const title = encodeURIComponent(event.title);
+  const details = encodeURIComponent(`${event.description}\n\nSession Type: ${event.type.toUpperCase()}\nPlatform: Permanent Skills Nexus`);
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${start}/${end}&details=${details}&location=Nexus%20Meet`;
+}
+
+function downloadIcsFile(event: CalendarEvent) {
+  const start = formatGoogleDate(event.start);
+  const end = formatGoogleDate(event.end);
+  const ics = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Permanent Skills//Calendar//EN",
+    "BEGIN:VEVENT",
+    `UID:${event.id}@permanentskills.com`,
+    `DTSTAMP:${formatGoogleDate(new Date().toISOString())}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${event.title}`,
+    `DESCRIPTION:${event.description.replace(/\n/g, " ")}`,
+    `LOCATION:Nexus Meet`,
+    "STATUS:CONFIRMED",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
+
+  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${event.title.replace(/[^a-zA-Z0-9]/g, "_")}.ics`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -85,6 +132,28 @@ export default function MeetPage() {
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [rsvpSuccess, setRsvpSuccess] = useState(false);
+  const [rsvpEventIds, setRsvpEventIds] = useState<string[]>([]);
+  const [calendarFilter, setCalendarFilter] = useState<"all" | "my_schedule">("all");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ps_calendar_rsvps");
+      if (saved) {
+        setRsvpEventIds(JSON.parse(saved));
+      }
+    } catch (e) {}
+  }, []);
+
+  function toggleRsvp(eventId: string) {
+    setRsvpEventIds((prev) => {
+      const exists = prev.includes(eventId);
+      const next = exists ? prev.filter((id) => id !== eventId) : [...prev, eventId];
+      try {
+        localStorage.setItem("ps_calendar_rsvps", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  }
 
   // Project Modal State
   const [projectModalOpen, setProjectModalOpen] = useState(false);
@@ -803,15 +872,51 @@ export default function MeetPage() {
         )}
       </div>
 
-      {/* 2. Calendar Grid Toolbar & Grid (Matching Image 2 with Add Project button) */}
+      {/* 2. Calendar Grid Toolbar & Grid */}
       <Card className="p-5">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <button
-            onClick={() => setCursor(new Date())}
-            className="rounded-full border border-zinc-200 bg-white px-3.5 py-1 text-sm font-medium hover:bg-zinc-50 shadow-xs cursor-pointer"
-          >
-            Today
-          </button>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCursor(new Date())}
+              className="rounded-full border border-zinc-200 bg-white px-3.5 py-1 text-sm font-medium hover:bg-zinc-50 shadow-xs cursor-pointer"
+            >
+              Today
+            </button>
+
+            {/* Schedule View Filter */}
+            <div className="inline-flex rounded-full border border-zinc-200 bg-zinc-50/80 p-0.5 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setCalendarFilter("all")}
+                className={`rounded-full px-3 py-1 transition cursor-pointer ${
+                  calendarFilter === "all"
+                    ? "bg-white text-zinc-900 shadow-2xs"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                All Sessions
+              </button>
+              <button
+                type="button"
+                onClick={() => setCalendarFilter("my_schedule")}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 transition cursor-pointer ${
+                  calendarFilter === "my_schedule"
+                    ? "bg-[#5051F9] text-white shadow-2xs font-bold"
+                    : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                <Check size={12} />
+                <span>My Schedule</span>
+                {rsvpEventIds.length > 0 && (
+                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] ${
+                    calendarFilter === "my_schedule" ? "bg-white/20 text-white" : "bg-zinc-200 text-zinc-700"
+                  }`}>
+                    {rsvpEventIds.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
 
           <div className="flex items-center gap-3">
             <button
@@ -860,7 +965,12 @@ export default function MeetPage() {
             const key = date.toDateString();
             const inMonth = date.getMonth() === cursor.getMonth();
             const isToday = date.toDateString() === today.toDateString();
-            const dayEvents = events.filter((e) => new Date(e.start).toDateString() === key);
+            let dayEvents = events.filter((e) => new Date(e.start).toDateString() === key);
+            
+            if (calendarFilter === "my_schedule") {
+              dayEvents = dayEvents.filter((e) => rsvpEventIds.includes(e.id));
+            }
+
             return (
               <div
                 key={key}
@@ -880,22 +990,33 @@ export default function MeetPage() {
                   {date.getDate()}
                 </div>
                 <div className="space-y-1">
-                  {dayEvents.map((e) => (
-                    <button
-                      key={e.id}
-                      onClick={() => {
-                        setSelectedEvent(e);
-                        setRsvpSuccess(false);
-                      }}
-                      className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
-                        e.type === "premium"
-                          ? "bg-primary/10 text-primary hover:bg-primary/20"
-                          : "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                      }`}
-                    >
-                      {eventTimeLabel(e.start)} - {e.title}
-                    </button>
-                  ))}
+                  {dayEvents.map((e) => {
+                    const isRsvped = rsvpEventIds.includes(e.id);
+                    const isOver = new Date(e.end).getTime() < Date.now();
+
+                    return (
+                      <button
+                        key={e.id}
+                        onClick={() => {
+                          setSelectedEvent(e);
+                          setRsvpSuccess(false);
+                        }}
+                        className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
+                          isRsvped
+                            ? "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
+                            : e.type === "premium"
+                              ? "bg-primary/10 text-primary hover:bg-primary/20"
+                              : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                        } ${isOver && !isRsvped ? "opacity-75" : ""}`}
+                        title={`${e.title} (${formatDateTime(e.start)})${isRsvped ? " • In My Schedule" : ""}${isOver ? " • Ended" : ""}`}
+                      >
+                        <span className="flex items-center gap-1 truncate">
+                          {isRsvped && <span className="text-emerald-600 font-bold shrink-0">✓</span>}
+                          <span className="truncate">{eventTimeLabel(e.start)} - {e.title}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -912,64 +1033,116 @@ export default function MeetPage() {
         }}
         title={selectedEvent?.title || "Meet Session"}
       >
-        {selectedEvent && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
-              <CalendarIcon size={16} className="text-primary shrink-0" />
-              <span>{formatDateTime(selectedEvent.start)} - {eventTimeLabel(selectedEvent.end)}</span>
-            </div>
-            <p className="text-sm text-zinc-700 leading-relaxed">{selectedEvent.description}</p>
-            <div className="flex items-center justify-between text-xs font-semibold">
-              <span className={`rounded px-2.5 py-1 uppercase tracking-wider ${
-                selectedEvent.type === "premium"
-                  ? "bg-primary/10 text-primary border border-primary/20"
-                  : "bg-blue-50 text-blue-700 border border-blue-200"
-              }`}>
-                {selectedEvent.type} session
-              </span>
-              <span className="text-zinc-500 font-medium">{userTz}</span>
-            </div>
+        {selectedEvent && (() => {
+          const isEventOver = new Date(selectedEvent.end).getTime() < Date.now();
+          const isRsvped = rsvpEventIds.includes(selectedEvent.id);
+          const endedUrl = `/meeting-ended?title=${encodeURIComponent(selectedEvent.title)}&start=${encodeURIComponent(selectedEvent.start)}&end=${encodeURIComponent(selectedEvent.end)}&type=${selectedEvent.type}&desc=${encodeURIComponent(selectedEvent.description)}`;
 
-            <div className="pt-2 space-y-2">
-              <a
-                href="https://meet.google.com/new"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] px-4 py-2.5 font-bold text-white shadow-md hover:bg-[#4041d8] transition text-sm cursor-pointer"
-              >
-                <Video size={16} /> Join Video Room
-              </a>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setRsvpSuccess(true);
-                  setTimeout(() => {
-                    setSelectedEvent(null);
-                    setRsvpSuccess(false);
-                  }, 1200);
-                }}
-                className={`flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold transition cursor-pointer ${
-                  rsvpSuccess
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                    : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
-                }`}
-              >
-                {rsvpSuccess ? (
-                  <>
-                    <CheckCircle2 size={15} className="text-emerald-600" />
-                    <span>Added to your schedule!</span>
-                  </>
+          return (
+            <div className="space-y-4">
+              {/* Meeting date and status banner */}
+              <div className="flex items-center justify-between gap-2 text-sm text-zinc-600 bg-zinc-50 p-2.5 rounded-lg border border-zinc-100">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon size={16} className="text-primary shrink-0" />
+                  <span>{formatDateTime(selectedEvent.start)} - {eventTimeLabel(selectedEvent.end)}</span>
+                </div>
+                {isEventOver ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 border border-amber-200 shrink-0">
+                    <VideoOff size={12} /> Concluded
+                  </span>
                 ) : (
-                  <>
-                    <CalendarIcon size={15} />
-                    <span>Add to my schedule / RSVP</span>
-                  </>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 shrink-0">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" /> Upcoming
+                  </span>
                 )}
-              </button>
+              </div>
+
+              <p className="text-sm text-zinc-700 leading-relaxed">{selectedEvent.description}</p>
+              
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className={`rounded px-2.5 py-1 uppercase tracking-wider ${
+                  selectedEvent.type === "premium"
+                    ? "bg-primary/10 text-primary border border-primary/20"
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
+                }`}>
+                  {selectedEvent.type} session
+                </span>
+                <span className="text-zinc-500 font-medium">{userTz}</span>
+              </div>
+
+              <div className="pt-2 space-y-2.5">
+                {/* Join Video Room Button (directs to /meeting-ended for older meetings) */}
+                <a
+                  href={isEventOver ? endedUrl : "https://meet.google.com/new"}
+                  target={isEventOver ? "_self" : "_blank"}
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    if (isEventOver) {
+                      setSelectedEvent(null);
+                    }
+                  }}
+                  className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-bold text-white shadow-md transition text-sm cursor-pointer ${
+                    isEventOver
+                      ? "bg-zinc-800 hover:bg-zinc-900"
+                      : "bg-[#5051F9] hover:bg-[#4041d8]"
+                  }`}
+                >
+                  {isEventOver ? <VideoOff size={16} /> : <Video size={16} />}
+                  <span>{isEventOver ? "Join Video Room" : "Join Video Room"}</span>
+                </a>
+
+                {/* Add to my schedule / RSVP with sync options */}
+                <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        toggleRsvp(selectedEvent.id);
+                        setRsvpSuccess(true);
+                      }}
+                      className={`flex-1 inline-flex items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
+                        isRsvped
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-300 hover:bg-emerald-100"
+                          : "bg-white text-zinc-700 border-zinc-200 hover:bg-zinc-50"
+                      }`}
+                    >
+                      {isRsvped ? (
+                        <>
+                          <CheckCircle2 size={15} className="text-emerald-600" />
+                          <span>Added to My Schedule (Click to remove)</span>
+                        </>
+                      ) : (
+                        <>
+                          <CalendarIcon size={15} />
+                          <span>Add to my schedule / RSVP</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* External Calendar Sync Options */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <a
+                      href={getGoogleCalendarUrl(selectedEvent)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
+                    >
+                      <ExternalLink size={12} className="text-blue-500" /> Google Calendar
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => downloadIcsFile(selectedEvent)}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1.5 text-[11px] font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
+                    >
+                      <Download size={12} className="text-purple-500" /> Apple / Outlook (.ics)
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </Modal>
 
       {/* 4. Add / Edit Project Modal with Tasks Builder & @ Mentions Autocomplete */}
