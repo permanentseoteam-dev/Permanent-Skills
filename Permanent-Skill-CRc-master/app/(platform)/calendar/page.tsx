@@ -54,20 +54,16 @@ type ProjectForm = {
 const emptyProjectForm: ProjectForm = {
   title: "",
   description: "",
-  version: "v2.4.0",
+  version: "v1.0.0",
   leadId: "",
   leadName: "",
   memberIds: [],
   mentionedUsernames: [],
-  progress: 75,
-  tasks: [
-    { id: "t-1", title: "Consolidate token architecture & variables", completed: true },
-    { id: "t-2", title: "Accessible Figma token sync pipeline", completed: true },
-    { id: "t-3", title: "Cross-team design documentation review", completed: false },
-  ],
+  progress: 0,
+  tasks: [],
   status: "active",
   meetSyncTime: "Sprint Sync: Today, 3:00 PM",
-  meetRoom: "Nexus Meet #room-design",
+  meetRoom: "Nexus Meet #room-general",
   meetUrl: "https://meet.google.com/new",
 };
 
@@ -152,16 +148,15 @@ export default function MeetPage() {
     setForm({
       ...emptyProjectForm,
       leadId: user?.id || users[0]?.id || "",
-      leadName: user?.name || users[0]?.name || "Sarah K.",
+      leadName: user?.name || users[0]?.name || "Admin",
       memberIds: user?.id ? [user.id] : [],
-      tasks: [
-        { id: "t-1", title: "Project kickoff & goal alignment", completed: true },
-        { id: "t-2", title: "Core deliverables & milestone sync", completed: false },
-      ],
-      progress: 50,
+      tasks: [],
+      progress: 0,
+      status: "active",
     });
     setEditingProjectId(null);
     setErrorMsg("");
+    setNewModalTaskTitle("");
     setProjectModalOpen(true);
   }
 
@@ -269,7 +264,7 @@ export default function MeetPage() {
   function toggleModalTask(taskId: string) {
     const nextTasks = form.tasks.map((t) => (t.id === taskId ? { ...t, completed: !t.completed } : t));
     const completed = nextTasks.filter((t) => t.completed).length;
-    const computedProgress = nextTasks.length ? Math.round((completed / nextTasks.length) * 100) : form.progress;
+    const computedProgress = nextTasks.length ? Math.round((completed / nextTasks.length) * 100) : 0;
 
     setForm((f) => ({
       ...f,
@@ -282,7 +277,7 @@ export default function MeetPage() {
   function removeModalTask(taskId: string) {
     const nextTasks = form.tasks.filter((t) => t.id !== taskId);
     const completed = nextTasks.filter((t) => t.completed).length;
-    const computedProgress = nextTasks.length ? Math.round((completed / nextTasks.length) * 100) : form.progress;
+    const computedProgress = nextTasks.length ? Math.round((completed / nextTasks.length) * 100) : 0;
 
     setForm((f) => ({
       ...f,
@@ -1163,40 +1158,52 @@ export default function MeetPage() {
           </div>
 
           {/* Milestones / Deliverables Builder in Modal */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-semibold text-zinc-700">
-                Project Deliverables & Milestones ({form.tasks.filter((t) => t.completed).length}/{form.tasks.length})
-              </label>
-              <span className="text-[11px] font-bold text-primary">
-                {form.tasks.length ? `${form.progress}% progress` : ""}
-              </span>
-            </div>
+          {(() => {
+            const modalDoneCount = form.tasks.filter((t) => t.completed).length;
+            const modalTotalCount = form.tasks.length;
+            const modalProgressPct = modalTotalCount > 0 ? Math.round((modalDoneCount / modalTotalCount) * 100) : 0;
 
-            <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
-              {form.tasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-zinc-200 shadow-2xs">
-                  <label className="flex items-center gap-2.5 text-xs flex-1 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={task.completed}
-                      onChange={() => toggleModalTask(task.id)}
-                      className="rounded border-zinc-300 text-primary focus:ring-primary h-4 w-4"
-                    />
-                    <span className={task.completed ? "line-through text-zinc-400" : "font-medium text-zinc-800"}>
-                      {task.title}
-                    </span>
+            return (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="block text-xs font-semibold text-zinc-700">
+                    Project Deliverables & Milestones ({modalDoneCount}/{modalTotalCount})
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => removeModalTask(task.id)}
-                    className="text-zinc-400 hover:text-red-500 transition p-1 cursor-pointer"
-                    title="Remove milestone"
-                  >
-                    <Trash2 size={13} />
-                  </button>
+                  <span className="text-[11px] font-bold text-primary">
+                    {modalProgressPct}% progress
+                  </span>
                 </div>
-              ))}
+
+                <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
+                  {form.tasks.length === 0 ? (
+                    <p className="text-xs text-zinc-400 italic py-2 text-center">
+                      No milestones added yet. Add a deliverable below to track project progress.
+                    </p>
+                  ) : (
+                    form.tasks.map((task) => (
+                      <div key={task.id} className="flex items-center justify-between gap-2 bg-white px-3 py-2 rounded-lg border border-zinc-200 shadow-2xs">
+                        <label className="flex items-center gap-2.5 text-xs flex-1 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={task.completed}
+                            onChange={() => toggleModalTask(task.id)}
+                            className="rounded border-zinc-300 text-primary focus:ring-primary h-4 w-4"
+                          />
+                          <span className={task.completed ? "line-through text-zinc-400" : "font-medium text-zinc-800"}>
+                            {task.title}
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => removeModalTask(task.id)}
+                          className="text-zinc-400 hover:text-red-500 transition p-1 cursor-pointer"
+                          title="Remove milestone"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))
+                  )}
 
               <div className="flex items-center gap-2 pt-1">
                 <input
@@ -1221,6 +1228,8 @@ export default function MeetPage() {
               </div>
             </div>
           </div>
+        );
+      })()}
 
           {/* Team Members Assignment Chips */}
           <div>
