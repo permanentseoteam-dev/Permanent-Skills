@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Calendar as CalendarIcon,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -16,6 +17,7 @@ import {
   Pencil,
   Plus,
   RotateCcw,
+  Search,
   Sparkles,
   Trash2,
   Users,
@@ -153,11 +155,29 @@ export default function MeetPage() {
   const [cardNewTask, setCardNewTask] = useState<Record<string, string>>({});
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
 
-  // @ Mention state
+  // @ Mention state in Description
   const [mentionQuery, setMentionQuery] = useState("");
   const [showMentionMenu, setShowMentionMenu] = useState(false);
   const [mentionCursorIndex, setMentionCursorIndex] = useState<number | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  // Custom Member Picker Dropdown state
+  const [memberPickerOpen, setMemberPickerOpen] = useState(false);
+  const [memberFilterText, setMemberFilterText] = useState("");
+  const memberPickerRef = useRef<HTMLDivElement>(null);
+
+  // Close member picker on outside click
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (memberPickerRef.current && !memberPickerRef.current.contains(e.target as Node)) {
+        setMemberPickerOpen(false);
+      }
+    }
+    if (memberPickerOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [memberPickerOpen]);
 
   const userTz = useMemo(() => {
     try {
@@ -183,17 +203,40 @@ export default function MeetPage() {
 
   const today = new Date();
 
-  // Filtered members for @ mentions
+  // Active community members
+  const activeMembers = useMemo(() => {
+    return users.filter((u) => u.status !== "pending");
+  }, [users]);
+
+  // Check if all active community members are currently assigned
+  const allActiveUsersSelected = useMemo(() => {
+    return activeMembers.length > 0 && activeMembers.every((u) => form.memberIds.includes(u.id));
+  }, [activeMembers, form.memberIds]);
+
+  // Filtered members for custom Member Picker dropdown
+  const availableFilteredUsers = useMemo(() => {
+    const q = memberFilterText.trim().toLowerCase();
+    if (!q || q === "@all" || q === "all") return activeMembers;
+    const cleanQ = q.startsWith("@") ? q.slice(1) : q;
+    return activeMembers.filter(
+      (u) =>
+        u.name.toLowerCase().includes(cleanQ) ||
+        u.username.toLowerCase().includes(cleanQ) ||
+        (u.email && u.email.toLowerCase().includes(cleanQ))
+    );
+  }, [activeMembers, memberFilterText]);
+
+  // Filtered members for @ mentions in description
   const mentionCandidates = useMemo(() => {
     const q = mentionQuery.toLowerCase().trim();
-    if (!q) return users.slice(0, 6);
-    return users.filter(
+    if (!q || q === "all" || q === "@all") return activeMembers.slice(0, 8);
+    return activeMembers.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.username.toLowerCase().includes(q) ||
         (u.email && u.email.toLowerCase().includes(q))
-    ).slice(0, 6);
-  }, [users, mentionQuery]);
+    ).slice(0, 8);
+  }, [activeMembers, mentionQuery]);
 
   function openCreateProject() {
     setForm({
@@ -208,6 +251,8 @@ export default function MeetPage() {
     setEditingProjectId(null);
     setErrorMsg("");
     setNewModalTaskTitle("");
+    setMemberPickerOpen(false);
+    setMemberFilterText("");
     setProjectModalOpen(true);
   }
 
@@ -230,6 +275,8 @@ export default function MeetPage() {
     });
     setEditingProjectId(proj.id);
     setErrorMsg("");
+    setMemberPickerOpen(false);
+    setMemberFilterText("");
     setProjectModalOpen(true);
   }
 
@@ -284,12 +331,53 @@ export default function MeetPage() {
     }, 50);
   }
 
+  // Select @all in description mention menu
+  function selectMentionAll() {
+    if (mentionCursorIndex === null) return;
+    const desc = form.description;
+    const beforeAt = desc.slice(0, mentionCursorIndex);
+    const textAfterCursor = desc.slice(mentionCursorIndex + 1 + mentionQuery.length);
+    const newDesc = `${beforeAt}@all ${textAfterCursor}`;
+
+    const allMemberIds = activeMembers.map((u) => u.id);
+    const allUsernames = activeMembers.map((u) => u.username);
+
+    setForm((f) => ({
+      ...f,
+      description: newDesc,
+      memberIds: Array.from(new Set([...f.memberIds, ...allMemberIds])),
+      mentionedUsernames: Array.from(new Set([...f.mentionedUsernames, ...allUsernames, "all"])),
+    }));
+
+    setShowMentionMenu(false);
+    setMentionQuery("");
+
+    setTimeout(() => {
+      if (descriptionRef.current) {
+        const nextPos = mentionCursorIndex + "@all ".length;
+        descriptionRef.current.focus();
+        descriptionRef.current.setSelectionRange(nextPos, nextPos);
+      }
+    }, 50);
+  }
+
   function toggleTeamMember(memberId: string) {
     setForm((f) => {
       const exists = f.memberIds.includes(memberId);
       const nextIds = exists ? f.memberIds.filter((id) => id !== memberId) : [...f.memberIds, memberId];
       return { ...f, memberIds: nextIds };
     });
+  }
+
+  // Toggle all members in team assignment
+  function toggleAllTeamMembers() {
+    const allIds = activeMembers.map((u) => u.id);
+    const shouldSelectAll = !allActiveUsersSelected;
+
+    setForm((f) => ({
+      ...f,
+      memberIds: shouldSelectAll ? allIds : [],
+    }));
   }
 
   // Add / toggle tasks in modal
@@ -1002,29 +1090,67 @@ export default function MeetPage() {
 
             {/* Floating @ Mention Autocomplete Popover */}
             {showMentionMenu && (
-              <div className="absolute left-2 top-[72px] z-50 w-72 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-xl">
-                <div className="bg-zinc-50 px-3 py-1.5 text-[11px] font-bold text-zinc-400 uppercase tracking-wider">
-                  Mention & Add Member
+              <div className="absolute left-2 top-[72px] z-50 w-80 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                <div className="bg-zinc-50 px-3 py-1.5 text-[11px] font-bold text-zinc-500 uppercase tracking-wider flex items-center justify-between border-b border-zinc-100">
+                  <span>Mention & Add Member</span>
+                  <span className="text-[10px] text-zinc-400 font-normal">Esc to close</span>
                 </div>
-                <div className="max-h-48 overflow-y-auto divide-y divide-zinc-50">
-                  {mentionCandidates.length === 0 ? (
+                <div className="max-h-56 overflow-y-auto divide-y divide-zinc-50">
+                  {/* @all Option in Mentions */}
+                  {(!mentionQuery || "all".includes(mentionQuery.toLowerCase()) || "@all".includes(mentionQuery.toLowerCase())) && (
+                    <button
+                      type="button"
+                      onClick={selectMentionAll}
+                      className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-emerald-50/70 transition cursor-pointer bg-amber-50/20"
+                    >
+                      {allActiveUsersSelected ? (
+                        <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500 text-white shadow-2xs">
+                          <Check size={12} className="stroke-[3]" />
+                        </div>
+                      ) : (
+                        <div className="h-4 w-4 shrink-0 rounded border border-zinc-300 bg-white" />
+                      )}
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs">
+                        <Users size={14} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-zinc-900 truncate">@all</p>
+                        <p className="text-[11px] text-zinc-500 truncate">Add all team members ({activeMembers.length})</p>
+                      </div>
+                    </button>
+                  )}
+
+                  {mentionCandidates.length === 0 && !("all".includes(mentionQuery.toLowerCase())) ? (
                     <p className="px-3 py-4 text-center text-xs text-zinc-500">No members found</p>
                   ) : (
-                    mentionCandidates.map((m) => (
-                      <button
-                        key={m.id}
-                        type="button"
-                        onClick={() => selectMentionMember(m)}
-                        className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-indigo-50/70 transition cursor-pointer"
-                      >
-                        <Avatar user={m} size={28} />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-semibold text-zinc-900 truncate">{m.name}</p>
-                          <p className="text-[11px] text-primary truncate">@{m.username}</p>
-                        </div>
-                        <Plus size={13} className="text-zinc-400" />
-                      </button>
-                    ))
+                    mentionCandidates.map((m) => {
+                      const isAdded = form.memberIds.includes(m.id);
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => selectMentionMember(m)}
+                          className="flex w-full items-center gap-2.5 px-3 py-2 text-left hover:bg-indigo-50/70 transition cursor-pointer"
+                        >
+                          {/* Green checkbox on left if added */}
+                          {isAdded ? (
+                            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500 text-white shadow-2xs">
+                              <Check size={12} className="stroke-[3]" />
+                            </div>
+                          ) : (
+                            <div className="h-4 w-4 shrink-0 rounded border border-zinc-300 bg-white" />
+                          )}
+                          <Avatar user={m} size={28} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-zinc-900 truncate">{m.name}</p>
+                            <p className="text-[11px] text-primary truncate">@{m.username}</p>
+                          </div>
+                          <span className="text-[10px] text-zinc-400">
+                            {isAdded ? "Added" : "Add"}
+                          </span>
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               </div>
@@ -1105,12 +1231,24 @@ export default function MeetPage() {
         );
       })()}
 
-          {/* Team Members Assignment Chips */}
-          <div>
-            <label className="block text-xs font-semibold text-zinc-700 mb-1.5">
-              Assigned Team Members ({form.memberIds.length})
-            </label>
-            <div className="flex flex-wrap gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50/50 p-2 min-h-[44px]">
+          {/* Team Members Assignment Section with Custom Search Dropdown */}
+          <div ref={memberPickerRef} className="relative">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-semibold text-zinc-700">
+                Assigned Team Members ({form.memberIds.length})
+              </label>
+              {form.memberIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, memberIds: [] }))}
+                  className="text-[11px] font-medium text-zinc-400 hover:text-red-500 transition cursor-pointer"
+                >
+                  Clear all
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-1.5 rounded-lg border border-zinc-200 bg-zinc-50/50 p-2 min-h-[44px]">
               {form.memberIds.map((id) => {
                 const mem = users.find((u) => u.id === id);
                 if (!mem) return null;
@@ -1119,12 +1257,16 @@ export default function MeetPage() {
                     key={id}
                     className="inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-xs font-medium text-zinc-800 shadow-xs border border-zinc-200"
                   >
+                    <div className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-white">
+                      <Check size={9} className="stroke-[3]" />
+                    </div>
                     <Avatar user={mem} size={18} />
                     <span>{mem.name}</span>
                     <button
                       type="button"
                       onClick={() => toggleTeamMember(id)}
-                      className="text-zinc-400 hover:text-red-500 cursor-pointer"
+                      className="text-zinc-400 hover:text-red-500 cursor-pointer p-0.5 ml-0.5"
+                      title="Remove member"
                     >
                       <X size={12} />
                     </button>
@@ -1132,23 +1274,134 @@ export default function MeetPage() {
                 );
               })}
 
+              {/* Add Member Dropdown Trigger Button */}
               <div className="relative inline-block">
-                <select
-                  className="rounded-full bg-zinc-200/80 px-2.5 py-1 text-xs font-semibold text-zinc-700 outline-none hover:bg-zinc-300 transition cursor-pointer"
-                  value=""
-                  onChange={(e) => {
-                    if (e.target.value) toggleTeamMember(e.target.value);
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMemberPickerOpen((prev) => !prev);
+                    setMemberFilterText("");
                   }}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-zinc-200/80 hover:bg-zinc-300 px-3 py-1 text-xs font-semibold text-zinc-700 transition cursor-pointer"
                 >
-                  <option value="">+ Add Member (@)</option>
-                  {users
-                    .filter((u) => !form.memberIds.includes(u.id))
-                    .map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.name} (@{u.username})
-                      </option>
-                    ))}
-                </select>
+                  <Plus size={13} className="text-zinc-500" />
+                  <span>Add Member (@)</span>
+                  <ChevronDown size={12} className={`text-zinc-500 transition-transform ${memberPickerOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* Floating Member Picker Popover */}
+                {memberPickerOpen && (
+                  <div className="absolute left-0 bottom-full mb-2 sm:bottom-auto sm:top-full sm:mt-2 z-50 w-72 sm:w-80 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                    {/* Search Input Box */}
+                    <div className="p-2 border-b border-zinc-100 bg-zinc-50/50">
+                      <div className="relative">
+                        <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <input
+                          autoFocus
+                          value={memberFilterText}
+                          onChange={(e) => setMemberFilterText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              const q = memberFilterText.trim().toLowerCase();
+                              if (q === "@all" || q === "all") {
+                                toggleAllTeamMembers();
+                              } else if (availableFilteredUsers.length > 0) {
+                                toggleTeamMember(availableFilteredUsers[0].id);
+                              }
+                            } else if (e.key === "Escape") {
+                              setMemberPickerOpen(false);
+                            }
+                          }}
+                          placeholder="Type name, @username, or @all..."
+                          className="w-full rounded-lg border border-zinc-200 bg-white py-1.5 pl-8 pr-7 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                        />
+                        {memberFilterText && (
+                          <button
+                            type="button"
+                            onClick={() => setMemberFilterText("")}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600 cursor-pointer"
+                          >
+                            <X size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Member List with Green Checkbox on Left */}
+                    <div className="max-h-60 overflow-y-auto divide-y divide-zinc-50 p-1">
+                      {/* @all Option */}
+                      {(!memberFilterText || "all".includes(memberFilterText.toLowerCase()) || "@all".includes(memberFilterText.toLowerCase())) && (
+                        <button
+                          type="button"
+                          onClick={toggleAllTeamMembers}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left hover:bg-zinc-100 transition cursor-pointer bg-zinc-50/60"
+                        >
+                          {allActiveUsersSelected ? (
+                            <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500 text-white shadow-2xs">
+                              <Check size={12} className="stroke-[3]" />
+                            </div>
+                          ) : (
+                            <div className="h-4 w-4 shrink-0 rounded border border-zinc-300 bg-white" />
+                          )}
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-white font-bold text-xs">
+                            <Users size={14} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-zinc-900">@all</span>
+                              <span className="text-[10px] font-semibold text-primary">
+                                {allActiveUsersSelected ? "Deselect All" : "Select All"}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-zinc-500 truncate">
+                              All Community Members ({activeMembers.length})
+                            </p>
+                          </div>
+                        </button>
+                      )}
+
+                      {availableFilteredUsers.length === 0 && !("all".includes(memberFilterText.toLowerCase())) ? (
+                        <p className="px-3 py-6 text-center text-xs text-zinc-500">
+                          No matching members found
+                        </p>
+                      ) : (
+                        availableFilteredUsers.map((u) => {
+                          const isChecked = form.memberIds.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => toggleTeamMember(u.id)}
+                              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition cursor-pointer ${
+                                isChecked ? "bg-emerald-50/50 hover:bg-emerald-50" : "hover:bg-zinc-100"
+                              }`}
+                            >
+                              {/* Green Checkbox on the left */}
+                              {isChecked ? (
+                                <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded bg-emerald-500 text-white shadow-2xs">
+                                  <Check size={12} className="stroke-[3]" />
+                                </div>
+                              ) : (
+                                <div className="h-4 w-4 shrink-0 rounded border border-zinc-300 bg-white" />
+                              )}
+                              <Avatar user={u} size={28} />
+                              <div className="min-w-0 flex-1">
+                                <p className="text-xs font-semibold text-zinc-900 truncate">{u.name}</p>
+                                <p className="text-[11px] text-zinc-400 truncate">@{u.username}</p>
+                              </div>
+                              {isChecked && (
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-100/70 px-1.5 py-0.5 rounded">
+                                  Added
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
