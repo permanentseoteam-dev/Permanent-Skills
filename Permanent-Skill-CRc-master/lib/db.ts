@@ -2,6 +2,15 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import { COURSE_CATALOG_IDS, OLD_COURSE_IDS, createClassroomCourses, createSeed } from "./seed";
+import {
+  fetchDatabaseFromSupabase,
+  syncUserToSupabase,
+  syncPostToSupabase,
+  syncCommentToSupabase,
+  syncProgressToSupabase,
+  syncSessionToSupabase,
+  deleteSessionFromSupabase,
+} from "./supabase-db";
 import type { Database, Lesson, User } from "./types";
 
 const legacyFile = path.join(process.cwd(), "data", "db.json");
@@ -10,6 +19,7 @@ const file = path.join(dir, "db.json");
 const DEMO_VIDEO = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
 
 let cache: Database | null = null;
+let isInitialFetchDone = false;
 
 function persist(db: Database) {
   cache = db;
@@ -19,7 +29,7 @@ function persist(db: Database) {
     fs.writeFileSync(tmp, JSON.stringify(db), "utf8");
     fs.renameSync(tmp, file);
   } catch {
-    // Memory-only fallback when the filesystem is read-only (Vercel).
+    // Memory-only fallback
   }
 }
 
@@ -147,11 +157,29 @@ function loadFromDisk(): Database | null {
   }
 }
 
+// Background async loader from Supabase
+export async function refreshFromSupabase(): Promise<Database> {
+  const remoteDb = await fetchDatabaseFromSupabase();
+  if (remoteDb) {
+    cache = remoteDb;
+    persist(remoteDb);
+    isInitialFetchDone = true;
+    return remoteDb;
+  }
+  return readDb();
+}
+
 export function readDb(): Database {
   if (cache) return cache;
   const disk = loadFromDisk();
   cache = disk ?? createSeed();
   if (!disk) persist(cache);
+
+  // Trigger non-blocking Supabase sync if not yet loaded from remote
+  if (!isInitialFetchDone) {
+    refreshFromSupabase().catch(() => {});
+  }
+
   return cache;
 }
 
@@ -159,11 +187,45 @@ export function writeDb(db: Database) {
   persist(db);
 }
 
-export function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
+export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
   const db = readDb();
+  const prevUsers = new Map(db.users.map((u) => [u.id, u]));
+  const prevPosts = new Map(db.posts.map((p) => [p.id, p]));
+  const prevComments = new Map(db.comments.map((c) => [c.id, c]));
+
   const result = mutator(db);
   persist(db);
-  return Promise.resolve(result);
+
+  // Sync mutations asynchronously to Supabase
+  try {
+    // 1. Sync updated / new users
+    for (const user of db.users) {
+      const prev = prevUsers.get(user.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(user)) {
+        syncUserToSupabase(user).catch(() => {});
+      }
+    }
+
+    // 2. Sync updated / new posts
+    for (const post of db.posts) {
+      const prev = prevPosts.get(post.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(post)) {
+        syncPostToSupabase(post).catch(() => {});
+      }
+    }
+
+    // 3. Sync updated / new comments
+    for (const comment of db.comments) {
+      const prev = prevComments.get(comment.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(comment)) {
+        syncCommentToSupabase(comment).catch(() => {});
+      }
+    }
+  } catch (err) {
+    console.error("Async Supabase sync error in updateDb:", err);
+  }
+
+  return result;
 }
 
 export function upsertUser(user: User) {
@@ -172,5 +234,9 @@ export function upsertUser(user: User) {
   if (index >= 0) db.users[index] = { ...db.users[index], ...user };
   else db.users.push(user);
   persist(db);
+
+  // Sync to Supabase
+  syncUserToSupabase(user).catch(() => {});
+
   return db.users.find((row) => row.id === user.id) ?? user;
 }
