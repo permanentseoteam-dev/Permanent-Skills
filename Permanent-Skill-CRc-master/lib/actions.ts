@@ -1321,6 +1321,24 @@ export async function saveProject(input: {
         createdAt: now,
       });
     }
+
+    // Broadcast notification to everyone when admin/manager sets or creates a meeting time
+    if (input.meetSyncTime && (me.role === "admin" || me.role === "manager")) {
+      const roleLabel = me.role === "admin" ? "Administrator" : "Manager";
+      for (const u of db.users) {
+        if (u.id === me.id) continue;
+        db.notifications.unshift({
+          id: `n-${token().slice(0, 8)}`,
+          userId: u.id,
+          actorId: me.id,
+          title: "📅 New Meeting Scheduled",
+          body: `${me.name} (${roleLabel}) scheduled a meeting for "${project.title}" at ${project.meetSyncTime}`,
+          link: "/calendar",
+          read: false,
+          createdAt: now,
+        });
+      }
+    }
   });
 
   return { ok: true, id };
@@ -1356,12 +1374,29 @@ export async function updateProjectMeetSync(
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in first." };
 
+  const now = new Date().toISOString();
   await updateDb((db) => {
     const proj = (db.projects || []).find((p) => p.id === projectId);
     if (!proj) return;
     proj.meetSyncTime = meetSyncTime;
     proj.meetRoom = meetRoom;
     proj.meetUrl = meetUrl;
+
+    // Notify all community members about the new meeting time
+    const roleLabel = me.role === "admin" ? "Administrator" : me.role === "manager" ? "Manager" : "Staff";
+    for (const u of db.users) {
+      if (u.id === me.id) continue;
+      db.notifications.unshift({
+        id: `n-${token().slice(0, 8)}`,
+        userId: u.id,
+        actorId: me.id,
+        title: "📅 New Meeting Scheduled",
+        body: `${me.name} (${roleLabel}) scheduled a meeting for "${proj.title}" at ${meetSyncTime}`,
+        link: "/calendar",
+        read: false,
+        createdAt: now,
+      });
+    }
   });
   return { ok: true };
 }
