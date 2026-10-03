@@ -67,6 +67,8 @@ type MemberForm = {
   role: Role;
   isPremium: boolean;
   language: string;
+  saleAmount: number;
+  planName: string;
 };
 
 const emptyForm: MemberForm = {
@@ -80,6 +82,8 @@ const emptyForm: MemberForm = {
   role: "member",
   isPremium: false,
   language: "English",
+  saleAmount: 0,
+  planName: "VIP Mastermind",
 };
 
 const LANGUAGES = [
@@ -259,6 +263,8 @@ export default function AdminPage() {
       role: member.role,
       isPremium: Boolean(member.isPremium),
       language: member.language || "English",
+      saleAmount: 0,
+      planName: member.isPremium ? "VIP Mastermind" : "Academy Membership",
     });
     setMessage(null);
     setShowPassword(false);
@@ -281,6 +287,7 @@ export default function AdminPage() {
 
     setBusy(true);
     setMessage(null);
+    const saleAmountNum = Number(form.saleAmount) || (form.isPremium ? 97 : 0);
     const result =
       editor === "create"
         ? await createMember({
@@ -289,6 +296,8 @@ export default function AdminPage() {
             email: form.email.trim(),
             username: form.username.trim() || undefined,
             password: form.password,
+            saleAmount: saleAmountNum,
+            planName: form.planName?.trim() || (form.isPremium ? "VIP Mastermind" : "Academy Membership"),
           })
         : editor
           ? await updateMember({
@@ -298,6 +307,8 @@ export default function AdminPage() {
               email: form.email.trim(),
               username: form.username.trim() || editor.username,
               password: form.password || undefined,
+              saleAmount: Number(form.saleAmount) > 0 ? Number(form.saleAmount) : undefined,
+              planName: form.planName?.trim() || undefined,
             })
           : { ok: false, error: "Nothing to save." };
 
@@ -457,7 +468,7 @@ export default function AdminPage() {
         >
           <Card className="p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs">
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Users</span>
-            <p className="mt-1 text-xl font-black text-zinc-900">{stats?.totalUsers ?? users.length}</p>
+            <p className="mt-1 text-xl font-black text-zinc-900">{users.length}</p>
           </Card>
         </button>
 
@@ -468,7 +479,7 @@ export default function AdminPage() {
         >
           <Card className="p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs">
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Sales</span>
-            <p className="mt-1 text-xl font-black text-emerald-600">{formatMoney(stats?.totalSales ?? totalSalesRevenue)}</p>
+            <p className="mt-1 text-xl font-black text-emerald-600">{formatMoney(totalSalesRevenue)}</p>
           </Card>
         </button>
 
@@ -1319,17 +1330,48 @@ export default function AdminPage() {
             />
           </Field>
 
-          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
+          <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3.5 space-y-3">
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.isPremium}
-                onChange={(e) => setForm((f) => ({ ...f, isPremium: e.target.checked }))}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setForm((f) => ({
+                    ...f,
+                    isPremium: checked,
+                    saleAmount: checked ? (f.saleAmount > 0 ? f.saleAmount : 97) : f.saleAmount,
+                    planName: checked ? (f.planName || "VIP Mastermind") : f.planName,
+                  }));
+                }}
                 className="h-4 w-4 rounded-md border-zinc-300 text-primary"
               />
               <Crown size={14} className="text-amber-500" />
               <span className="text-xs font-bold text-zinc-900">👑 VIP Member Access</span>
             </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-zinc-200/60">
+              <Field label="Recorded Sale / Fee ($)">
+                <input
+                  className={inputClass}
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 97 (or 0 for free)"
+                  value={form.saleAmount}
+                  onChange={(e) => setForm((f) => ({ ...f, saleAmount: Number(e.target.value) || 0 }))}
+                />
+              </Field>
+
+              <Field label="Plan / Product Name">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. VIP Mastermind / Pro Plan"
+                  value={form.planName}
+                  onChange={(e) => setForm((f) => ({ ...f, planName: e.target.value }))}
+                />
+              </Field>
+            </div>
           </div>
 
           {editor && editor !== "create" && (

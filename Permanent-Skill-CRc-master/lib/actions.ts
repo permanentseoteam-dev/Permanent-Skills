@@ -479,6 +479,8 @@ export async function createMember(input: {
   role?: Role;
   isPremium?: boolean;
   language?: string;
+  saleAmount?: number;
+  planName?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
@@ -509,6 +511,14 @@ export async function createMember(input: {
     role = "member";
   }
 
+  const isPremium = Boolean(input.isPremium);
+  const effectiveSaleAmount =
+    input.saleAmount !== undefined
+      ? Number(input.saleAmount)
+      : isPremium
+        ? 97
+        : 0;
+
   await updateDb((d) => {
     d.users.push({
       id,
@@ -529,13 +539,24 @@ export async function createMember(input: {
       joinedAt: now,
       lastSeenAt: now,
       loginCount: 0,
-      isPremium: Boolean(input.isPremium),
+      isPremium,
       language: input.language?.trim() || "English",
       affiliateCode: affiliateCode(name),
       affiliateClicks: 0,
       affiliateSignups: 0,
       affiliateEarnings: 0,
     });
+
+    if (effectiveSaleAmount > 0) {
+      if (!d.sales) d.sales = [];
+      d.sales.push({
+        id: `sale-${token().slice(0, 8)}`,
+        userId: id,
+        amount: effectiveSaleAmount,
+        plan: input.planName?.trim() || (isPremium ? "VIP Mastermind" : "Academy Membership"),
+        createdAt: now,
+      });
+    }
   });
   return { ok: true, id };
 }
@@ -552,6 +573,8 @@ export async function updateMember(input: {
   isPremium?: boolean;
   language?: string;
   password?: string;
+  saleAmount?: number;
+  planName?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
@@ -600,9 +623,11 @@ export async function updateMember(input: {
     return { ok: false, error: "You cannot remove your own admin role." };
   }
 
+  const now = new Date().toISOString();
   await updateDb((d) => {
     const user = d.users.find((u) => u.id === input.userId);
     if (!user) return;
+    const wasPremium = user.isPremium;
     user.name = name;
     user.email = email;
     user.username = username;
@@ -615,6 +640,26 @@ export async function updateMember(input: {
     if (input.password) user.passwordHash = hashPassword(input.password);
     if (status === "rejected") {
       d.sessions = d.sessions.filter((s) => s.userId !== user.id);
+    }
+
+    if (input.saleAmount && Number(input.saleAmount) > 0) {
+      if (!d.sales) d.sales = [];
+      d.sales.push({
+        id: `sale-${token().slice(0, 8)}`,
+        userId: user.id,
+        amount: Number(input.saleAmount),
+        plan: input.planName?.trim() || "Account Upgrade",
+        createdAt: now,
+      });
+    } else if (input.isPremium && !wasPremium && input.saleAmount === undefined) {
+      if (!d.sales) d.sales = [];
+      d.sales.push({
+        id: `sale-${token().slice(0, 8)}`,
+        userId: user.id,
+        amount: 97,
+        plan: input.planName?.trim() || "VIP Mastermind",
+        createdAt: now,
+      });
     }
   });
   return { ok: true };

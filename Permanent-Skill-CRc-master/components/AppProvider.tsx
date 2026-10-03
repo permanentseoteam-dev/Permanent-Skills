@@ -74,6 +74,8 @@ type MemberInput = {
   role?: Role;
   isPremium?: boolean;
   language?: string;
+  saleAmount?: number;
+  planName?: string;
 };
 
 type MemberUpdateInput = {
@@ -88,6 +90,8 @@ type MemberUpdateInput = {
   isPremium?: boolean;
   language?: string;
   password?: string;
+  saleAmount?: number;
+  planName?: string;
 };
 
 const empty: AppState = {

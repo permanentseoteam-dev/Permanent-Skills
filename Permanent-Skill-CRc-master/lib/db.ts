@@ -317,6 +317,11 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
       }
     }
 
+    // 9. Sales
+    for (const sale of db.sales || []) {
+      promises.push(syncSaleToSupabase(sale));
+    }
+
     // Await all Supabase database mutations
     await Promise.allSettled(promises);
   } catch (err) {
