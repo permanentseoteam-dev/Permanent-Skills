@@ -930,14 +930,21 @@ export default function MeetPage() {
             </button>
           </div>
 
-          {/* Right Toolbar Action: + Add Project */}
+          {/* Right Toolbar Actions: + Add Meeting & + Add Project */}
           {isAdminOrManager && (
-            <div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openCreateMeeting()}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs transition cursor-pointer"
+              >
+                <Plus size={14} className="text-primary" /> Add Meeting
+              </button>
               <PrimaryButton
                 onClick={openCreateProject}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3.5 shadow-sm cursor-pointer"
               >
-                <Plus size={15} /> Add Project
+                <Plus size={14} /> Add Project
               </PrimaryButton>
             </div>
           )}
@@ -989,7 +996,7 @@ export default function MeetPage() {
                     return (
                       <button
                         key={e.id}
-                        onClick={() => setSelectedEvent(e)}
+                        onClick={() => openViewMeeting(e)}
                         className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
                           isPrem
                             ? "bg-[#f3f0ff] text-[#6d28d9] hover:bg-[#eae5ff]"
@@ -1010,41 +1017,247 @@ export default function MeetPage() {
         </div>
       </Card>
 
-      {/* 3. Event Detail Modal */}
+      {/* 3. Comprehensive Meeting Modal (View Details / Edit / Create) with Back Navigation */}
       <Modal
-        open={!!selectedEvent}
-        onClose={() => setSelectedEvent(null)}
-        title={selectedEvent?.title || "Meet Session"}
+        open={eventModalOpen}
+        onClose={() => {
+          setEventModalOpen(false);
+          setSelectedEvent(null);
+        }}
+        title={
+          eventModalMode === "create"
+            ? "Schedule New Meeting"
+            : eventModalMode === "edit"
+              ? "Edit Meeting"
+              : selectedEvent?.title || "Meeting Details"
+        }
+        wide={eventModalMode !== "view"}
       >
-        {selectedEvent && (() => {
+        {eventModalMode === "view" && selectedEvent && (() => {
           const isEventOver = isMeetingOlder(selectedEvent);
+          const isRsvpd = rsvpEventIds.includes(selectedEvent.id);
+          const isPrem =
+            selectedEvent.type === "premium" ||
+            selectedEvent.title.toLowerCase().includes("premium") ||
+            selectedEvent.title.toLowerCase().includes("vip");
           const endedUrl = `/meeting-ended?title=${encodeURIComponent(selectedEvent.title)}&start=${encodeURIComponent(selectedEvent.start)}&end=${encodeURIComponent(selectedEvent.end)}&type=${selectedEvent.type}&desc=${encodeURIComponent(selectedEvent.description)}`;
 
           return (
-            <div className="pt-2">
-              {isEventOver ? (
-                <a
-                  href={endedUrl}
-                  onClick={() => setSelectedEvent(null)}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
+            <div className="space-y-4 pt-1">
+              {/* Meeting Header Info */}
+              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                      isPrem
+                        ? "bg-purple-100 text-purple-700 border border-purple-200"
+                        : "bg-blue-100 text-blue-700 border border-blue-200"
+                    }`}
+                  >
+                    {isPrem ? "💎 VIP Mastermind" : "⚡ Live Stream Session"}
+                  </span>
+
+                  <span
+                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
+                      isEventOver ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                    }`}
+                  >
+                    {isEventOver ? "Concluded Session" : "Upcoming Session"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-medium text-zinc-700">
+                  <CalendarIcon size={14} className="text-primary shrink-0" />
+                  <span>
+                    {formatDateTime(selectedEvent.start)} – {formatDateTime(selectedEvent.end)}
+                  </span>
+                  <span className="text-zinc-400">({userTz})</span>
+                </div>
+              </div>
+
+              {/* Description & Agenda */}
+              <div>
+                <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1">
+                  Description & Agenda
+                </label>
+                <div className="rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-600 leading-relaxed min-h-[60px]">
+                  {selectedEvent.description || "Interactive community working session and Q&A."}
+                </div>
+              </div>
+
+              {/* RSVP & Primary Action Button */}
+              <div className="space-y-2 pt-1">
+                {isEventOver ? (
+                  <a
+                    href={endedUrl}
+                    onClick={() => {
+                      setEventModalOpen(false);
+                      setSelectedEvent(null);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
+                  >
+                    <VideoOff size={16} className="text-amber-400" />
+                    <span>Meeting Ended — View Session Recap</span>
+                  </a>
+                ) : (
+                  <div className="space-y-2">
+                    <a
+                      href="https://meet.google.com/new"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
+                    >
+                      <Video size={16} />
+                      <span>Join Video Room</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => toggleRsvp(selectedEvent.id)}
+                      className={`flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
+                        isRsvpd
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                          : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700"
+                      }`}
+                    >
+                      {isRsvpd ? <CheckCircle2 size={14} /> : <CalendarIcon size={14} />}
+                      <span>{isRsvpd ? "Added to My Schedule (RSVP'd)" : "Add to My Schedule / RSVP"}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer with "← Back" and Admin/Manager CRUD actions */}
+              <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEventModalOpen(false);
+                    setSelectedEvent(null);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition cursor-pointer"
                 >
-                  <VideoOff size={16} className="text-amber-400" />
-                  <span>Meeting Ended — View Session Recap</span>
-                </a>
-              ) : (
-                <a
-                  href="https://meet.google.com/new"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
-                >
-                  <Video size={16} />
-                  <span>Join Video Room</span>
-                </a>
-              )}
+                  <ArrowLeft size={14} /> Back
+                </button>
+
+                {isAdminOrManager && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditMeeting(selectedEvent)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
+                    >
+                      <Pencil size={13} /> Edit Meeting
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDeleteMeeting(selectedEvent.id)}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer"
+                      title="Delete Meeting"
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })()}
+
+        {(eventModalMode === "create" || eventModalMode === "edit") && (
+          <div className="space-y-4 pt-1">
+            {eventError && (
+              <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-red-700 border border-red-200">
+                {eventError}
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Meeting Title *">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Weekly Live Strategy Mastermind"
+                  value={eventForm.title}
+                  onChange={(e) => setEventForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </Field>
+
+              <Field label="Session Type">
+                <select
+                  className={inputClass}
+                  value={eventForm.type}
+                  onChange={(e) => setEventForm((f) => ({ ...f, type: e.target.value as EventType }))}
+                >
+                  <option value="live">⚡ Live Stream Session (All Members)</option>
+                  <option value="premium">💎 VIP Mastermind (VIP Members)</option>
+                </select>
+              </Field>
+
+              <Field label="Start Date & Time *">
+                <input
+                  type="datetime-local"
+                  className={inputClass}
+                  value={eventForm.start}
+                  onChange={(e) => setEventForm((f) => ({ ...f, start: e.target.value }))}
+                />
+              </Field>
+
+              <Field label="End Date & Time *">
+                <input
+                  type="datetime-local"
+                  className={inputClass}
+                  value={eventForm.end}
+                  onChange={(e) => setEventForm((f) => ({ ...f, end: e.target.value }))}
+                />
+              </Field>
+
+              <div className="sm:col-span-2">
+                <Field label="Description & Agenda *">
+                  <textarea
+                    rows={3}
+                    className="w-full rounded-lg border border-zinc-200 p-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    placeholder="Describe agenda, topics covered, links, or guest speakers..."
+                    value={eventForm.description}
+                    onChange={(e) => setEventForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </Field>
+              </div>
+            </div>
+
+            {/* Modal Footer with "← Back to Details" / "← Back" and Action Buttons */}
+            <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => {
+                  if (eventModalMode === "edit" && selectedEvent) {
+                    setEventModalMode("view");
+                  } else {
+                    setEventModalOpen(false);
+                    setSelectedEvent(null);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition cursor-pointer"
+              >
+                <ArrowLeft size={14} /> {eventModalMode === "edit" ? "Back to Details" : "Back / Cancel"}
+              </button>
+
+              <div className="flex items-center gap-2">
+                {eventModalMode === "edit" && selectedEvent && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteMeeting(selectedEvent.id)}
+                    className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer"
+                  >
+                    <Trash2 size={13} /> Delete Meeting
+                  </button>
+                )}
+                <PrimaryButton disabled={eventBusy} onClick={onSaveMeeting} className="cursor-pointer">
+                  {eventBusy ? "Saving..." : eventModalMode === "edit" ? "Save Changes" : "Schedule Meeting"}
+                </PrimaryButton>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* 4. Add / Edit Project Modal with Tasks Builder & @ Mentions Autocomplete */}
@@ -1445,17 +1658,32 @@ export default function MeetPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-zinc-100">
+          <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
             <button
               type="button"
               onClick={() => setProjectModalOpen(false)}
-              className="rounded-lg px-4 py-2 text-sm text-zinc-500 hover:bg-zinc-100 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition cursor-pointer"
             >
-              Cancel
+              <ArrowLeft size={14} /> Back / Cancel
             </button>
-            <PrimaryButton disabled={busy} onClick={onSaveProject} className="cursor-pointer">
-              {busy ? "Saving..." : editingProjectId ? "Save Changes" : "Create Project"}
-            </PrimaryButton>
+
+            <div className="flex items-center gap-2">
+              {editingProjectId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProjectModalOpen(false);
+                    onDeleteProject(editingProjectId);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer"
+                >
+                  <Trash2 size={13} /> Delete Project
+                </button>
+              )}
+              <PrimaryButton disabled={busy} onClick={onSaveProject} className="cursor-pointer">
+                {busy ? "Saving..." : editingProjectId ? "Save Changes" : "Create Project"}
+              </PrimaryButton>
+            </div>
           </div>
         </div>
       </Modal>
