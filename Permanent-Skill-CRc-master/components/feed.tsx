@@ -59,14 +59,20 @@ export function AvatarWithLevel({
   );
 }
 
-export function PostComposer() {
+export function PostComposer({ defaultCategory }: { defaultCategory?: PostCategory } = {}) {
   const { createPost, user, activeCommunity } = useApp();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [category, setCategory] = useState<PostCategory>("chat");
+  const [category, setCategory] = useState<PostCategory>(defaultCategory || "chat");
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (defaultCategory) {
+      setCategory(defaultCategory);
+    }
+  }, [defaultCategory]);
 
   const isTeamCommunity = activeCommunity?.type === "team" || activeCommunity?.id === "comm-team";
   const isTeamMemberRestricted =
@@ -600,13 +606,31 @@ export function LiveBanner() {
   );
 }
 
-export function ReviewPrompt({ onDismiss }: { onDismiss: () => void }) {
+export function ReviewPrompt({
+  onDismiss,
+  onSelect,
+}: {
+  onDismiss: () => void;
+  onSelect?: () => void;
+}) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm">
-      <Link href="/about" className="flex items-center gap-2 font-medium text-amber-900">
-        <Star size={16} className="text-amber-500" fill="currentColor" /> Enjoying this group? Leave a review
-      </Link>
-      <button onClick={onDismiss} className="text-zinc-400">
+    <div
+      onClick={onSelect}
+      className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm cursor-pointer hover:bg-amber-100/70 transition shadow-2xs group"
+    >
+      <div className="flex items-center gap-2 font-medium text-amber-900 group-hover:text-amber-950 transition">
+        <Star size={16} className="text-amber-500 fill-amber-500 group-hover:scale-110 transition-transform" />
+        <span className="group-hover:underline">Enjoying this group? Leave a review</span>
+      </div>
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onDismiss();
+        }}
+        className="text-zinc-400 hover:text-zinc-600 p-1 rounded-md transition cursor-pointer"
+        title="Dismiss"
+      >
         <X size={16} />
       </button>
     </div>
