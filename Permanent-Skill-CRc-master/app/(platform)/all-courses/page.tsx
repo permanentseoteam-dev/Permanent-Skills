@@ -506,7 +506,10 @@ export default function AllCoursesPage() {
                     {renderCourseBanner(course)}
                   </div>
                 ) : (
-                  <div className={`relative h-44 sm:h-48 bg-gradient-to-br ${course.accent || "from-zinc-900 to-zinc-950"} p-5 text-white flex flex-col justify-between overflow-hidden select-none`}>
+                  <Link
+                    href={`/classroom/${course.slug}`}
+                    className={`relative h-44 sm:h-48 bg-gradient-to-br ${course.accent || "from-zinc-900 to-zinc-950"} p-5 text-white flex flex-col justify-between overflow-hidden select-none cursor-pointer`}
+                  >
                     {/* Subtle Glow overlay */}
                     <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
 
@@ -533,23 +536,21 @@ export default function AllCoursesPage() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 )}
 
                 {/* Card Body */}
-                <div className="flex flex-1 flex-col justify-between p-5">
-                  <div>
-                    {!isAccessible && (
-                      <h3 className="text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1 mb-1">
-                        {course.title}
-                      </h3>
-                    )}
-                    <p className="min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
-                      {course.description}
-                    </p>
+                {isAccessible ? (
+                  <Link
+                    href={`/classroom/${course.slug}`}
+                    className="flex flex-1 flex-col justify-between p-5 cursor-pointer hover:bg-zinc-50/50 transition-colors"
+                  >
+                    <div>
+                      <p className="min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                        {course.description}
+                      </p>
 
-                    {/* Progress or Unlock Status */}
-                    {isAccessible ? (
+                      {/* Progress */}
                       <div className="mt-4">
                         <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1.5">
                           <span className="text-zinc-500">Progress ({completedCount}/{total})</span>
@@ -559,7 +560,27 @@ export default function AllCoursesPage() {
                         </div>
                         <ProgressBar value={pct} />
                       </div>
-                    ) : (
+                    </div>
+                  </Link>
+                ) : (
+                  <div
+                    onClick={() => {
+                      if (course.isPremiumOnly) {
+                        setUpgradeOpen(true);
+                      } else {
+                        setPurchasingCourse(course);
+                      }
+                    }}
+                    className="flex flex-1 flex-col justify-between p-5 cursor-pointer hover:bg-zinc-50/50 transition-colors"
+                  >
+                    <div>
+                      <h3 className="text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                        {course.title}
+                      </h3>
+                      <p className="min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                        {course.description}
+                      </p>
+
                       <div className="mt-4 rounded-xl bg-zinc-50 p-3 text-xs text-zinc-600 border border-zinc-100 flex items-center justify-between">
                         <div>
                           <div className="font-bold text-zinc-800">
@@ -575,56 +596,9 @@ export default function AllCoursesPage() {
                         </div>
                         <Lock size={15} className="text-zinc-400 shrink-0" />
                       </div>
-                    )}
+                    </div>
                   </div>
-
-                  {/* Actions Bar */}
-                  <div className="mt-5 pt-4 border-t border-zinc-100 flex flex-col gap-2">
-                    {isAccessible ? (
-                      <div className="flex items-center gap-2">
-                        <Link href={`/classroom/${course.slug}`} className="flex-1">
-                          <PrimaryButton className="w-full inline-flex items-center justify-center gap-2 text-xs py-2">
-                            <Play size={14} /> {pct > 0 ? "Continue Learning" : "Start Course"}
-                          </PrimaryButton>
-                        </Link>
-                        <button
-                          onClick={() => setPreviewCourse(course)}
-                          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary transition cursor-pointer shadow-2xs"
-                          title="View Course Syllabus"
-                        >
-                          Syllabus
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        {course.isPremiumOnly ? (
-                          <GoldButton
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-2 shadow-xs"
-                            onClick={() => setUpgradeOpen(true)}
-                          >
-                            <Sparkles size={14} /> Upgrade to VIP ($9/mo)
-                          </GoldButton>
-                        ) : (
-                          <GoldButton
-                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-2 shadow-xs"
-                            disabled={busyId === course.id}
-                            onClick={() => setPurchasingCourse(course)}
-                          >
-                            <Sparkles size={14} />
-                            {`Unlock — ${formatMoney(price)}`}
-                          </GoldButton>
-                        )}
-                        <button
-                          onClick={() => setPreviewCourse(course)}
-                          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary transition cursor-pointer shadow-2xs"
-                          title="Preview Syllabus"
-                        >
-                          Preview
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                )}
               </Card>
             );
           })}
