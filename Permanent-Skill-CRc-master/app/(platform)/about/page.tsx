@@ -1,20 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Check,
   CheckCircle2,
-  ExternalLink,
   Film,
-  Link as LinkIcon,
-  Pencil,
   Play,
-  RotateCcw,
-  Sparkles,
   Star,
-  Trash2,
-  Upload,
-  Video,
   X,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
@@ -22,9 +13,7 @@ import { Sidebar } from "@/components/Sidebar";
 import {
   Avatar,
   Card,
-  Field,
   GoldButton,
-  Modal,
   PrimaryButton,
   UserRoleBadge,
   inputClass,
@@ -45,21 +34,16 @@ const defaultFeatures = [
 ];
 
 type VideoConfig = {
-  title: string;
-  subtitle: string;
   videoUrl: string;
-  videoFileName?: string;
   thumbnailUrl?: string;
 };
 
 const defaultVideoConfig: VideoConfig = {
-  title: "REAL STATS",
-  subtitle: "real members · real compounding",
   videoUrl: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
 };
 
 export default function AboutPage() {
-  const { reviews, users, user, userById, addReview, activeCommunity, videoResources, saveVideoResource } = useApp();
+  const { reviews, users, user, userById, addReview, activeCommunity, videoResources } = useApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [rating, setRating] = useState(5);
   const [body, setBody] = useState("");
@@ -69,22 +53,6 @@ export default function AboutPage() {
   // Video Player state
   const [playing, setPlaying] = useState(false);
   const [videoConfig, setVideoConfig] = useState<VideoConfig>(defaultVideoConfig);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-
-  // Video edit form state
-  const [videoSourceType, setVideoSourceType] = useState<"link" | "upload">("link");
-  const [formTitle, setFormTitle] = useState(defaultVideoConfig.title);
-  const [formSubtitle, setFormSubtitle] = useState(defaultVideoConfig.subtitle);
-  const [formUrl, setFormUrl] = useState(defaultVideoConfig.videoUrl);
-  const [formUploadedData, setFormUploadedData] = useState<string>("");
-  const [formUploadedFileName, setFormUploadedFileName] = useState<string>("");
-  const [formThumbnailUrl, setFormThumbnailUrl] = useState<string>("");
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const thumbInputRef = useRef<HTMLInputElement>(null);
-
-  const canEdit = user?.role === "admin" || user?.role === "manager";
 
   // Find active video resource from Supabase / DB
   const dbVideo = useMemo(() => {
@@ -101,24 +69,10 @@ export default function AboutPage() {
   useEffect(() => {
     if (dbVideo) {
       const activeUrl = dbVideo.videoUrl || dbVideo.videoFileUrl || dbVideo.videoFileData || defaultVideoConfig.videoUrl;
-      const isData = activeUrl.startsWith("data:");
-      const cfg: VideoConfig = {
-        title: dbVideo.title || defaultVideoConfig.title,
-        subtitle: dbVideo.description || defaultVideoConfig.subtitle,
+      setVideoConfig({
         videoUrl: activeUrl,
         thumbnailUrl: dbVideo.thumbnailUrl || undefined,
-        videoFileName: isData ? "uploaded-video.mp4" : undefined,
-      };
-      setVideoConfig(cfg);
-      setFormTitle(cfg.title);
-      setFormSubtitle(cfg.subtitle);
-      setFormUrl(cfg.videoUrl);
-      setFormThumbnailUrl(cfg.thumbnailUrl || "");
-      if (isData) {
-        setVideoSourceType("upload");
-        setFormUploadedData(activeUrl);
-        setFormUploadedFileName("uploaded-video.mp4");
-      }
+      });
       return;
     }
 
@@ -126,16 +80,10 @@ export default function AboutPage() {
       const saved = localStorage.getItem("ps_about_video_config");
       if (saved) {
         const parsed = JSON.parse(saved);
-        setVideoConfig(parsed);
-        setFormTitle(parsed.title || defaultVideoConfig.title);
-        setFormSubtitle(parsed.subtitle || defaultVideoConfig.subtitle);
-        setFormUrl(parsed.videoUrl || defaultVideoConfig.videoUrl);
-        setFormThumbnailUrl(parsed.thumbnailUrl || "");
-        if (parsed.videoUrl?.startsWith("data:")) {
-          setVideoSourceType("upload");
-          setFormUploadedData(parsed.videoUrl);
-          setFormUploadedFileName(parsed.videoFileName || "uploaded-video.mp4");
-        }
+        setVideoConfig({
+          videoUrl: parsed.videoUrl || defaultVideoConfig.videoUrl,
+          thumbnailUrl: parsed.thumbnailUrl || undefined,
+        });
       }
     } catch {
       // Fallback to defaults
@@ -155,123 +103,6 @@ export default function AboutPage() {
 
   const communityTitle = activeCommunity?.name || "AI Architects";
   const embed = useMemo(() => toEmbed(videoConfig.videoUrl), [videoConfig.videoUrl]);
-
-  // Handle Video File Upload
-  function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setFormUploadedData(result);
-        setFormUploadedFileName(file.name);
-        setFormUrl(result);
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // Handle Thumbnail File Upload
-  function handleThumbUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      if (result) {
-        setFormThumbnailUrl(result);
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-
-  // Save Video Settings to Supabase DB and local cache
-  async function handleSaveVideoConfig(e: React.FormEvent) {
-    e.preventDefault();
-    setIsSaving(true);
-    const finalUrl =
-      videoSourceType === "upload" && formUploadedData
-        ? formUploadedData
-        : formUrl.trim() || defaultVideoConfig.videoUrl;
-
-    const isData = finalUrl.startsWith("data:");
-    const isFileUrl = !isData && (finalUrl.endsWith(".mp4") || finalUrl.endsWith(".webm") || finalUrl.endsWith(".mov") || finalUrl.includes("/uploads/"));
-
-    const nextConfig: VideoConfig = {
-      title: formTitle.trim() || "REAL STATS",
-      subtitle: formSubtitle.trim() || "real members · real compounding",
-      videoUrl: finalUrl,
-      videoFileName: videoSourceType === "upload" ? formUploadedFileName : undefined,
-      thumbnailUrl: formThumbnailUrl.trim() || undefined,
-    };
-
-    setVideoConfig(nextConfig);
-    setPlaying(false);
-
-    try {
-      localStorage.setItem("ps_about_video_config", JSON.stringify(nextConfig));
-    } catch {}
-
-    try {
-      await saveVideoResource({
-        id: dbVideo?.id || "vid-about-overview",
-        title: formTitle.trim() || "REAL STATS",
-        description: formSubtitle.trim() || "real members · real compounding",
-        videoUrl: !isData && !isFileUrl ? finalUrl : undefined,
-        videoFileUrl: isFileUrl ? finalUrl : undefined,
-        videoFileData: isData ? finalUrl : undefined,
-        thumbnailUrl: formThumbnailUrl.trim() || undefined,
-        category: "about",
-        isFeatured: true,
-        isPublic: true,
-        communityId: activeCommunity?.id || "comm-pss",
-      });
-      setSaveSuccess(true);
-      setTimeout(() => {
-        setSaveSuccess(false);
-        setEditModalOpen(false);
-      }, 800);
-    } catch {
-      setEditModalOpen(false);
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  // Reset Video Settings to default in Supabase DB and local cache
-  async function handleResetVideoConfig() {
-    setVideoConfig(defaultVideoConfig);
-    setFormTitle(defaultVideoConfig.title);
-    setFormSubtitle(defaultVideoConfig.subtitle);
-    setFormUrl(defaultVideoConfig.videoUrl);
-    setFormUploadedData("");
-    setFormUploadedFileName("");
-    setFormThumbnailUrl("");
-    setVideoSourceType("link");
-    setPlaying(false);
-    try {
-      localStorage.removeItem("ps_about_video_config");
-    } catch {}
-
-    try {
-      await saveVideoResource({
-        id: dbVideo?.id || "vid-about-overview",
-        title: defaultVideoConfig.title,
-        description: defaultVideoConfig.subtitle,
-        videoUrl: defaultVideoConfig.videoUrl,
-        videoFileUrl: undefined,
-        videoFileData: undefined,
-        thumbnailUrl: undefined,
-        category: "about",
-        isFeatured: true,
-        isPublic: true,
-        communityId: activeCommunity?.id || "comm-pss",
-      });
-    } catch {}
-  }
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
@@ -295,13 +126,6 @@ export default function AboutPage() {
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Active Community
                 </span>
               </div>
-            </div>
-
-            {/* Quick staff badge */}
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-semibold text-zinc-600">
-                Private Mastermind
-              </span>
             </div>
           </div>
 
@@ -329,7 +153,7 @@ export default function AboutPage() {
                 <div className="relative h-full w-full bg-black">
                   <iframe
                     src={`${embed.src}${embed.src.includes("?") ? "&" : "?"}autoplay=1`}
-                    title={videoConfig.title}
+                    title="Community Video"
                     className="h-full w-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
@@ -356,65 +180,28 @@ export default function AboutPage() {
                 </div>
               )
             ) : (
-              /* Big 16:9 Thumbnail Hero with Gradient & Play Trigger */
+              /* Big 16:9 Thumbnail Hero with Clean Play Trigger */
               <div
                 onClick={() => setPlaying(true)}
-                className="relative h-full w-full cursor-pointer select-none bg-gradient-to-br from-[#0b1b4a] via-[#5051F9] to-[#22d3ee] p-6 sm:p-10 text-white flex flex-col justify-between overflow-hidden"
+                className="relative h-full w-full cursor-pointer select-none bg-gradient-to-br from-[#0b1b4a] via-[#5051F9] to-[#22d3ee] flex items-center justify-center overflow-hidden"
               >
                 {/* Custom Image Thumbnail background if present */}
                 {videoConfig.thumbnailUrl && (
                   <img
                     src={videoConfig.thumbnailUrl}
-                    alt={videoConfig.title}
-                    className="absolute inset-0 h-full w-full object-cover"
+                    alt={communityTitle}
+                    className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 )}
 
-                {/* Subtle dark gradient overlay for high contrast readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20" />
-
-                {/* Top Control Bar with Edit Video button for staff */}
-                <div className="relative z-10 flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-3 py-1 text-xs font-bold uppercase tracking-wider text-white border border-white/20 shadow-xs">
-                    <Sparkles size={13} className="text-yellow-300" /> Community Overview
-                  </span>
-
-                  {canEdit && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditModalOpen(true);
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-xl bg-black/60 hover:bg-black/90 backdrop-blur-md px-3.5 py-1.5 text-xs font-bold text-white border border-white/20 transition cursor-pointer shadow-sm"
-                    >
-                      <Pencil size={13} />
-                      <span>Edit Video / Link</span>
-                    </button>
-                  )}
-                </div>
+                {/* Subtle dark gradient overlay */}
+                <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300" />
 
                 {/* Center Large Play Action Button */}
-                <div className="relative z-10 flex items-center justify-center my-auto">
+                <div className="relative z-10 flex items-center justify-center">
                   <div className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-white text-primary shadow-2xl ring-8 ring-white/30 transition-all duration-300 group-hover:scale-110 group-hover:bg-[#5051F9] group-hover:text-white group-hover:ring-primary/40">
                     <Play fill="currentColor" size={32} className="ml-1 sm:h-10 sm:w-10" />
                   </div>
-                </div>
-
-                {/* Bottom Title & Subtitle Banner */}
-                <div className="relative z-10 flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-3xl sm:text-5xl font-black tracking-tight drop-shadow-lg leading-none">
-                      {videoConfig.title}
-                    </p>
-                    <p className="mt-2 text-sm sm:text-base text-white/90 drop-shadow-md font-medium">
-                      {videoConfig.subtitle}
-                    </p>
-                  </div>
-
-                  <span className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-white/80 bg-white/15 backdrop-blur-md px-3 py-1 rounded-lg border border-white/20">
-                    <Play size={12} fill="currentColor" /> Click to Watch
-                  </span>
                 </div>
               </div>
             )}
@@ -650,171 +437,6 @@ export default function AboutPage() {
 
       <Sidebar />
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
-
-      {/* Video Customization Modal (For Upload or Linking from Any Platform) */}
-      <Modal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        title="Customize Community Video & Banner"
-        wide
-      >
-        <form onSubmit={handleSaveVideoConfig} className="space-y-4">
-          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 flex items-start gap-3">
-            <Film size={18} className="text-primary shrink-0 mt-0.5" />
-            <div className="text-xs text-zinc-700 leading-normal">
-              <p className="font-bold text-zinc-900">
-                Embed or Upload Community Overview Video
-              </p>
-              <p className="mt-0.5 text-zinc-600">
-                You can link a video directly from YouTube, Loom, Vimeo, Google Drive, or any MP4 URL, or upload a video file from your computer.
-              </p>
-            </div>
-          </div>
-
-          {/* Source Selector Toggle */}
-          <div className="flex items-center gap-2 rounded-xl bg-zinc-100 p-1">
-            <button
-              type="button"
-              onClick={() => setVideoSourceType("link")}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition cursor-pointer ${
-                videoSourceType === "link"
-                  ? "bg-white text-zinc-900 shadow-xs"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              <LinkIcon size={14} />
-              <span>Link from Platform (YouTube, Loom, Vimeo)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setVideoSourceType("upload")}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-bold transition cursor-pointer ${
-                videoSourceType === "upload"
-                  ? "bg-white text-zinc-900 shadow-xs"
-                  : "text-zinc-600 hover:text-zinc-900"
-              }`}
-            >
-              <Upload size={14} />
-              <span>Upload Video File (.mp4, .webm)</span>
-            </button>
-          </div>
-
-          {/* Tab 1: Video Link */}
-          {videoSourceType === "link" && (
-            <Field label="Video Link / URL *">
-              <input
-                className={inputClass}
-                placeholder="e.g. https://www.youtube.com/watch?v=... or https://loom.com/share/..."
-                value={formUrl}
-                onChange={(e) => setFormUrl(e.target.value)}
-              />
-              <p className="mt-1 text-[11px] text-zinc-500">
-                Supported: YouTube, Loom, Vimeo, Google Drive preview, and direct video file URLs (.mp4).
-              </p>
-            </Field>
-          )}
-
-          {/* Tab 2: Upload Video File */}
-          {videoSourceType === "upload" && (
-            <Field label="Select Video File *">
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-zinc-300 bg-zinc-50/60 p-6 text-center hover:border-primary/50 hover:bg-zinc-50 transition cursor-pointer"
-              >
-                <Video size={28} className="text-zinc-400 mb-2" />
-                <p className="text-xs font-bold text-zinc-800">
-                  {formUploadedFileName ? `Selected: ${formUploadedFileName}` : "Click to browse video file"}
-                </p>
-                <p className="text-[11px] text-zinc-500 mt-0.5">
-                  Supports MP4, WebM, MOV files
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="video/*"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </div>
-            </Field>
-          )}
-
-          {/* Banner Title & Subtitle */}
-          <div className="grid gap-3 sm:grid-cols-2 pt-1">
-            <Field label="Banner Main Heading">
-              <input
-                className={inputClass}
-                placeholder="e.g. REAL STATS"
-                value={formTitle}
-                onChange={(e) => setFormTitle(e.target.value)}
-              />
-            </Field>
-
-            <Field label="Banner Subtitle">
-              <input
-                className={inputClass}
-                placeholder="e.g. real members · real compounding"
-                value={formSubtitle}
-                onChange={(e) => setFormSubtitle(e.target.value)}
-              />
-            </Field>
-          </div>
-
-          {/* Optional Custom Poster / Thumbnail */}
-          <Field label="Custom Thumbnail Image (Optional)">
-            <div className="flex gap-2">
-              <input
-                className={`${inputClass} flex-1 text-xs`}
-                placeholder="Paste image URL (https://...)"
-                value={formThumbnailUrl}
-                onChange={(e) => setFormThumbnailUrl(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => thumbInputRef.current?.click()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
-              >
-                <Upload size={13} />
-                <span>Browse</span>
-              </button>
-              <input
-                ref={thumbInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleThumbUpload}
-                className="hidden"
-              />
-            </div>
-          </Field>
-
-          {/* Actions */}
-          <div className="flex items-center justify-between border-t border-zinc-100 pt-4">
-            <button
-              type="button"
-              onClick={handleResetVideoConfig}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition cursor-pointer"
-            >
-              <RotateCcw size={13} />
-              <span>Reset to Default</span>
-            </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setEditModalOpen(false)}
-                className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
-              >
-                Cancel
-              </button>
-
-              <PrimaryButton type="submit" disabled={isSaving} className="text-xs py-2 px-5 cursor-pointer">
-                {saveSuccess ? "Saved!" : isSaving ? "Saving..." : "Save Video Settings"}
-              </PrimaryButton>
-            </div>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 }
