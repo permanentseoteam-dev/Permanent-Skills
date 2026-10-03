@@ -191,6 +191,17 @@ export default function AboutPage() {
                 </span>
               </div>
             </div>
+
+            {isAdminOrManager && (
+              <button
+                type="button"
+                onClick={openEditModal}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
+              >
+                <Pencil size={13} className="text-primary" />
+                <span>Edit / Upload Video</span>
+              </button>
+            )}
           </div>
 
           {/* 16:9 Big Thumbnail / Video Player Container */}
@@ -260,6 +271,22 @@ export default function AboutPage() {
 
                 {/* Subtle dark gradient overlay */}
                 <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors duration-300" />
+
+                {/* Admin Quick Edit Corner Button */}
+                {isAdminOrManager && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openEditModal();
+                    }}
+                    className="absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 rounded-lg bg-black/60 hover:bg-black/90 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-xs transition cursor-pointer"
+                    title="Change community video"
+                  >
+                    <Pencil size={12} />
+                    <span>Change Video</span>
+                  </button>
+                )}
 
                 {/* Center Large Play Action Button */}
                 <div className="relative z-10 flex items-center justify-center">
@@ -501,6 +528,92 @@ export default function AboutPage() {
 
       <Sidebar />
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
+
+      {/* Admin Edit / Upload Video Modal */}
+      <Modal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Edit Community Overview Video"
+      >
+        <form onSubmit={handleSaveVideo} className="space-y-4">
+          <p className="text-xs text-zinc-500">
+            Paste a video link from <strong>YouTube</strong>, <strong>Loom</strong>, <strong>Vimeo</strong>, or a direct <strong>MP4 / video file URL</strong> (e.g. Supabase Storage).
+          </p>
+
+          {videoSaveError && (
+            <div className="rounded-lg bg-red-50 p-2.5 text-xs font-medium text-red-700 border border-red-200">
+              {videoSaveError}
+            </div>
+          )}
+
+          <Field label="Video URL (YouTube, Loom, Vimeo, or MP4 file)">
+            <input
+              type="text"
+              required
+              className={inputClass}
+              placeholder="e.g. https://www.youtube.com/watch?v=... or https://www.loom.com/share/..."
+              value={editVideoUrl}
+              onChange={(e) => setEditVideoUrl(e.target.value)}
+            />
+          </Field>
+
+          <Field label="Custom Thumbnail Image URL (Optional)">
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="e.g. https://images.unsplash.com/... or https://your-bucket.supabase.co/..."
+              value={editThumbnailUrl}
+              onChange={(e) => setEditThumbnailUrl(e.target.value)}
+            />
+          </Field>
+
+          {/* Quick Preview Box */}
+          {editVideoUrl.trim() && (
+            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 space-y-2">
+              <span className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 font-mono">
+                Preview Embed
+              </span>
+              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+                {(() => {
+                  const prevEmbed = toEmbed(editVideoUrl.trim());
+                  if (!prevEmbed) {
+                    return (
+                      <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
+                        Invalid or unsupported video URL
+                      </div>
+                    );
+                  }
+                  if (prevEmbed.type === "file") {
+                    return <video src={prevEmbed.src} controls className="h-full w-full object-contain" />;
+                  }
+                  return (
+                    <iframe
+                      src={prevEmbed.src}
+                      title="Preview"
+                      className="h-full w-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  );
+                })()}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+            <button
+              type="button"
+              onClick={() => setEditModalOpen(false)}
+              className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <PrimaryButton type="submit" disabled={savingVideo}>
+              {savingVideo ? "Saving..." : "Save Video"}
+            </PrimaryButton>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }
