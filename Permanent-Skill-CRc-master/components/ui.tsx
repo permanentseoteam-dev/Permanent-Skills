@@ -195,6 +195,112 @@ export function ProgressBar({
   );
 }
 
+export function AdminShieldFavicon({
+  size = 14,
+  className = "",
+  title = "Administrator",
+}: {
+  size?: number;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`shrink-0 ${className}`}
+    >
+      {title && <title>{title}</title>}
+      <defs>
+        <linearGradient id="adminThemeShieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#7C3AED" />
+          <stop offset="50%" stopColor="#5051F9" />
+          <stop offset="100%" stopColor="#3F40DC" />
+        </linearGradient>
+      </defs>
+      {/* Outer Shield with Theme Gradient */}
+      <path
+        d="M50 6 L88 20 C88 56 68 83 50 95 C32 83 12 56 12 20 Z"
+        fill="url(#adminThemeShieldGrad)"
+      />
+      {/* Inner White Contour Border */}
+      <path
+        d="M50 14 L80 26 C80 54 63 76 50 86 C37 76 20 54 20 26 Z"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="4"
+        strokeLinejoin="round"
+      />
+      {/* User Silhouette: Head */}
+      <circle cx="50" cy="40" r="13" fill="none" stroke="#FFFFFF" strokeWidth="4.5" />
+      {/* User Silhouette: Body Arc */}
+      <path
+        d="M28 72 C28 58 38 56 50 56 C62 56 72 58 72 72"
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function ManagerAvatarFavicon({
+  size = 14,
+  className = "",
+  title = "Community Manager",
+}: {
+  size?: number;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 100 100"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={`shrink-0 ${className}`}
+    >
+      {title && <title>{title}</title>}
+      {/* Soft sticker contour */}
+      <circle cx="50" cy="50" r="48" fill="#FFFFFF" fillOpacity="0.2" />
+
+      {/* Hair (Dark Navy) */}
+      <path
+        d="M25 42 C25 20 36 10 52 10 C68 10 75 18 75 36 C75 42 72 48 68 50 C68 36 62 25 50 25 C38 25 32 34 29 44 Z"
+        fill="#1E293B"
+      />
+      
+      {/* Ears & Face */}
+      <circle cx="30" cy="44" r="5.5" fill="#FBCFB0" />
+      <circle cx="70" cy="44" r="5.5" fill="#FBCFB0" />
+      <path
+        d="M32 36 C32 25 42 22 50 22 C58 22 68 25 68 36 C68 50 62 60 50 60 C38 60 32 50 32 36 Z"
+        fill="#FDD9BD"
+      />
+      {/* Neck */}
+      <path d="M43 56 L43 68 L57 68 L57 56 Z" fill="#E8B99A" />
+
+      {/* Navy Suit Jacket */}
+      <path
+        d="M18 92 C18 74 30 66 40 64 L50 78 L60 64 C70 66 82 74 82 92 Z"
+        fill="#1E3A8A"
+      />
+
+      {/* Light Blue Shirt Collar */}
+      <path d="M40 64 L50 78 L60 64 L50 61 Z" fill="#E0F2FE" />
+
+      {/* Purple-Lavender Tie */}
+      <path d="M47 67 L53 67 L55 86 L50 90 L45 86 Z" fill="#6366F1" />
+    </svg>
+  );
+}
+
 export function UserRoleBadge({
   role,
   isPremium,
@@ -219,27 +325,25 @@ export function UserRoleBadge({
         ? "text-[11px] px-2 py-0.5"
         : "text-xs px-2.5 py-1";
 
+  const iconPx = size === "xs" ? 12 : size === "sm" ? 14 : 16;
+
   return (
     <span className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
       {isAdmin && (
         <span
-          className={`inline-flex items-center gap-1 rounded-md font-extrabold uppercase tracking-wide bg-zinc-950 text-amber-300 border border-amber-500/40 shadow-2xs ${sizeClass}`}
+          className={`inline-flex items-center gap-1 rounded-md font-extrabold uppercase tracking-wide bg-zinc-950 text-indigo-200 border border-[#5051F9]/50 shadow-2xs ${sizeClass}`}
           title="Verified Administrator"
         >
-          <span className="flex h-3 w-3 shrink-0 items-center justify-center rounded-xs bg-white/20 text-[8px] font-black">
-            ⚡
-          </span>
+          <AdminShieldFavicon size={iconPx} />
           <span>Admin</span>
         </span>
       )}
       {isManager && (
         <span
-          className={`inline-flex items-center gap-1 rounded-md font-extrabold uppercase tracking-wide bg-blue-900 text-blue-100 border border-blue-400/40 shadow-2xs ${sizeClass}`}
+          className={`inline-flex items-center gap-1 rounded-md font-extrabold uppercase tracking-wide bg-[#0F172A] text-blue-200 border border-blue-400/50 shadow-2xs ${sizeClass}`}
           title="Community Manager"
         >
-          <span className="flex h-3 w-3 shrink-0 items-center justify-center rounded-xs bg-white/20 text-[8px] font-black">
-            ★
-          </span>
+          <ManagerAvatarFavicon size={iconPx} />
           <span>Manager</span>
         </span>
       )}
@@ -278,6 +382,12 @@ export function StaffRoleFavicon({
   showLabel?: boolean;
   className?: string;
 }) {
+  if (!showLabel) {
+    const iconPx = size === "xs" ? 13 : size === "sm" ? 15 : 18;
+    if (role === "admin") return <AdminShieldFavicon size={iconPx} className={className} />;
+    if (role === "manager") return <ManagerAvatarFavicon size={iconPx} className={className} />;
+    return null;
+  }
   return <UserRoleBadge role={role} size={size} className={className} />;
 }
 

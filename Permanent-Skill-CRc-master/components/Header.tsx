@@ -23,7 +23,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
-import { Avatar } from "./ui";
+import { Avatar, UserRoleBadge } from "./ui";
 import { timeAgo } from "@/lib/format";
 import { getLevel } from "@/lib/levels";
 import { ChatDrawer } from "./ChatDrawer";
@@ -642,10 +642,8 @@ function UserMenu({
       <div className="border-b border-zinc-100 px-4 py-2.5">
         <p className="truncate text-sm font-semibold text-zinc-900">{user?.name}</p>
         <p className="truncate text-xs text-zinc-500">{user?.email}</p>
-        <div className="mt-1.5 flex items-center gap-1.5">
-          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-            {roleLabel}
-          </span>
+        <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+          <UserRoleBadge role={user?.role} isPremium={user?.isPremium} size="xs" />
           <span className="text-[10px] text-zinc-400">
             {user?.points || 0} pts
           </span>

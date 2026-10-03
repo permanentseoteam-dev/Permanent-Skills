@@ -20,9 +20,11 @@ import {
 import { useApp } from "@/components/AppProvider";
 import { Sidebar } from "@/components/Sidebar";
 import {
+  AdminShieldFavicon,
   Avatar,
   Card,
   GoldButton,
+  ManagerAvatarFavicon,
   Modal,
   PrimaryButton,
   UserRoleBadge,
@@ -213,15 +215,15 @@ export default function MembersPage() {
               count={adminsCount}
               active={tab === "admins"}
               onClick={() => setTab("admins")}
-              icon={<span className="text-amber-500 text-xs">⚡</span>}
-              badgeColor="bg-amber-100 text-amber-900"
+              icon={<AdminShieldFavicon size={13} />}
+              badgeColor="bg-indigo-100 text-indigo-900"
             />
             <PillButton
               label="Managers"
               count={managersCount}
               active={tab === "managers"}
               onClick={() => setTab("managers")}
-              icon={<span className="text-blue-500 text-xs">★</span>}
+              icon={<ManagerAvatarFavicon size={13} />}
               badgeColor="bg-blue-100 text-blue-900"
             />
             <PillButton
