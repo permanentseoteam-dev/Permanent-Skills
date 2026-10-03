@@ -22,6 +22,14 @@ export function toEmbed(url?: string) {
   if (vimeo) {
     return { type: "vimeo" as const, src: `https://player.vimeo.com/video/${vimeo[1]}` };
   }
+  const loom = value.match(/loom\.com\/(?:share|embed)\/([a-zA-Z0-9]+)/i);
+  if (loom) {
+    return { type: "loom" as const, src: `https://www.loom.com/embed/${loom[1]}` };
+  }
+  const gdrive = value.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/i);
+  if (gdrive) {
+    return { type: "gdrive" as const, src: `https://drive.google.com/file/d/${gdrive[1]}/preview` };
+  }
   return { type: "file" as const, src: value };
 }
 
