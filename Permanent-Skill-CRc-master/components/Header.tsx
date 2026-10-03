@@ -594,9 +594,9 @@ export function Header() {
               {item.label}
             </Link>
           ))}
-          {(user?.role === "admin" || user?.role === "manager") && (
+          {user?.role === "admin" && (
             <Link href="/admin" className={`skool-nav-link whitespace-nowrap ${pathname.startsWith("/admin") ? "active" : ""}`}>
-              {user?.role === "admin" ? "Admin" : "Manager"}
+              Admin
             </Link>
           )}
           <Link

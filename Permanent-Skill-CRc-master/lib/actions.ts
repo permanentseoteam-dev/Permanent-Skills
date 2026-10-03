@@ -409,7 +409,7 @@ export async function submitApplication(form: Application): Promise<ActionResult
 
 export async function approveUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
+  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
   const now = new Date().toISOString();
   await updateDb((db) => {
     const user = db.users.find((u) => u.id === userId);
@@ -431,7 +431,7 @@ export async function approveUser(userId: string): Promise<ActionResult> {
 
 export async function rejectUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
+  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
   const db = readDb();
   const target = db.users.find((u) => u.id === userId);
   if (!target) return { ok: false, error: "User not found." };
@@ -460,7 +460,7 @@ export async function createMember(input: {
   language?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
+  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
 
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -533,7 +533,7 @@ export async function updateMember(input: {
   password?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
+  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
 
   const db = readDb();
   const target = db.users.find((u) => u.id === input.userId);
@@ -601,7 +601,7 @@ export async function updateMember(input: {
 
 export async function releaseMemberLogin(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
+  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
   await updateDb((db) => {
     db.sessions = db.sessions.filter((s) => s.userId !== userId);
   });

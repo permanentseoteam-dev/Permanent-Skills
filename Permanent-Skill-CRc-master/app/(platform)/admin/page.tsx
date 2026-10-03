@@ -9,11 +9,14 @@ import {
   Clock,
   Crown,
   DollarSign,
+  ExternalLink,
   Eye,
   EyeOff,
   Globe,
   Key,
   Layers,
+  LayoutGrid,
+  List,
   Lock,
   Mail,
   MapPin,
@@ -116,6 +119,7 @@ export default function AdminPage() {
 
   const [tab, setTab] = useState<AdminTab>("pending");
   const [editor, setEditor] = useState<"create" | PublicUser | null>(null);
+  const [viewingStudentCard, setViewingStudentCard] = useState<PublicUser | null>(null);
   const [form, setForm] = useState<MemberForm>(emptyForm);
   const [showPassword, setShowPassword] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -126,6 +130,7 @@ export default function AdminPage() {
   const [memberSearch, setMemberSearch] = useState("");
   const [memberRoleFilter, setMemberRoleFilter] = useState<string>("all");
   const [memberStatusFilter, setMemberStatusFilter] = useState<string>("all");
+  const [memberViewMode, setMemberViewMode] = useState<"table" | "cards">("table");
   const [commentsSearch, setCommentsSearch] = useState("");
 
   // Dedicated Manager Setup form state
@@ -143,7 +148,7 @@ export default function AdminPage() {
   const [managerFeedback, setManagerFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showManagerPassword, setShowManagerPassword] = useState(false);
 
-  const isStaff = user?.role === "admin" || user?.role === "manager";
+  // STRICT ACCESS CONTROL: Admin role only!
   const isAdmin = user?.role === "admin";
 
   // Data pools
@@ -166,7 +171,11 @@ export default function AdminPage() {
         u.name.toLowerCase().includes(q) ||
         u.email?.toLowerCase().includes(q) ||
         u.application?.profession?.toLowerCase().includes(q) ||
-        u.application?.city?.toLowerCase().includes(q)
+        u.application?.city?.toLowerCase().includes(q) ||
+        u.application?.country?.toLowerCase().includes(q) ||
+        u.application?.experience?.toLowerCase().includes(q) ||
+        u.application?.goals?.toLowerCase().includes(q) ||
+        u.location?.toLowerCase().includes(q)
     );
   }, [pending, pendingSearch]);
 
@@ -184,7 +193,9 @@ export default function AdminPage() {
         const emailMatch = u.email?.toLowerCase().includes(q);
         const userMatch = u.username.toLowerCase().includes(q);
         const ipMatch = u.ipAddress?.includes(q);
-        return nameMatch || emailMatch || userMatch || ipMatch;
+        const locMatch = u.location?.toLowerCase().includes(q);
+        const profMatch = u.application?.profession?.toLowerCase().includes(q);
+        return nameMatch || emailMatch || userMatch || ipMatch || locMatch || profMatch;
       }
       return true;
     });
@@ -205,17 +216,25 @@ export default function AdminPage() {
     });
   }, [approvedComments, commentsSearch, users, posts]);
 
-  if (!isStaff) {
+  // Access check: only admin role allowed
+  if (!isAdmin) {
     return (
-      <div className="mx-auto max-w-xl text-center p-12 bg-white rounded-2xl border border-zinc-200">
-        <ShieldAlert size={36} className="mx-auto text-amber-500 mb-3" />
-        <h2 className="text-lg font-bold text-zinc-900">Access Restricted</h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          This section is exclusively available for community administrators and verified operations managers.
+      <div className="mx-auto max-w-xl text-center p-12 bg-white rounded-3xl border border-zinc-200 shadow-sm mt-8 space-y-4">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 border border-amber-200">
+          <ShieldAlert size={34} className="text-amber-600" />
+        </div>
+        <h2 className="text-xl font-black text-zinc-950">Administrator Access Required</h2>
+        <p className="text-xs text-zinc-500 leading-relaxed max-w-md mx-auto">
+          This operations hub is strictly accessible to verified Community Administrators. Managers, specialists, and members do not have access to these controls.
         </p>
-        <Link href="/community" className="mt-4 inline-block text-xs font-bold text-primary hover:underline">
-          ← Return to Community Feed
-        </Link>
+        <div className="pt-2">
+          <Link
+            href="/community"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition"
+          >
+            ← Return to Community Feed
+          </Link>
+        </div>
       </div>
     );
   }
@@ -286,6 +305,7 @@ export default function AdminPage() {
       setMessage({ type: "error", text: result.error || "Could not save member." });
       return;
     }
+    setMessage({ type: "success", text: editor === "create" ? "✓ Member added successfully." : "✓ Member details updated." });
     setEditor(null);
   }
 
@@ -294,9 +314,12 @@ export default function AdminPage() {
     const result = await releaseMemberLogin(userId);
     setBusy(false);
     if (result.ok) {
-      setMessage({ type: "success", text: "✓ Active device session released. Member can now log in." });
+      setMessage({ type: "success", text: "✓ Active device session released. Member can now log in freely." });
       if (editor && editor !== "create") {
         setEditor({ ...editor, hasActiveSession: false });
+      }
+      if (viewingStudentCard && viewingStudentCard.id === userId) {
+        setViewingStudentCard({ ...viewingStudentCard, hasActiveSession: false });
       }
     } else {
       setMessage({ type: "error", text: result.error || "Could not release login session." });
@@ -332,16 +355,16 @@ export default function AdminPage() {
   }
 
   async function onSaveManager() {
-    if (!managerForm.name.trim() && !managerForm.email.trim() && !managerForm.password.trim()) {
-      setManagerFeedback({
-        type: "error",
-        text: "Please enter the manager's name, email, and password.",
-      });
+    if (!managerForm.name.trim()) {
+      setManagerFeedback({ type: "error", text: "Please enter the manager's name." });
       return;
     }
-
-    if (managerForm.email && !managerForm.email.includes("@")) {
+    if (!managerForm.email.trim() || !managerForm.email.includes("@")) {
       setManagerFeedback({ type: "error", text: "Please enter a valid email address." });
+      return;
+    }
+    if (!managerEditingId && (!managerForm.password || managerForm.password.length < 8)) {
+      setManagerFeedback({ type: "error", text: "Manager password must be at least 8 characters." });
       return;
     }
 
@@ -351,40 +374,39 @@ export default function AdminPage() {
     if (managerEditingId) {
       const res = await updateMember({
         userId: managerEditingId,
-        name: managerForm.name.trim() || undefined,
-        email: managerForm.email.trim() || undefined,
+        name: managerForm.name.trim(),
+        email: managerForm.email.trim(),
         username: managerForm.username.trim() || undefined,
-        password: managerForm.password.trim() || undefined,
         bio: managerForm.bio.trim() || undefined,
         location: managerForm.location.trim() || undefined,
-        status: managerForm.status,
+        password: managerForm.password || undefined,
         role: "manager",
-        isPremium: true,
+        status: managerForm.status,
       });
       setManagerBusy(false);
       if (res.ok) {
         setManagerFeedback({
           type: "success",
-          text: "✓ Manager account credentials and role updated successfully.",
+          text: "✓ Manager credentials and role updated successfully.",
         });
+        resetManagerForm();
       } else {
         setManagerFeedback({
           type: "error",
-          text: res.error || "Failed to update manager account.",
+          text: res.error || "Failed to update manager.",
         });
       }
     } else {
       const res = await createMember({
-        name: managerForm.name.trim() || "Community Operations Manager",
-        email: managerForm.email.trim() || "manager@permanentseo.com",
+        name: managerForm.name.trim(),
+        email: managerForm.email.trim(),
         username: managerForm.username.trim() || undefined,
-        password: managerForm.password.trim() || "manager123456",
-        bio: managerForm.bio.trim() || "Community Operations & Moderation Manager",
-        location: managerForm.location.trim() || "",
-        status: managerForm.status,
+        password: managerForm.password,
+        bio: managerForm.bio.trim() || "Community Operations Manager",
+        location: managerForm.location.trim() || "Remote",
         role: "manager",
+        status: "approved",
         isPremium: true,
-        language: "English",
       });
       setManagerBusy(false);
       if (res.ok) {
@@ -410,7 +432,7 @@ export default function AdminPage() {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black tracking-tight text-zinc-900">Admin & Operations Hub</h1>
             <span className="rounded-md bg-zinc-900 text-white px-2 py-0.5 text-[10px] font-black uppercase">
-              {isAdmin ? "Superuser Access" : "Manager Portal"}
+              Superuser Access
             </span>
           </div>
           <p className="mt-0.5 text-xs text-zinc-500">
@@ -542,7 +564,7 @@ export default function AdminPage() {
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-zinc-900"
-                placeholder="Search applicants by name, email, profession, or city..."
+                placeholder="Search applicants by name, email, profession, city, experience, goals..."
                 value={pendingSearch}
                 onChange={(e) => setPendingSearch(e.target.value)}
               />
@@ -552,120 +574,34 @@ export default function AdminPage() {
             </p>
           </div>
 
-          <Card className="divide-y divide-zinc-100 overflow-hidden shadow-sm">
+          <div className="space-y-3">
             {filteredPending.length === 0 ? (
-              <div className="p-12 text-center">
+              <Card className="p-12 text-center shadow-sm">
                 <CheckCircle2 size={36} className="mx-auto text-emerald-500 mb-2" />
                 <h3 className="text-base font-bold text-zinc-900">All Applications Processed</h3>
                 <p className="text-xs text-zinc-500 mt-1">There are no pending member applications right now.</p>
-              </div>
+              </Card>
             ) : (
-              filteredPending.map((u) => {
-                const app = u.application;
-
-                return (
-                  <div key={u.id} className="p-5 transition hover:bg-zinc-50/70 space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
-                      <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                        <Avatar user={u} size={48} className="border-2 border-zinc-200" />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <h3 className="text-base font-bold text-zinc-950">{u.name}</h3>
-                            <span className="rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
-                              Pending Review
-                            </span>
-                            {app?.profession && (
-                              <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-700">
-                                {app.profession}
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-zinc-500 font-medium">
-                            <span className="font-mono text-zinc-700">{u.email}</span>
-                            {u.phone && <span>• {u.phone}</span>}
-                            <span>• Applied {timeAgo(u.joinedAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        <button
-                          onClick={async () => {
-                            const res = await approveUser(u.id);
-                            if (res.ok) setMessage({ type: "success", text: `✓ Approved ${u.name}.` });
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition"
-                        >
-                          <Check size={13} /> Approve Member
-                        </button>
-                        <button
-                          onClick={async () => {
-                            if (confirm(`Reject application for ${u.name}?`)) {
-                              const res = await rejectUser(u.id);
-                              if (res.ok) setMessage({ type: "success", text: `Rejected application for ${u.name}.` });
-                            }
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/60 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 transition"
-                        >
-                          <X size={13} /> Reject
-                        </button>
-                        <button
-                          onClick={() => openEdit(u)}
-                          className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition"
-                        >
-                          <Pencil size={12} /> Edit
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Application Details Grid */}
-                    {app ? (
-                      <div className="rounded-xl border border-zinc-200/80 bg-white p-3.5 text-xs grid grid-cols-1 sm:grid-cols-2 gap-2 text-zinc-700">
-                        {app.city && app.country && (
-                          <div>
-                            <span className="text-zinc-400 font-medium">Location:</span>{" "}
-                            <strong>{app.city}, {app.country}</strong>
-                          </div>
-                        )}
-                        {app.experience && (
-                          <div>
-                            <span className="text-zinc-400 font-medium">Experience:</span>{" "}
-                            <strong>{app.experience}</strong>
-                          </div>
-                        )}
-                        {app.website && (
-                          <div className="sm:col-span-2 truncate">
-                            <span className="text-zinc-400 font-medium">Website / Portfolio:</span>{" "}
-                            <a href={app.website.startsWith("http") ? app.website : `https://${app.website}`} target="_blank" rel="noreferrer" className="text-primary hover:underline font-mono">
-                              {app.website}
-                            </a>
-                          </div>
-                        )}
-                        {app.goals && (
-                          <div className="sm:col-span-2">
-                            <span className="text-zinc-400 font-medium">Primary Goals:</span>{" "}
-                            <span>{app.goals}</span>
-                          </div>
-                        )}
-                        {(app.notes || u.notes) && (
-                          <div className="sm:col-span-2 pt-1 border-t border-zinc-100">
-                            <span className="text-zinc-400 font-medium">Background & Bio:</span>{" "}
-                            <span>{app.notes || u.notes}</span>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="rounded-xl bg-amber-50/70 border border-amber-200/70 p-3 text-xs text-amber-800">
-                        Registered basic account. Detailed application questionnaire pending submission.
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              filteredPending.map((u) => (
+                <StudentCard
+                  key={u.id}
+                  user={u}
+                  onApprove={async () => {
+                    const res = await approveUser(u.id);
+                    if (res.ok) setMessage({ type: "success", text: `✓ Approved ${u.name}.` });
+                  }}
+                  onReject={async () => {
+                    if (confirm(`Reject application for ${u.name}?`)) {
+                      const res = await rejectUser(u.id);
+                      if (res.ok) setMessage({ type: "success", text: `Rejected application for ${u.name}.` });
+                    }
+                  }}
+                  onEdit={() => openEdit(u)}
+                  onViewFull={() => setViewingStudentCard(u)}
+                />
+              ))
             )}
-          </Card>
+          </div>
         </div>
       )}
 
@@ -677,13 +613,35 @@ export default function AdminPage() {
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
                 className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-zinc-900"
-                placeholder="Search by name, email, @username, or IP..."
+                placeholder="Search by name, email, @username, IP, location, profession..."
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+              {/* Table / Cards View Toggle */}
+              <div className="inline-flex rounded-xl border border-zinc-200 bg-zinc-100 p-0.5 text-xs font-semibold text-zinc-600">
+                <button
+                  type="button"
+                  onClick={() => setMemberViewMode("table")}
+                  className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 transition ${
+                    memberViewMode === "table" ? "bg-white text-zinc-900 shadow-2xs" : "hover:text-zinc-900"
+                  }`}
+                >
+                  <List size={13} /> Table
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMemberViewMode("cards")}
+                  className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 transition ${
+                    memberViewMode === "cards" ? "bg-white text-zinc-900 shadow-2xs" : "hover:text-zinc-900"
+                  }`}
+                >
+                  <LayoutGrid size={13} /> Student Cards
+                </button>
+              </div>
+
               <select
                 className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 outline-none"
                 value={memberRoleFilter}
@@ -709,94 +667,124 @@ export default function AdminPage() {
             </div>
           </div>
 
-          <Card className="overflow-x-auto shadow-sm">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-zinc-50 border-b border-zinc-100 uppercase tracking-wider text-zinc-400 text-[10px]">
-                <tr>
-                  <th className="px-4 py-3">Member</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Points</th>
-                  <th>Device / IP</th>
-                  <th>Logins</th>
-                  <th>Joined</th>
-                  <th className="pr-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {filteredMembers.map((m) => (
-                  <tr key={m.id} className="hover:bg-zinc-50/70 transition">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
-                        <Avatar user={m} size={32} />
-                        <div className="min-w-0">
-                          <Link href={`/profile/${m.id}`} className="font-bold text-zinc-900 hover:text-primary transition truncate block">
-                            {m.name}
-                          </Link>
-                          <span className="text-[11px] text-zinc-400 font-mono">{m.email}</span>
-                        </div>
-                      </div>
-                    </td>
-
-                    <td>
-                      <UserRoleBadge role={m.role} isPremium={m.isPremium} size="xs" />
-                    </td>
-
-                    <td>
-                      <span
-                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${
-                          m.status === "approved"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : m.status === "pending"
-                              ? "bg-amber-50 text-amber-800 border border-amber-200"
-                              : "bg-red-50 text-red-700 border border-red-200"
-                        }`}
-                      >
-                        {m.status || "approved"}
-                      </span>
-                    </td>
-
-                    <td className="font-bold text-zinc-800">{m.points || 0}</td>
-
-                    <td>
-                      <div>
-                        <span className={`inline-block rounded px-1.5 py-0.2 text-[10px] font-bold ${
-                          m.hasActiveSession ? "bg-blue-50 text-blue-700" : "bg-zinc-100 text-zinc-500"
-                        }`}>
-                          {m.hasActiveSession ? "● Active Session" : "Free"}
-                        </span>
-                        <p className="text-[10px] font-mono text-zinc-400 mt-0.5">{m.ipAddress || "127.0.0.1"}</p>
-                      </div>
-                    </td>
-
-                    <td className="font-semibold text-zinc-600">{m.loginCount ?? "—"}</td>
-
-                    <td className="text-zinc-500">{timeAgo(m.joinedAt)}</td>
-
-                    <td className="pr-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {m.hasActiveSession && (
-                          <button
-                            onClick={() => onReleaseLogin(m.id)}
-                            className="rounded-lg p-1.5 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition"
-                            title="Release device login"
-                          >
-                            <RefreshCw size={13} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => openEdit(m)}
-                          className="rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition"
-                        >
-                          Edit
-                        </button>
-                      </div>
-                    </td>
+          {memberViewMode === "cards" ? (
+            <div className="space-y-3">
+              {filteredMembers.map((m) => (
+                <StudentCard
+                  key={m.id}
+                  user={m}
+                  onEdit={() => openEdit(m)}
+                  onReleaseSession={m.hasActiveSession ? () => onReleaseLogin(m.id) : undefined}
+                  onViewFull={() => setViewingStudentCard(m)}
+                />
+              ))}
+            </div>
+          ) : (
+            <Card className="overflow-x-auto shadow-sm">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-zinc-50 border-b border-zinc-100 uppercase tracking-wider text-zinc-400 text-[10px]">
+                  <tr>
+                    <th className="px-4 py-3">Member</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Points</th>
+                    <th>Device / IP</th>
+                    <th>Logins</th>
+                    <th>Joined</th>
+                    <th className="pr-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {filteredMembers.map((m) => (
+                    <tr key={m.id} className="hover:bg-zinc-50/70 transition">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <Avatar user={m} size={32} />
+                          <div className="min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => setViewingStudentCard(m)}
+                              className="font-bold text-zinc-900 hover:text-primary transition truncate block text-left"
+                            >
+                              {m.name}
+                            </button>
+                            <span className="text-[11px] text-zinc-400 font-mono">{m.email}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      <td>
+                        <UserRoleBadge role={m.role} isPremium={m.isPremium} size="xs" />
+                      </td>
+
+                      <td>
+                        <span
+                          className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                            m.status === "approved"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              : m.status === "pending"
+                                ? "bg-amber-50 text-amber-800 border border-amber-200"
+                                : "bg-red-50 text-red-700 border border-red-200"
+                          }`}
+                        >
+                          {m.status || "approved"}
+                        </span>
+                      </td>
+
+                      <td className="font-bold text-zinc-800">{m.points || 0}</td>
+
+                      <td>
+                        <div>
+                          <span
+                            className={`inline-block rounded px-1.5 py-0.2 text-[10px] font-bold ${
+                              m.hasActiveSession ? "bg-blue-50 text-blue-700" : "bg-zinc-100 text-zinc-500"
+                            }`}
+                          >
+                            {m.hasActiveSession ? "● Active Session" : "Free"}
+                          </span>
+                          <p className="text-[10px] font-mono text-zinc-400 mt-0.5">{m.ipAddress || "127.0.0.1"}</p>
+                        </div>
+                      </td>
+
+                      <td className="font-semibold text-zinc-600">{m.loginCount ?? "—"}</td>
+
+                      <td className="text-zinc-500">{timeAgo(m.joinedAt)}</td>
+
+                      <td className="pr-4 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setViewingStudentCard(m)}
+                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 border border-primary/20 transition"
+                            title="View Student Card Dossier"
+                          >
+                            Card
+                          </button>
+
+                          {m.hasActiveSession && (
+                            <button
+                              onClick={() => onReleaseLogin(m.id)}
+                              className="rounded-lg p-1.5 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                              title="Release device login"
+                            >
+                              <RefreshCw size={13} />
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => openEdit(m)}
+                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition"
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
         </div>
       )}
 
@@ -1306,6 +1294,262 @@ export default function AdminPage() {
           </div>
         </div>
       </Modal>
+
+      {/* STUDENT CARD DOSSIER MODAL */}
+      <Modal
+        open={Boolean(viewingStudentCard)}
+        onClose={() => setViewingStudentCard(null)}
+        title={`Student Profile: ${viewingStudentCard?.name || ""}`}
+        wide
+      >
+        {viewingStudentCard && (
+          <div className="space-y-4">
+            <StudentCard
+              user={viewingStudentCard}
+              onApprove={
+                viewingStudentCard.status === "pending"
+                  ? async () => {
+                      const res = await approveUser(viewingStudentCard.id);
+                      if (res.ok) {
+                        setMessage({ type: "success", text: `✓ Approved ${viewingStudentCard.name}.` });
+                        setViewingStudentCard(null);
+                      }
+                    }
+                  : undefined
+              }
+              onReject={
+                viewingStudentCard.status === "pending"
+                  ? async () => {
+                      if (confirm(`Reject application for ${viewingStudentCard.name}?`)) {
+                        const res = await rejectUser(viewingStudentCard.id);
+                        if (res.ok) {
+                          setMessage({ type: "success", text: `Rejected application for ${viewingStudentCard.name}.` });
+                          setViewingStudentCard(null);
+                        }
+                      }
+                    }
+                  : undefined
+              }
+              onEdit={() => {
+                const u = viewingStudentCard;
+                setViewingStudentCard(null);
+                openEdit(u);
+              }}
+              onReleaseSession={
+                viewingStudentCard.hasActiveSession ? () => onReleaseLogin(viewingStudentCard.id) : undefined
+              }
+            />
+
+            <div className="flex items-center justify-end border-t border-zinc-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setViewingStudentCard(null)}
+                className="rounded-xl border border-zinc-200 bg-white px-5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition"
+              >
+                Close Dossier
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
+}
+
+/**
+ * Reusable StudentCard Component matching Image 2
+ * Robustly renders all applicant/student metadata with clean fallbacks when fields are missing.
+ */
+function StudentCard({
+  user,
+  onApprove,
+  onReject,
+  onEdit,
+  onReleaseSession,
+  onViewFull,
+}: {
+  user: PublicUser;
+  onApprove?: () => void;
+  onReject?: () => void;
+  onEdit?: () => void;
+  onReleaseSession?: () => void;
+  onViewFull?: () => void;
+}) {
+  const app = user.application;
+
+  // Fallbacks for all fields
+  const location =
+    app?.city && app?.country
+      ? `${app.city}, ${app.country}`
+      : app?.city || app?.country || user.location || "Not specified";
+
+  const experience = app?.experience || "Not specified";
+  const website = app?.website?.trim() || "";
+  const goals = app?.goals?.trim() || "Not specified";
+  const bio = app?.notes?.trim() || user.notes?.trim() || user.bio?.trim() || "No background bio provided.";
+  const profession =
+    app?.profession?.trim() ||
+    (user.role === "admin"
+      ? "Super Administrator"
+      : user.role === "manager"
+        ? "Operations Manager"
+        : user.role === "team_member"
+          ? "Team Specialist"
+          : "Independent consultant");
+
+  const isPending = user.status === "pending";
+  const isApproved = user.status === "approved" || !user.status;
+
+  return (
+    <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 sm:p-6 shadow-xs transition hover:shadow-sm space-y-4">
+      {/* Top Header Row */}
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex items-start gap-3.5 min-w-0 flex-1">
+          <Avatar user={user} size={48} className="border-2 border-zinc-200 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight">{user.name}</h3>
+
+              {/* Status Badge */}
+              <span
+                className={`rounded-md px-2 py-0.5 text-[11px] font-bold ${
+                  isPending
+                    ? "bg-amber-100 text-amber-900 border border-amber-300"
+                    : isApproved
+                      ? "bg-emerald-100 text-emerald-900 border border-emerald-300"
+                      : "bg-red-100 text-red-900 border border-red-300"
+                }`}
+              >
+                {isPending ? "Pending Review" : isApproved ? "Active Member" : "Suspended"}
+              </span>
+
+              {/* Sub-badge / Profession Tag */}
+              <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+                {profession}
+              </span>
+
+              {user.isPremium && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 border border-amber-200 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
+                  <Crown size={11} className="text-amber-500" /> VIP
+                </span>
+              )}
+            </div>
+
+            {/* Subline Info */}
+            <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-zinc-500 font-medium">
+              <span className="font-mono text-zinc-800 font-semibold">{user.email}</span>
+              <span>•</span>
+              <span>{isPending ? `Applied ${timeAgo(user.joinedAt)}` : `Joined ${timeAgo(user.joinedAt)}`}</span>
+              {(user.phone || app?.phone) && (
+                <>
+                  <span>•</span>
+                  <span className="font-mono text-zinc-600">{user.phone || app?.phone}</span>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+          {onApprove && (
+            <button
+              onClick={onApprove}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer"
+            >
+              <Check size={13} /> Approve Member
+            </button>
+          )}
+
+          {onReject && (
+            <button
+              onClick={onReject}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/70 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer"
+            >
+              <X size={13} /> Reject
+            </button>
+          )}
+
+          {onReleaseSession && (
+            <button
+              onClick={onReleaseSession}
+              className="inline-flex items-center gap-1 rounded-xl border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs font-semibold text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+              title="Release device session lock"
+            >
+              <RefreshCw size={12} /> Release Lock
+            </button>
+          )}
+
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="inline-flex items-center gap-1 rounded-xl border border-zinc-200 bg-white px-2.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+            >
+              <Pencil size={12} /> Edit
+            </button>
+          )}
+
+          {onViewFull && !onApprove && (
+            <button
+              onClick={onViewFull}
+              className="inline-flex items-center gap-1 rounded-xl border border-primary/20 bg-primary/5 px-2.5 py-2 text-xs font-semibold text-primary hover:bg-primary/10 transition cursor-pointer"
+            >
+              View Full
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Details Box matching Image 2 */}
+      <div className="rounded-xl border border-zinc-200/90 bg-white/70 p-4 sm:p-5 text-xs sm:text-[13px] text-zinc-700 space-y-2.5 leading-relaxed">
+        {/* Row 1: Location & Experience */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div>
+            <span className="text-zinc-500 font-medium">Location:</span>{" "}
+            <strong className="text-zinc-950">{location}</strong>
+          </div>
+          <div>
+            <span className="text-zinc-500 font-medium">Experience:</span>{" "}
+            <strong className="text-zinc-950">{experience}</strong>
+          </div>
+        </div>
+
+        {/* Row 2: Website / Portfolio */}
+        <div>
+          <span className="text-zinc-500 font-medium">Website / Portfolio:</span>{" "}
+          {website ? (
+            <a
+              href={website.startsWith("http") ? website : `https://${website}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-primary hover:underline font-semibold inline-flex items-center gap-1"
+            >
+              {website} <ExternalLink size={12} />
+            </a>
+          ) : (
+            <span className="text-zinc-400 font-mono">None provided</span>
+          )}
+        </div>
+
+        {/* Row 3: Primary Goals */}
+        <div>
+          <span className="text-zinc-500 font-medium">Primary Goals:</span>{" "}
+          <span className="text-zinc-900">{goals}</span>
+        </div>
+
+        {/* Row 4: Background & Bio */}
+        <div className="pt-2 border-t border-zinc-100">
+          <span className="text-zinc-500 font-medium">Background & Bio:</span>{" "}
+          <span className="text-zinc-900">{bio}</span>
+        </div>
+
+        {/* Row 5: How they heard (if present) */}
+        {app?.howHeard && (
+          <div className="pt-1 text-[11px] text-zinc-500">
+            <span className="font-medium">Referred / Discovered via:</span> {app.howHeard}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
