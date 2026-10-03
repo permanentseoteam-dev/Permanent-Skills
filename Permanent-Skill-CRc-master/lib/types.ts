@@ -1,6 +1,6 @@
 export type Role = "admin" | "manager" | "member" | "student" | "team_member" | "user";
 export type Status = "pending" | "approved" | "rejected";
-export type PostCategory = "chat" | "wins" | "recorded" | "reviews";
+export type PostCategory = "chat" | "wins" | "recorded" | "reviews" | "team";
 export type EventType = "live" | "premium";
 
 export interface Application {

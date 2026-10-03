@@ -141,7 +141,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
         </div>
       )}
       <div className="mb-3 flex gap-2 flex-wrap">
-        {(["chat", "wins", "recorded", "reviews"] as PostCategory[]).map((c) => (
+        {(["chat", "wins", "recorded", "reviews", "team"] as PostCategory[]).map((c) => (
           <button
             key={c}
             onClick={() => setCategory(c)}
@@ -151,7 +151,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
                 : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80"
             }`}
           >
-            {c === "chat" ? "General discussion" : c}
+            {c === "chat" ? "General discussion" : c === "recorded" ? "Replays" : c === "team" ? "Team" : c}
           </button>
         ))}
       </div>
@@ -696,6 +696,16 @@ export function CategoryPills({
           }`}
         >
           Reviews
+        </button>
+        <button
+          onClick={() => onChange("team")}
+          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            value === "team"
+              ? "bg-zinc-900 text-white shadow-xs"
+              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+          }`}
+        >
+          Team
         </button>
       </div>
 

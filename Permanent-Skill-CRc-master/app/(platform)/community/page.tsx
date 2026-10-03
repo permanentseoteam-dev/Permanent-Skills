@@ -11,7 +11,7 @@ function CommunityContent() {
   const tabParam = searchParams?.get("tab") || searchParams?.get("category");
 
   const [category, setCategory] = useState<"all" | PostCategory>(() => {
-    if (tabParam && ["all", "chat", "wins", "recorded", "reviews"].includes(tabParam)) {
+    if (tabParam && ["all", "chat", "wins", "recorded", "reviews", "team"].includes(tabParam)) {
       return tabParam as "all" | PostCategory;
     }
     return "all";
@@ -19,7 +19,7 @@ function CommunityContent() {
   const [showReview, setShowReview] = useState(false);
 
   useEffect(() => {
-    if (tabParam && ["all", "chat", "wins", "recorded", "reviews"].includes(tabParam)) {
+    if (tabParam && ["all", "chat", "wins", "recorded", "reviews", "team"].includes(tabParam)) {
       setCategory(tabParam as "all" | PostCategory);
     }
   }, [tabParam]);

@@ -27,7 +27,7 @@ import { getLevel } from "@/lib/levels";
 import { formatMoney } from "@/lib/format";
 import type { Course } from "@/lib/types";
 
-type FilterTab = "all" | "in_progress" | "completed" | "unlocked" | "vip";
+type FilterTab = "all" | "in_progress" | "completed" | "unlocked" | "vip" | "team";
 type SortOption = "default" | "progress_desc" | "lessons_desc" | "level_asc" | "level_desc" | "title_asc";
 
 export default function AllCoursesPage() {
@@ -116,7 +116,16 @@ export default function AllCoursesPage() {
         return isAccessible;
       }
       if (selectedFilter === "vip") {
-        return c.isPremiumOnly || c.badge === "PREMIUM";
+        return c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP";
+      }
+      if (selectedFilter === "team") {
+        return (
+          c.badge?.toLowerCase().includes("team") ||
+          c.title.toLowerCase().includes("team") ||
+          c.slug.toLowerCase().includes("team") ||
+          c.id.toLowerCase().includes("team") ||
+          c.description.toLowerCase().includes("team")
+        );
       }
       return true;
     });
@@ -410,7 +419,8 @@ export default function AllCoursesPage() {
           { id: "unlocked", label: "Unlocked", count: courses.filter((c) => user?.role === "admin" || user?.role === "manager" || user?.isPremium || user?.purchasedCourseIds?.includes(c.id) || (!c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel))).length },
           { id: "in_progress", label: "In Progress", count: stats.inProgressCourses },
           { id: "completed", label: "Completed", count: stats.completedCourses },
-          { id: "vip", label: "VIP Masterminds", count: courses.filter((c) => c.isPremiumOnly || c.badge === "PREMIUM").length },
+          { id: "vip", label: "VIP Masterminds", count: courses.filter((c) => c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP").length },
+          { id: "team", label: "Team", count: courses.filter((c) => c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team")).length },
         ].map((tab) => {
           const isActive = selectedFilter === tab.id;
           return (

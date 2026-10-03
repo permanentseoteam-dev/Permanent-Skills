@@ -61,4 +61,5 @@ export const CATEGORIES = [
   { id: "wins", label: "Wins", emoji: "🏆" },
   { id: "recorded", label: "Recorded Calls", emoji: "🎥" },
   { id: "reviews", label: "Reviews", emoji: "⭐" },
+  { id: "team", label: "Team", emoji: "👥" },
 ] as const;
