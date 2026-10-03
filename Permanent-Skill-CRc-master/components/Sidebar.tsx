@@ -70,7 +70,9 @@ export function Sidebar() {
 
           <div className="mt-3 flex -space-x-2">
             {visible.slice(0, 8).map((m) => (
-              <Avatar key={m.id} user={m} size={28} className="border-2 border-white shadow-xs" />
+              <Link key={m.id} href={`/profile/${m.id}`} title={m.name} className="transition hover:scale-110">
+                <Avatar user={m} size={28} className="border-2 border-white shadow-xs" />
+              </Link>
             ))}
           </div>
 

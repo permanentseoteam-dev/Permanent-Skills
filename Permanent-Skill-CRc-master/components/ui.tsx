@@ -315,8 +315,9 @@ export function UserRoleBadge({
   const isAdmin = role === "admin";
   const isManager = role === "manager";
   const isTeam = role === "team_member";
+  const isOnlyVip = isPremium && !isAdmin && !isManager;
 
-  if (!isAdmin && !isManager && !isTeam && !isPremium) return null;
+  if (!isAdmin && !isManager && !isTeam && !isOnlyVip) return null;
 
   const sizeClass =
     size === "xs"
@@ -358,7 +359,7 @@ export function UserRoleBadge({
           <span>Team</span>
         </span>
       )}
-      {isPremium && (
+      {isOnlyVip && (
         <span
           className={`inline-flex items-center gap-1 rounded-md font-bold uppercase tracking-wide bg-gradient-to-r from-amber-500 to-yellow-400 text-zinc-950 border border-amber-400 shadow-2xs ${sizeClass}`}
           title="Premium VIP Member"

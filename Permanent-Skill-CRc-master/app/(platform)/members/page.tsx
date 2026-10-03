@@ -7,12 +7,9 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
-  Mail,
   MessageCircle,
   Search,
-  Share2,
   Sparkles,
-  UserCheck,
   UserPlus,
   Users,
   X,
@@ -26,12 +23,9 @@ import {
   GoldButton,
   ManagerAvatarFavicon,
   Modal,
-  PrimaryButton,
   UserRoleBadge,
-  inputClass,
 } from "@/components/ui";
 import { ChatDrawer } from "@/components/ChatDrawer";
-import { timeAgo } from "@/lib/format";
 import type { PublicUser } from "@/lib/types";
 
 function PillButton({
@@ -84,12 +78,10 @@ export default function MembersPage() {
 
   // Invite modal state
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
   const [inviteDestination, setInviteDestination] = useState<"login" | "register">("login");
   const [copiedLink, setCopiedLink] = useState(false);
-  const [emailSuccess, setEmailSuccess] = useState(false);
-  const [emailBusy, setEmailBusy] = useState(false);
-  const [copiedCode, setCopiedCode] = useState(false);
+
+  const canInvite = user?.role === "admin" || user?.role === "manager";
 
   const approvedUsers = useMemo(() => {
     return users.filter(
@@ -114,7 +106,7 @@ export default function MembersPage() {
     [approvedUsers]
   );
   const premiumCount = useMemo(
-    () => approvedUsers.filter((u) => u.isPremium || u.role === "admin").length,
+    () => approvedUsers.filter((u) => u.isPremium && u.role !== "admin" && u.role !== "manager").length,
     [approvedUsers]
   );
 
@@ -125,7 +117,7 @@ export default function MembersPage() {
         if (tab === "admins") return u.role === "admin";
         if (tab === "managers") return u.role === "manager";
         if (tab === "online") return u.isOnline;
-        if (tab === "premium") return u.isPremium || u.role === "admin";
+        if (tab === "premium") return Boolean(u.isPremium && u.role !== "admin" && u.role !== "manager");
         return true;
       })
       .filter((u) => {
@@ -159,33 +151,6 @@ export default function MembersPage() {
       } catch {
         // fallback
       }
-    }
-  }
-
-  async function handleCopyCode() {
-    if (typeof window !== "undefined") {
-      try {
-        await navigator.clipboard.writeText(affiliateCode);
-        setCopiedCode(true);
-        setTimeout(() => setCopiedCode(false), 2000);
-      } catch {}
-    }
-  }
-
-  async function handleSendEmailInvite(e: React.FormEvent) {
-    e.preventDefault();
-    if (!inviteEmail.trim()) return;
-    setEmailBusy(true);
-    setEmailSuccess(false);
-    try {
-      await inviteMember(inviteEmail.trim());
-      setEmailSuccess(true);
-      setInviteEmail("");
-      setTimeout(() => setEmailSuccess(false), 4000);
-    } catch {
-      // error handled in action
-    } finally {
-      setEmailBusy(false);
     }
   }
 
@@ -236,18 +201,19 @@ export default function MembersPage() {
             />
           </div>
 
-          {/* Invite Action Button */}
-          <GoldButton
-            onClick={() => {
-              setInviteOpen(true);
-              setCopiedLink(false);
-              setEmailSuccess(false);
-            }}
-            className="inline-flex items-center gap-1.5 shadow-sm text-xs font-bold py-2 px-4 cursor-pointer"
-          >
-            <UserPlus size={15} />
-            <span>INVITE MEMBERS</span>
-          </GoldButton>
+          {/* Invite Action Button - accessible to manager and admin role only */}
+          {canInvite && (
+            <GoldButton
+              onClick={() => {
+                setInviteOpen(true);
+                setCopiedLink(false);
+              }}
+              className="inline-flex items-center gap-1.5 shadow-sm text-xs font-bold py-2 px-4 cursor-pointer"
+            >
+              <UserPlus size={15} />
+              <span>INVITE MEMBERS</span>
+            </GoldButton>
+          )}
         </div>
 
         {/* Search Input */}
@@ -315,7 +281,11 @@ export default function MembersPage() {
                 >
                   {/* Member Details */}
                   <div className="flex items-start gap-3.5 min-w-0 flex-1">
-                    <div className="relative shrink-0">
+                    <Link
+                      href={`/profile?id=${m.id}`}
+                      className="relative shrink-0 block hover:opacity-90 transition"
+                      title={`View ${m.name}'s profile`}
+                    >
                       <Avatar user={m} size={48} />
                       {m.isOnline && (
                         <span
@@ -323,7 +293,7 @@ export default function MembersPage() {
                           title="Online now"
                         />
                       )}
-                    </div>
+                    </Link>
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -415,14 +385,13 @@ export default function MembersPage() {
       <Sidebar />
       <ChatDrawer userId={chatUserId} onClose={() => setChatUserId(null)} />
 
-      {/* Comprehensive Invite Members Modal */}
+      {/* Streamlined Invite Members Modal for Staff */}
       <Modal
-        open={inviteOpen}
+        open={inviteOpen && canInvite}
         onClose={() => setInviteOpen(false)}
         title="Invite New Members"
-        wide
       >
-        <div className="space-y-5 max-h-[80vh] overflow-y-auto pr-1">
+        <div className="space-y-4">
           {/* Top explainer */}
           <div className="rounded-xl border border-primary/20 bg-primary/5 p-3.5 flex items-start gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-xs">
@@ -438,7 +407,7 @@ export default function MembersPage() {
             </div>
           </div>
 
-          {/* Section 1: Generated Invite Link */}
+          {/* Generated Invite Link */}
           <div className="space-y-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-700">
@@ -513,98 +482,6 @@ export default function MembersPage() {
                 ? "💡 Directs to the Login Page with an invitation banner + 1-click option to create account & join."
                 : "💡 Directs straight to the Account Application page with your referral attribution."}
             </p>
-          </div>
-
-          {/* Section 2: Direct Email Invitation Sender */}
-          <form onSubmit={handleSendEmailInvite} className="space-y-3 rounded-xl border border-zinc-200 bg-white p-4">
-            <label className="block text-xs font-bold uppercase tracking-wider text-zinc-700">
-              Send Direct Email Invite
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="colleague@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="flex-1 rounded-xl border border-zinc-200 bg-white px-3.5 py-2 text-xs outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              />
-              <button
-                type="submit"
-                disabled={emailBusy || !inviteEmail.trim()}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 px-4 py-2 text-xs font-bold text-white transition shadow-sm cursor-pointer shrink-0"
-              >
-                <Mail size={14} />
-                <span>{emailBusy ? "Sending..." : "Send Invite"}</span>
-              </button>
-            </div>
-
-            {emailSuccess && (
-              <p className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                <CheckCircle2 size={14} />
-                <span>Invitation recorded and dispatched successfully!</span>
-              </p>
-            )}
-          </form>
-
-          {/* Section 3: 1-Click Social Share */}
-          <div className="space-y-2">
-            <p className="text-xs font-bold uppercase tracking-wider text-zinc-500">
-              Quick Share Via
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {/* WhatsApp */}
-              <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(
-                  `Join me on Permanent Skills Nexus: ${inviteUrl}`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-emerald-50 hover:border-emerald-300 hover:text-emerald-700 p-2.5 text-xs font-semibold text-zinc-700 transition shadow-2xs"
-              >
-                <span>💬 WhatsApp</span>
-              </a>
-
-              {/* Telegram */}
-              <a
-                href={`https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(
-                  "Join me on Permanent Skills Nexus"
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-sky-50 hover:border-sky-300 hover:text-sky-700 p-2.5 text-xs font-semibold text-zinc-700 transition shadow-2xs"
-              >
-                <span>✈️ Telegram</span>
-              </a>
-
-              {/* Email */}
-              <a
-                href={`mailto:?subject=${encodeURIComponent(
-                  "Invitation to join Permanent Skills Nexus"
-                )}&body=${encodeURIComponent(
-                  `Hi,\n\nI'd like to invite you to join Permanent Skills Nexus.\n\nYou can access and create your account here: ${inviteUrl}\n\nBest regards,\n${user?.name || "Permanent Skills Member"}`
-                )}`}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-100 p-2.5 text-xs font-semibold text-zinc-700 transition shadow-2xs col-span-2 sm:col-span-1"
-              >
-                <Mail size={13} />
-                <span>Default Mail</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Section 4: Your Personal Referral Code */}
-          <div className="rounded-xl bg-zinc-50 p-3.5 border border-zinc-200 flex items-center justify-between gap-3 text-xs">
-            <div>
-              <span className="font-bold text-zinc-800">Your Referral / Invite Code: </span>
-              <span className="font-mono font-bold text-primary">{affiliateCode}</span>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              className="inline-flex items-center gap-1 text-[11px] font-bold text-zinc-600 hover:text-zinc-900 bg-white border border-zinc-200 px-2.5 py-1 rounded-lg shadow-2xs transition cursor-pointer"
-            >
-              {copiedCode ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
-              <span>{copiedCode ? "Copied" : "Copy Code"}</span>
-            </button>
           </div>
         </div>
       </Modal>

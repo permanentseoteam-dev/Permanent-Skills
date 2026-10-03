@@ -70,9 +70,9 @@ export default function ProfilePage() {
               <Trophy size={13} /> Level {level.level} · {level.name}
             </span>
 
-            {person.isPremium && (
+            {person.isPremium && person.role !== "admin" && person.role !== "manager" && (
               <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700 border border-indigo-200 shadow-2xs">
-                💎 Premium Member
+                💎 VIP Member
               </span>
             )}
 
