@@ -460,23 +460,20 @@ export default function MeetPage() {
 
   return (
     <div className="space-y-6">
-      {/* 1. Projects Section: Previous and Current Projects (Visible to Admin & Manager only) */}
-      {isStaff && (
-        <div className="space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
-            <div>
-              <h2 className="text-xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
-                <span>Projects & Meetings Hub</span>
-                <span className="h-2.5 w-2.5 rounded-full bg-[#5051F9]" />
-                <span className="rounded-md bg-zinc-900 text-white px-2 py-0.5 text-[10px] font-black uppercase">
-                  Staff Only
-                </span>
-              </h2>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Manage project syncs, meeting hosts, and attendees linked with live calendar rooms
-              </p>
-            </div>
+      {/* 1. Projects & Meetings Section (Displayable for users) */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
+              <span>Upcoming Projects & Live Syncs</span>
+              <span className="h-2.5 w-2.5 rounded-full bg-[#5051F9]" />
+            </h2>
+            <p className="text-xs text-zinc-500 mt-0.5">
+              Live project sessions, meeting hosts, and interactive rooms
+            </p>
+          </div>
 
+          {isStaff && (
             <div className="flex items-center gap-2 flex-wrap">
               <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-1">
                 <button
@@ -487,7 +484,7 @@ export default function MeetPage() {
                       : "text-zinc-600 hover:text-zinc-900"
                   }`}
                 >
-                  Current Projects ({currentProjects.length})
+                  Current ({currentProjects.length})
                 </button>
                 <button
                   onClick={() => setProjectTab("previous")}
@@ -497,7 +494,7 @@ export default function MeetPage() {
                       : "text-zinc-600 hover:text-zinc-900"
                   }`}
                 >
-                  Previous Projects ({previousProjects.length})
+                  Previous ({previousProjects.length})
                 </button>
                 <button
                   onClick={() => setProjectTab("all")}
@@ -518,59 +515,64 @@ export default function MeetPage() {
                 <Plus size={14} /> Add Project
               </button>
             </div>
-          </div>
+          )}
+        </div>
 
-          {displayedProjects.length === 0 ? (
-            <Card className="p-8 text-center bg-zinc-50/50 border-dashed">
-              <Layers size={32} className="mx-auto text-zinc-400 mb-2" />
-              <p className="text-sm font-semibold text-zinc-700">
-                {projectTab === "previous"
-                  ? "No previous completed projects yet"
-                  : projectTab === "current"
-                  ? "No current active projects"
-                  : "No projects created yet"}
-              </p>
-              <p className="text-xs text-zinc-500 mt-1">
-                Click &ldquo;+ Add Project&rdquo; to create a new initiative.
-              </p>
-              <div className="mt-4">
+        {displayedProjects.length === 0 ? (
+          <Card className="p-8 text-center bg-zinc-50/50 border-dashed">
+            <Layers size={32} className="mx-auto text-zinc-400 mb-2" />
+            <p className="text-sm font-semibold text-zinc-700">
+              No active project meetings scheduled right now.
+            </p>
+            {isStaff && (
+              <div className="mt-3">
                 <button
                   type="button"
                   onClick={openCreateProject}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-[#5051F9] px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-[#4041d8] transition cursor-pointer"
                 >
-                  <Plus size={14} /> Create First Project
+                  <Plus size={14} /> Add Project
                 </button>
               </div>
-            </Card>
-          ) : (
-            <div className="space-y-4">
-              {displayedProjects.map((proj) => {
-                const lead = users.find((u) => u.id === proj.leadId);
-                const teamMembers = proj.memberIds
-                  .map((id) => users.find((u) => u.id === id))
-                  .filter(Boolean) as PublicUser[];
+            )}
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {displayedProjects.map((proj) => {
+              const lead = users.find((u) => u.id === proj.leadId);
+              const teamMembers = proj.memberIds
+                .map((id) => users.find((u) => u.id === id))
+                .filter(Boolean) as PublicUser[];
 
-                const currentStatus: "active" | "completed" | "paused" =
-                  proj.status || (proj.progress === 100 ? "completed" : "active");
-                const isCompleted = currentStatus === "completed";
-                const isPaused = currentStatus === "paused";
+              const currentStatus: "active" | "completed" | "paused" =
+                proj.status || (proj.progress === 100 ? "completed" : "active");
+              const isCompleted = currentStatus === "completed";
+              const isPaused = currentStatus === "paused";
 
-                const otherProjects = projects.filter((p) => p.id !== proj.id);
+              const matchedEvent = events.find(
+                (ev) =>
+                  `${ev.title} (${formatDateTime(ev.start)})` === proj.meetSyncTime ||
+                  ev.title === proj.meetSyncTime ||
+                  ev.id === proj.meetSyncTime
+              );
+              const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
+              const targetUrl = isProjMeetOlder && matchedEvent
+                ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
+                : proj.meetUrl || "https://meet.google.com/new";
 
-                return (
-                  <Card
-                    key={proj.id}
-                    className="relative overflow-visible border border-zinc-200/90 bg-white p-5 sm:p-6 shadow-sm transition hover:shadow-md space-y-4"
-                  >
-                    {/* Row 1: Title, Status Selector & Action Buttons */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <h3 className="text-lg sm:text-xl font-black text-zinc-950 tracking-tight">
-                          {proj.title}
-                        </h3>
+              return (
+                <Card
+                  key={proj.id}
+                  className="relative overflow-visible border border-zinc-200/90 bg-white p-5 sm:p-6 shadow-sm transition hover:shadow-md space-y-4"
+                >
+                  {/* Top Row: Title on Left, Join Now Button on Right (Above the Meeting Time) */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h3 className="text-lg sm:text-xl font-black text-zinc-950 tracking-tight">
+                        {proj.title}
+                      </h3>
 
-                        {/* Status Selector Dropdown */}
+                      {isStaff ? (
                         <div className="relative inline-flex items-center">
                           <select
                             value={currentStatus}
@@ -595,285 +597,192 @@ export default function MeetPage() {
                           </select>
                           <ChevronDown size={11} className="pointer-events-none absolute right-1.5 opacity-60" />
                         </div>
-                      </div>
-
-                      {/* Project actions (Join Meet, Edit, Delete) */}
-                      <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
-                        {proj.meetUrl && (() => {
-                          const matchedEvent = events.find(
-                            (ev) =>
-                              `${ev.title} (${formatDateTime(ev.start)})` === proj.meetSyncTime ||
-                              ev.title === proj.meetSyncTime ||
-                              ev.id === proj.meetSyncTime
-                          );
-                          const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
-                          const targetUrl = isProjMeetOlder && matchedEvent
-                            ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
-                            : proj.meetUrl;
-
-                          return (
-                            <a
-                              href={targetUrl}
-                              target={isProjMeetOlder ? "_self" : "_blank"}
-                              rel="noopener noreferrer"
-                              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition cursor-pointer shadow-xs ${
-                                isProjMeetOlder
-                                  ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200"
-                                  : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
-                              }`}
-                            >
-                              {isProjMeetOlder ? <VideoOff size={14} /> : <Video size={14} />}
-                              <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
-                            </a>
-                          );
-                        })()}
-
-                        <button
-                          onClick={() => openEditProject(proj)}
-                          className="rounded-xl p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-zinc-200 transition cursor-pointer"
-                          title="Edit Project"
+                      ) : (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize border ${
+                            isCompleted
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : isPaused
+                              ? "bg-amber-50 text-amber-700 border-amber-200"
+                              : "bg-indigo-50 text-indigo-700 border-indigo-200"
+                          }`}
                         >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          onClick={() => onDeleteProject(proj.id)}
-                          className="rounded-xl p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 border border-zinc-200 transition cursor-pointer"
-                          title="Delete Project"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Row 2: Profile Icons, Host Name, and Project/Meeting Dropdown */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-0.5">
-                      {/* Profile Avatars & Host */}
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {/* Profile Avatars with Dropdown Trigger */}
-                        <div className="relative">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setOpenMemberSelector(openMemberSelector === proj.id ? null : proj.id)
-                            }
-                            className="flex items-center gap-2 rounded-xl bg-zinc-50 border border-zinc-200/80 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 transition cursor-pointer shadow-2xs"
-                            title="Click to check or uncheck meeting members"
-                          >
-                            <div className="flex items-center -space-x-2">
-                              {teamMembers.length > 0 ? (
-                                teamMembers.slice(0, 5).map((m) => (
-                                  <Avatar
-                                    key={m.id}
-                                    user={m}
-                                    size={26}
-                                    className="ring-2 ring-white"
-                                  />
-                                ))
-                              ) : (
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-[10px] text-zinc-600">
-                                  <Users size={12} />
-                                </span>
-                              )}
-                              {teamMembers.length > 5 && (
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700 ring-2 ring-white">
-                                  +{teamMembers.length - 5}
-                                </span>
-                              )}
-                            </div>
-
-                            <span className="text-[11px] font-bold text-zinc-700">
-                              {teamMembers.length} {teamMembers.length === 1 ? "Attendee" : "Attendees"}
-                            </span>
-                            <ChevronDown size={12} className="text-zinc-400" />
-                          </button>
-
-                          {/* Member Selection Popover */}
-                          {openMemberSelector === proj.id && (
-                            <div className="absolute left-0 top-full mt-2 z-50 w-72 sm:w-80 rounded-2xl border border-zinc-200 bg-white p-3 shadow-xl space-y-2.5">
-                              <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
-                                <span className="text-xs font-bold text-zinc-900">
-                                  Check Meeting Attendees ({teamMembers.length}/{users.length})
-                                </span>
-                                <button
-                                  onClick={() => setOpenMemberSelector(null)}
-                                  className="text-zinc-400 hover:text-zinc-600 p-0.5 rounded cursor-pointer"
-                                >
-                                  <X size={14} />
-                                </button>
-                              </div>
-
-                              {/* Search members */}
-                              <div className="relative">
-                                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                                <input
-                                  value={memberSearchQuery}
-                                  onChange={(e) => setMemberSearchQuery(e.target.value)}
-                                  placeholder="Filter members..."
-                                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-1 pl-8 pr-2.5 text-xs outline-none focus:border-[#5051F9]"
-                                />
-                              </div>
-
-                              {/* Checkable List */}
-                              <div className="max-h-52 overflow-y-auto space-y-1 divide-y divide-zinc-50 pr-1">
-                                {users
-                                  .filter((u) => {
-                                    if (!memberSearchQuery.trim()) return true;
-                                    const q = memberSearchQuery.toLowerCase();
-                                    return (
-                                      u.name.toLowerCase().includes(q) ||
-                                      u.username.toLowerCase().includes(q) ||
-                                      u.email?.toLowerCase().includes(q)
-                                    );
-                                  })
-                                  .map((u) => {
-                                    const isChecked = proj.memberIds.includes(u.id);
-                                    return (
-                                      <label
-                                        key={u.id}
-                                        className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-zinc-50 transition cursor-pointer select-none"
-                                      >
-                                        <div className="flex items-center gap-2 min-w-0 flex-1">
-                                          <Avatar user={u} size={24} />
-                                          <div className="min-w-0 flex-1">
-                                            <p className="text-xs font-bold text-zinc-900 truncate">{u.name}</p>
-                                            <p className="text-[10px] text-zinc-400 font-mono truncate">@{u.username}</p>
-                                          </div>
-                                        </div>
-                                        <input
-                                          type="checkbox"
-                                          checked={isChecked}
-                                          onChange={() => toggleProjectMember(proj.id, u.id)}
-                                          className="h-4 w-4 rounded border-zinc-300 text-[#5051F9] focus:ring-[#5051F9] cursor-pointer"
-                                        />
-                                      </label>
-                                    );
-                                  })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Host with Name (replacing Lead with Host) */}
-                        <div className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-100 border border-zinc-200/80 px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-2xs">
-                          <Mic size={13} className="text-[#5051F9]" />
-                          <span>
-                            Host: <strong className="font-bold text-zinc-950">{proj.leadName || lead?.name || "Admin"}</strong>
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Dropdown with facility of selecting projects and meeting sync times, with Create button */}
-                      <div className="relative min-w-[220px] max-w-xs">
-                        <select
-                          value={proj.meetSyncTime || ""}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (val === "__create_new__") {
-                              openCreateProject();
-                              return;
-                            }
-                            const matchedEvent = events.find(
-                              (ev) =>
-                                `${ev.title} (${formatDateTime(ev.start)})` === val ||
-                                ev.id === val ||
-                                ev.title === val
-                            );
-                            const matchedProj = projects.find(
-                              (p) => p.title === val || `Sync with ${p.title}` === val
-                            );
-
-                            let nextTime = val;
-                            let nextRoom = proj.meetRoom || "Nexus Meet #room-general";
-                            let nextUrl = proj.meetUrl || "https://meet.google.com/new";
-
-                            if (matchedEvent) {
-                              nextTime = `${matchedEvent.title} (${formatDateTime(matchedEvent.start)})`;
-                              nextRoom = matchedEvent.type === "live" ? "Live Stream Room" : "VIP Mastermind Room";
-                            } else if (matchedProj) {
-                              nextTime = `Sync with ${matchedProj.title}`;
-                              nextRoom = matchedProj.meetRoom || "Nexus Meet #room-sync";
-                            }
-
-                            updateProjectMeetSync(proj.id, nextTime, nextRoom, nextUrl);
-                          }}
-                          className="w-full cursor-pointer appearance-none rounded-xl border border-zinc-200 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-zinc-300 focus:border-[#5051F9] transition"
-                        >
-                          <option value={proj.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}>
-                            {proj.meetSyncTime || "Select meeting or project..."}
-                          </option>
-
-                          {events.length > 0 && (
-                            <optgroup label="Upcoming Calendar Meetings">
-                              {events.map((ev) => (
-                                <option key={ev.id} value={`${ev.title} (${formatDateTime(ev.start)})`}>
-                                  📅 {ev.title} • {formatDateTime(ev.start)}
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-
-                          {otherProjects.length > 0 && (
-                            <optgroup label="Switch / Sync Other Projects">
-                              {otherProjects.map((p) => (
-                                <option key={p.id} value={`Sync with ${p.title}`}>
-                                  🚀 {p.title} ({p.version || "v1.0"})
-                                </option>
-                              ))}
-                            </optgroup>
-                          )}
-
-                          <optgroup label="Custom Sprint Syncs">
-                            <option value="Sprint Sync: Today, 3:00 PM">Sprint Sync: Today, 3:00 PM</option>
-                            <option value="Weekly Strategy: Tomorrow, 4:00 PM">Weekly Strategy: Tomorrow, 4:00 PM</option>
-                            <option value="Deliverable Review: Friday, 2:00 PM">Deliverable Review: Friday, 2:00 PM</option>
-                          </optgroup>
-
-                          <optgroup label="Actions">
-                            <option value="__create_new__">+ Create New Project</option>
-                          </optgroup>
-                        </select>
-                        <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
-                      </div>
-                    </div>
-
-                    {/* IN PLACE OF DELIVERABLES & MILESTONES: TIME OF MEETING SQUARE BOX */}
-                    {/* Slightly enlarged, light red color within square box */}
-                    <div className="rounded-2xl border border-red-200 bg-red-50/85 p-4 sm:p-5 shadow-2xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider text-red-600">
-                          <Clock size={15} className="text-red-600 stroke-[2.5]" />
-                          <span>Time of Meeting</span>
-                        </div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-red-700 bg-red-100/90 border border-red-300 px-2 py-0.5 rounded-md">
-                          {proj.meetRoom || "Nexus Meet #room-design"}
+                          ● {currentStatus}
                         </span>
-                      </div>
+                      )}
+                    </div>
 
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
-                        <div className="text-base sm:text-lg font-black text-red-950 tracking-tight">
-                          {proj.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}
+                    {/* Above the Meeting Time: Join Now Button & Staff tools */}
+                    <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                      <a
+                        href={targetUrl}
+                        target={isProjMeetOlder ? "_self" : "_blank"}
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer shadow-xs ${
+                          isProjMeetOlder
+                            ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700 border border-zinc-200"
+                            : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
+                        }`}
+                      >
+                        {isProjMeetOlder ? <VideoOff size={14} /> : <Video size={14} />}
+                        <span>{isProjMeetOlder ? "Meet Ended" : "Join Now"}</span>
+                      </a>
+
+                      {isStaff && (
+                        <>
+                          <button
+                            onClick={() => openEditProject(proj)}
+                            className="rounded-xl p-2 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 border border-zinc-200 transition cursor-pointer"
+                            title="Edit Project"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            onClick={() => onDeleteProject(proj.id)}
+                            className="rounded-xl p-2 text-zinc-400 hover:bg-red-50 hover:text-red-600 border border-zinc-200 transition cursor-pointer"
+                            title="Delete Project"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Row: Profile Icons, Host Name, and Ahead of Host Name -> Time of Meeting (light red colored) */}
+                  <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-zinc-100">
+                    {/* Profile Avatars with Dropdown Trigger */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenMemberSelector(openMemberSelector === proj.id ? null : proj.id)
+                        }
+                        className="flex items-center gap-2 rounded-xl bg-zinc-50 border border-zinc-200/80 px-2.5 py-1 text-xs font-medium hover:bg-zinc-100 transition cursor-pointer shadow-2xs"
+                        title="Click to view/check meeting attendees"
+                      >
+                        <div className="flex items-center -space-x-2">
+                          {teamMembers.length > 0 ? (
+                            teamMembers.slice(0, 5).map((m) => (
+                              <Avatar
+                                key={m.id}
+                                user={m}
+                                size={26}
+                                className="ring-2 ring-white"
+                              />
+                            ))
+                          ) : (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-[10px] text-zinc-600">
+                              <Users size={12} />
+                            </span>
+                          )}
+                          {teamMembers.length > 5 && (
+                            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-100 text-[10px] font-bold text-indigo-700 ring-2 ring-white">
+                              +{teamMembers.length - 5}
+                            </span>
+                          )}
                         </div>
 
-                        {proj.meetUrl && (
-                          <a
-                            href={proj.meetUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-bold text-red-700 hover:text-red-800 hover:underline"
-                          >
-                            <span>Room: {proj.meetUrl.replace("https://", "")}</span>
-                            <ExternalLink size={12} />
-                          </a>
-                        )}
-                      </div>
+                        <span className="text-[11px] font-bold text-zinc-700">
+                          {teamMembers.length} {teamMembers.length === 1 ? "Attendee" : "Attendees"}
+                        </span>
+                        <ChevronDown size={12} className="text-zinc-400" />
+                      </button>
+
+                      {/* Member Selection Popover */}
+                      {openMemberSelector === proj.id && (
+                        <div className="absolute left-0 top-full mt-2 z-50 w-72 sm:w-80 rounded-2xl border border-zinc-200 bg-white p-3 shadow-xl space-y-2.5">
+                          <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+                            <span className="text-xs font-bold text-zinc-900">
+                              Meeting Attendees ({teamMembers.length}/{users.length})
+                            </span>
+                            <button
+                              onClick={() => setOpenMemberSelector(null)}
+                              className="text-zinc-400 hover:text-zinc-600 p-0.5 rounded cursor-pointer"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+
+                          {/* Search members */}
+                          <div className="relative">
+                            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                            <input
+                              value={memberSearchQuery}
+                              onChange={(e) => setMemberSearchQuery(e.target.value)}
+                              placeholder="Filter members..."
+                              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-1 pl-8 pr-2.5 text-xs outline-none focus:border-[#5051F9]"
+                            />
+                          </div>
+
+                          {/* List */}
+                          <div className="max-h-52 overflow-y-auto space-y-1 divide-y divide-zinc-50 pr-1">
+                            {users
+                              .filter((u) => {
+                                if (!memberSearchQuery.trim()) return true;
+                                const q = memberSearchQuery.toLowerCase();
+                                return (
+                                  u.name.toLowerCase().includes(q) ||
+                                  u.username.toLowerCase().includes(q) ||
+                                  u.email?.toLowerCase().includes(q)
+                                );
+                              })
+                              .map((u) => {
+                                const isChecked = proj.memberIds.includes(u.id);
+                                return (
+                                  <label
+                                    key={u.id}
+                                    className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-zinc-50 transition cursor-pointer select-none"
+                                  >
+                                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                                      <Avatar user={u} size={24} />
+                                      <div className="min-w-0 flex-1">
+                                        <p className="text-xs font-bold text-zinc-900 truncate">{u.name}</p>
+                                        <p className="text-[10px] text-zinc-400 font-mono truncate">@{u.username}</p>
+                                      </div>
+                                    </div>
+                                    {isStaff ? (
+                                      <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggleProjectMember(proj.id, u.id)}
+                                        className="h-4 w-4 rounded border-zinc-300 text-[#5051F9] focus:ring-[#5051F9] cursor-pointer"
+                                      />
+                                    ) : isChecked ? (
+                                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded">
+                                        Joined
+                                      </span>
+                                    ) : null}
+                                  </label>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+
+                    {/* Host with Name (replacing Lead with Host) */}
+                    <div className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-100 border border-zinc-200/80 px-3 py-1.5 text-xs font-medium text-zinc-800 shadow-2xs">
+                      <Mic size={13} className="text-[#5051F9]" />
+                      <span>
+                        Host: <strong className="font-bold text-zinc-950">{proj.leadName || lead?.name || "Admin"}</strong>
+                      </span>
+                    </div>
+
+                    {/* Ahead of Host Name: Time of Meeting (Light Red Colored) */}
+                    <div className="inline-flex items-center gap-1.5 rounded-xl bg-red-50/90 border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-800 shadow-2xs">
+                      <Clock size={14} className="text-red-600 stroke-[2.5]" />
+                      <span>
+                        Time of meeting: <strong className="font-bold text-red-950">{proj.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}</strong>
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* 2. Calendar Grid Toolbar & Grid */}
       <Card className="p-5">
