@@ -74,10 +74,10 @@ export default function LeaderboardsPage() {
                 style={{ "--p": `${3.6 * me.progress}deg` } as React.CSSProperties}
               >
                 <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                  <Avatar user={user} size={112} />
+                  <Avatar user={user} size={112} showOnline={false} />
                 </div>
               </div>
-              <span className="absolute -bottom-1 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-white shadow-sm">
+              <span className="absolute -bottom-1 right-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-lg font-bold text-white shadow-md ring-4 ring-white">
                 {me.level}
               </span>
             </div>

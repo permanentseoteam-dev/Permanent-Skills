@@ -8,10 +8,12 @@ export function Avatar({
   user,
   size = 40,
   className = "",
+  showOnline = false,
 }: {
   user?: Pick<PublicUser, "name" | "avatarColor" | "isOnline"> | null;
   size?: number;
   className?: string;
+  showOnline?: boolean;
 }) {
   const color = user?.avatarColor || "#5051F9";
   return (
@@ -20,7 +22,7 @@ export function Avatar({
       style={{ width: size, height: size, background: color, fontSize: size * 0.36 }}
     >
       {user ? initials(user.name) : "?"}
-      {user?.isOnline && (
+      {showOnline && user?.isOnline && (
         <span
           className="absolute rounded-full border-2 border-white bg-emerald-500"
           style={{ width: size * 0.28, height: size * 0.28, right: 0, bottom: 0 }}
