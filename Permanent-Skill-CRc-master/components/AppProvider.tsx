@@ -106,7 +106,7 @@ const empty: AppState = {
 type AppContextValue = AppState & {
   loading: boolean;
   refresh: () => Promise<void>;
-  login: (email: string, password: string, memberType?: "team" | "premium") => Promise<ActionResult>;
+  login: (email: string, password: string, memberType?: "admin" | "team" | "premium") => Promise<ActionResult>;
   register: (name: string, email: string, password: string, phone: string, notes: string, ref?: string) => Promise<ActionResult>;
   logout: () => Promise<void>;
   apply: (form: Application) => Promise<ActionResult>;
@@ -235,7 +235,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const login = useCallback(
-    async (email: string, password: string, memberType?: "team" | "premium") => {
+    async (email: string, password: string, memberType?: "admin" | "team" | "premium") => {
       const result = await postAuth("/api/auth/login", { email, password, memberType });
       if (result.ok) await refresh();
       return result;

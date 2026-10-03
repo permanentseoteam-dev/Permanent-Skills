@@ -7,7 +7,7 @@ export async function POST(request: Request) {
     const body = (await request.json()) as {
       email?: string;
       password?: string;
-      memberType?: "team" | "premium";
+      memberType?: "admin" | "team" | "premium";
     };
     const email = String(body.email || "");
     const password = String(body.password || "");

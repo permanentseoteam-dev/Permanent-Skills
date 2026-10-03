@@ -12,7 +12,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [memberType, setMemberType] = useState<"team" | "premium">("team");
+  const [memberType, setMemberType] = useState<"admin" | "team" | "premium">("team");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -42,8 +42,9 @@ export default function LoginPage() {
           <select
             className={inputClass}
             value={memberType}
-            onChange={(e) => setMemberType(e.target.value as "team" | "premium")}
+            onChange={(e) => setMemberType(e.target.value as "admin" | "team" | "premium")}
           >
+            <option value="admin">Admin</option>
             <option value="team">Team member</option>
             <option value="premium">Premium member</option>
           </select>
