@@ -192,9 +192,9 @@ export function Header() {
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-black border border-amber-500/60 font-mono text-xs font-black text-amber-400 shadow-xs">
                   &gt;_
                 </span>
-              ) : activeCommunity?.type === "team" ? (
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 border border-purple-500/50 text-xs font-black text-purple-300 shadow-xs">
-                  TM
+              ) : activeCommunity?.type === "team" || activeCommunity?.slug === "team-members" || activeCommunity?.id === "comm-team" ? (
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl overflow-hidden shadow-xs border border-blue-500/30 bg-blue-600">
+                  <Image src="/team-icon.png" alt="Team" width={32} height={32} className="h-full w-full object-cover" />
                 </span>
               ) : (
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-black text-xs font-black text-white shadow-xs">
@@ -288,10 +288,10 @@ export function Header() {
                           &gt;_
                         </span>
                       );
-                    } else if (c.type === "team" || c.slug === "team-members") {
+                    } else if (c.type === "team" || c.slug === "team-members" || c.id === "comm-team") {
                       iconNode = (
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-zinc-900 border border-purple-500/50 text-[11px] font-black text-purple-300">
-                          TM
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-blue-500/30 bg-blue-600">
+                          <Image src="/team-icon.png" alt="Team" width={28} height={28} className="h-full w-full object-cover" />
                         </span>
                       );
                     }

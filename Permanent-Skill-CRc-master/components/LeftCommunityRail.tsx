@@ -22,10 +22,10 @@ export function LeftCommunityRail() {
       );
     }
 
-    if (c.type === "team" || c.slug === "team-members") {
+    if (c.type === "team" || c.slug === "team-members" || c.id === "comm-team") {
       return (
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1e1b4b] via-[#4c1d95] to-[#7c3aed] border border-purple-400/50 shadow-xs">
-          <span className="text-xs font-black text-purple-200">TM</span>
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden border border-blue-400/40 shadow-xs bg-blue-600">
+          <img src="/team-icon.png" alt="Team" className="h-full w-full object-cover" />
         </div>
       );
     }

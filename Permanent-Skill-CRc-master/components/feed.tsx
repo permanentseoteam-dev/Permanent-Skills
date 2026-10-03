@@ -145,13 +145,16 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
           <button
             key={c}
             onClick={() => setCategory(c)}
-            className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
               category === c
                 ? "bg-zinc-900 text-white shadow-xs"
                 : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80"
             }`}
           >
-            {c === "chat" ? "General discussion" : c === "recorded" ? "Replays" : c === "team" ? "Team" : c}
+            {c === "team" && (
+              <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+            )}
+            <span>{c === "chat" ? "General discussion" : c === "recorded" ? "Replays" : c === "team" ? "Team" : c}</span>
           </button>
         ))}
       </div>
@@ -699,13 +702,14 @@ export function CategoryPills({
         </button>
         <button
           onClick={() => onChange("team")}
-          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
             value === "team"
               ? "bg-zinc-900 text-white shadow-xs"
               : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
           }`}
         >
-          Team
+          <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+          <span>Team</span>
         </button>
       </div>
 

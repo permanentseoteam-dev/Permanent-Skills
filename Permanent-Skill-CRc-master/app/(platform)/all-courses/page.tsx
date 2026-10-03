@@ -420,7 +420,7 @@ export default function AllCoursesPage() {
           { id: "in_progress", label: "In Progress", count: stats.inProgressCourses },
           { id: "completed", label: "Completed", count: stats.completedCourses },
           { id: "vip", label: "VIP Masterminds", count: courses.filter((c) => c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP").length },
-          { id: "team", label: "Team", count: courses.filter((c) => c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team")).length },
+          { id: "team", label: "Team", icon: "/team-icon.png", count: courses.filter((c) => c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team")).length },
         ].map((tab) => {
           const isActive = selectedFilter === tab.id;
           return (
@@ -433,6 +433,13 @@ export default function AllCoursesPage() {
                   : "bg-white text-zinc-600 border border-zinc-200 hover:border-primary/40 hover:text-primary"
               }`}
             >
+              {"icon" in tab && tab.icon && (
+                <img
+                  src={tab.icon}
+                  alt=""
+                  className="h-3.5 w-3.5 rounded object-cover shrink-0"
+                />
+              )}
               <span>{tab.label}</span>
               <span
                 className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
