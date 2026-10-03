@@ -104,7 +104,7 @@ export default function AllCoursesPage() {
       const totalCount = c.lessons.length;
       const isPurchased = user?.purchasedCourseIds?.includes(c.id);
       const isLevelUnlocked = !c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel);
-      const isAccessible = user?.role === "admin" || user?.isPremium || isPurchased || isLevelUnlocked;
+      const isAccessible = user?.role === "admin" || user?.role === "manager" || user?.isPremium || isPurchased || isLevelUnlocked;
 
       if (selectedFilter === "in_progress") {
         return doneCount > 0 && doneCount < totalCount;
@@ -153,6 +153,98 @@ export default function AllCoursesPage() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  // Helper to render classroom-style lock banner matching ClassroomView
+  function renderCourseBanner(course: Course) {
+    const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
+    const isPremiumOnly = !!course.isPremiumOnly;
+    const glow = course.glowColor || "yellow";
+    const watermark = course.watermark || `> ${course.slug}_`;
+
+    if (isLevel1 || glow === "yellow") {
+      return (
+        <div
+          className="relative h-44 sm:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(0,0,0,0.22) 1.5px, transparent 1.5px)",
+            backgroundSize: "12px 12px",
+          }}
+        >
+          {/* Terminal Watermark behind */}
+          <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-black/35 tracking-tight pointer-events-none select-none">
+            {watermark}
+          </div>
+
+          {/* Center Black Lock Badge */}
+          <div className="relative z-10 flex flex-col items-center justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
+              <Lock size={20} className="stroke-[2.5]" />
+            </div>
+            <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+              Unlock at Level 1
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // Glow Configurations
+    let glowBg = "bg-emerald-500/25";
+    let ringBorder = "border-emerald-400/90 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]";
+    let lockIcon = <Lock size={20} className="stroke-[2.5]" />;
+
+    if (glow === "green") {
+      glowBg = "bg-emerald-500/25";
+      ringBorder = "border-emerald-400/90 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]";
+    } else if (glow === "blue") {
+      glowBg = "bg-sky-500/25";
+      ringBorder = "border-sky-400/90 text-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.4)]";
+    } else if (glow === "orange") {
+      glowBg = "bg-orange-500/30";
+      ringBorder = "border-orange-400/90 text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.45)]";
+      lockIcon = <Flame size={20} className="stroke-[2.5]" />;
+    } else if (glow === "red") {
+      glowBg = "bg-rose-500/25";
+      ringBorder = "border-rose-400/90 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]";
+    } else if (glow === "purple") {
+      glowBg = "bg-purple-500/30";
+      ringBorder = "border-purple-400/90 text-purple-400 shadow-[0_0_20px_rgba(168,85,247,0.45)]";
+    }
+
+    return (
+      <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
+        {/* Radial Glow */}
+        <div className={`absolute h-28 w-28 rounded-full ${glowBg} blur-2xl pointer-events-none`} />
+
+        {/* Terminal Watermark behind */}
+        <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-white/10 tracking-tight pointer-events-none select-none">
+          {watermark}
+        </div>
+
+        {/* Center Glowing Lock Badge */}
+        <div className="relative z-10 flex flex-col items-center justify-center text-center">
+          <div
+            className={`flex h-12 w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
+          >
+            {lockIcon}
+          </div>
+
+          <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+            {isPremiumOnly
+              ? "👑 Unlock with VIP"
+              : `Unlock at Level ${course.unlockLevel}`}
+          </span>
+
+          {!isPremiumOnly && (
+            <span className="text-[10.5px] text-zinc-400 font-medium">
+              or Upgrade to VIP
+            </span>
+          )}
+        </div>
+      </div>
+    );
   }
 
   // Helper to get total duration
@@ -315,7 +407,7 @@ export default function AllCoursesPage() {
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-zinc-200/80 text-xs scrollbar-none">
         {[
           { id: "all", label: "All Courses", count: courses.length },
-          { id: "unlocked", label: "Unlocked", count: courses.filter((c) => user?.role === "admin" || user?.isPremium || user?.purchasedCourseIds?.includes(c.id) || (!c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel))).length },
+          { id: "unlocked", label: "Unlocked", count: courses.filter((c) => user?.role === "admin" || user?.role === "manager" || user?.isPremium || user?.purchasedCourseIds?.includes(c.id) || (!c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel))).length },
           { id: "in_progress", label: "In Progress", count: stats.inProgressCourses },
           { id: "completed", label: "Completed", count: stats.completedCourses },
           { id: "vip", label: "VIP Masterminds", count: courses.filter((c) => c.isPremiumOnly || c.badge === "PREMIUM").length },
@@ -372,7 +464,7 @@ export default function AllCoursesPage() {
 
             const isPurchased = user?.purchasedCourseIds?.includes(course.id);
             const isLevelUnlocked = !course.isPremiumOnly && (course.unlockLevel <= 1 || userLevel >= course.unlockLevel);
-            const isAccessible = user?.role === "admin" || user?.isPremium || isPurchased || isLevelUnlocked;
+            const isAccessible = user?.role === "admin" || user?.role === "manager" || user?.isPremium || isPurchased || isLevelUnlocked;
             const price = course.price || 49;
             const duration = getCourseDuration(course);
 
@@ -382,48 +474,59 @@ export default function AllCoursesPage() {
                 className="group flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg border-zinc-200/90"
               >
                 {/* Course Banner */}
-                <div className={`relative h-44 bg-gradient-to-br ${course.accent || "from-zinc-900 to-zinc-950"} p-5 text-white flex flex-col justify-between overflow-hidden select-none`}>
-                  {/* Subtle Glow overlay */}
-                  <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+                {!isAccessible ? (
+                  <div
+                    className="cursor-pointer"
+                    onClick={() => {
+                      if (course.isPremiumOnly) {
+                        setUpgradeOpen(true);
+                      } else {
+                        setPurchasingCourse(course);
+                      }
+                    }}
+                    title="Click to unlock this course"
+                  >
+                    {renderCourseBanner(course)}
+                  </div>
+                ) : (
+                  <div className={`relative h-44 sm:h-48 bg-gradient-to-br ${course.accent || "from-zinc-900 to-zinc-950"} p-5 text-white flex flex-col justify-between overflow-hidden select-none`}>
+                    {/* Subtle Glow overlay */}
+                    <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
 
-                  <div className="relative z-10 flex items-center justify-between">
-                    <span className="rounded-md bg-black/40 backdrop-blur-xs px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase border border-white/15">
-                      {course.badge || "MODULE"}
-                    </span>
-                    {isAccessible ? (
+                    <div className="relative z-10 flex items-center justify-between">
+                      <span className="rounded-md bg-black/40 backdrop-blur-xs px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase border border-white/15">
+                        {course.badge || "MODULE"}
+                      </span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 backdrop-blur-xs px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
                         <ShieldCheck size={13} /> {user?.role === "admin" ? "⚡ Unlocked for Admin" : "Unlocked"}
                       </span>
-                    ) : course.isPremiumOnly ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/95 backdrop-blur-xs px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
-                        <Sparkles size={12} /> VIP Exclusive
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-black/50 backdrop-blur-xs px-2.5 py-0.5 text-xs font-bold text-white border border-white/20">
-                        <Lock size={12} /> Level {course.unlockLevel} / {formatMoney(price)}
-                      </span>
-                    )}
-                  </div>
+                    </div>
 
-                  <div className="relative z-10">
-                    <h2 className="text-lg font-black leading-snug group-hover:text-primary-light transition-colors line-clamp-1">
-                      {course.title}
-                    </h2>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-white/80 font-medium">
-                      <span className="flex items-center gap-1">
-                        <Play size={12} /> {total} Lessons
-                      </span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1">
-                        <Clock size={12} /> {duration}
-                      </span>
+                    <div className="relative z-10">
+                      <h2 className="text-base sm:text-lg font-black leading-snug group-hover:text-primary-light transition-colors line-clamp-1">
+                        {course.title}
+                      </h2>
+                      <div className="mt-1 flex items-center gap-3 text-xs text-white/80 font-medium">
+                        <span className="flex items-center gap-1">
+                          <Play size={12} /> {total} Lessons
+                        </span>
+                        <span>•</span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} /> {duration}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Card Body */}
                 <div className="flex flex-1 flex-col justify-between p-5">
                   <div>
+                    {!isAccessible && (
+                      <h3 className="text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                        {course.title}
+                      </h3>
+                    )}
                     <p className="min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
                       {course.description}
                     </p>
@@ -449,7 +552,7 @@ export default function AllCoursesPage() {
                           </div>
                           <div className="text-[11px] text-zinc-500 mt-0.5">
                             {course.isPremiumOnly
-                              ? "Includes live mastermind replays"
+                              ? "Requires active VIP subscription ($9/mo)"
                               : `You are Level ${userLevel} (${userLevelData.name})`}
                           </div>
                         </div>
@@ -476,33 +579,31 @@ export default function AllCoursesPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          {course.isPremiumOnly ? (
-                            <GoldButton
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-2 shadow-xs"
-                              onClick={() => setUpgradeOpen(true)}
-                            >
-                              <Sparkles size={14} /> Upgrade to VIP ($9/mo)
-                            </GoldButton>
-                          ) : (
-                            <GoldButton
-                              className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-2 shadow-xs"
-                              disabled={busyId === course.id}
-                              onClick={() => setPurchasingCourse(course)}
-                            >
-                              <Sparkles size={14} />
-                              {`Unlock — ${formatMoney(price)}`}
-                            </GoldButton>
-                          )}
-                          <button
-                            onClick={() => setPreviewCourse(course)}
-                            className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary transition cursor-pointer shadow-2xs"
-                            title="View Course Syllabus"
+                      <div className="flex items-center gap-2">
+                        {course.isPremiumOnly ? (
+                          <GoldButton
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-2 shadow-xs"
+                            onClick={() => setUpgradeOpen(true)}
                           >
-                            Preview
-                          </button>
-                        </div>
+                            <Sparkles size={14} /> Upgrade to VIP ($9/mo)
+                          </GoldButton>
+                        ) : (
+                          <GoldButton
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs py-2 shadow-xs"
+                            disabled={busyId === course.id}
+                            onClick={() => setPurchasingCourse(course)}
+                          >
+                            <Sparkles size={14} />
+                            {`Unlock — ${formatMoney(price)}`}
+                          </GoldButton>
+                        )}
+                        <button
+                          onClick={() => setPreviewCourse(course)}
+                          className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary transition cursor-pointer shadow-2xs"
+                          title="Preview Syllabus"
+                        >
+                          Preview
+                        </button>
                       </div>
                     )}
                   </div>
@@ -626,6 +727,7 @@ export default function AllCoursesPage() {
 
               <div className="flex items-center gap-2">
                 {user?.role === "admin" ||
+                user?.role === "manager" ||
                 user?.isPremium ||
                 user?.purchasedCourseIds?.includes(previewCourse.id) ||
                 (!previewCourse.isPremiumOnly && (previewCourse.unlockLevel <= 1 || userLevel >= previewCourse.unlockLevel)) ? (

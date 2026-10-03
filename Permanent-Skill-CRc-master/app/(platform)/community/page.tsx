@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
-import { CategoryPills, Feed, LiveBanner, PostComposer, ReviewPrompt } from "@/components/feed";
+import { CategoryPills, Feed, PostComposer, ReviewPrompt } from "@/components/feed";
 import type { PostCategory } from "@/lib/types";
 
 export default function CommunityPage() {
@@ -30,7 +30,6 @@ export default function CommunityPage() {
     <div className="relative flex flex-col gap-6 lg:flex-row">
       <div className="min-w-0 flex-1 space-y-4">
         <PostComposer />
-        <LiveBanner />
         <CategoryPills value={category} onChange={setCategory} />
         {showReview && <ReviewPrompt onDismiss={handleDismissReview} />}
         <Feed category={category} />
