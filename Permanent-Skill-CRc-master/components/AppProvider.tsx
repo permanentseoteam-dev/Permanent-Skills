@@ -30,6 +30,7 @@ import {
   markThreadRead as markThreadReadAction,
   purchaseCourse as purchaseCourseAction,
   rejectUser as rejectUserAction,
+  deleteMember as deleteMemberAction,
   releaseMemberLogin as releaseMemberLoginAction,
   saveCourse as saveCourseAction,
   saveLesson as saveLessonAction,
@@ -168,6 +169,7 @@ type AppContextValue = AppState & {
   changePassword: (current: string, next: string) => Promise<ActionResult>;
   approveUser: (userId: string) => Promise<ActionResult>;
   rejectUser: (userId: string) => Promise<ActionResult>;
+  deleteMember: (userId: string) => Promise<ActionResult>;
   createMember: (input: MemberInput) => Promise<ActionResult>;
   updateMember: (input: MemberUpdateInput) => Promise<ActionResult>;
   releaseMemberLogin: (userId: string) => Promise<ActionResult>;
@@ -368,6 +370,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const approveUserFn = useCallback((userId: string) => run(() => approveUserAction(userId)), [run]);
   const rejectUserFn = useCallback((userId: string) => run(() => rejectUserAction(userId)), [run]);
+  const deleteMemberFn = useCallback((userId: string) => run(() => deleteMemberAction(userId)), [run]);
   const createMemberFn = useCallback((input: MemberInput) => run(() => createMemberAction(input)), [run]);
   const updateMemberFn = useCallback((input: MemberUpdateInput) => run(() => updateMemberAction(input)), [run]);
   const releaseMemberLoginFn = useCallback(
@@ -462,6 +465,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       changePassword: changePasswordFn,
       approveUser: approveUserFn,
       rejectUser: rejectUserFn,
+      deleteMember: deleteMemberFn,
       createMember: createMemberFn,
       updateMember: updateMemberFn,
       releaseMemberLogin: releaseMemberLoginFn,
@@ -511,6 +515,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       changePasswordFn,
       approveUserFn,
       rejectUserFn,
+      deleteMemberFn,
       createMemberFn,
       updateMemberFn,
       releaseMemberLoginFn,

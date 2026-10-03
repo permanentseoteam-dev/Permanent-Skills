@@ -44,12 +44,19 @@ export function AdminClassroom() {
   // Course creation / edit state
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
-  const [courseForm, setCourseForm] = useState({
+  const [courseForm, setCourseForm] = useState<{
+    title: string;
+    description: string;
+    unlockLevel: number | string;
+    badge: string;
+    price: number | string;
+    isPremiumOnly: boolean;
+  }>({
     title: "",
     description: "",
-    unlockLevel: 1,
+    unlockLevel: "",
     badge: "",
-    price: 49,
+    price: "",
     isPremiumOnly: false,
   });
 
@@ -112,9 +119,9 @@ export function AdminClassroom() {
     setCourseForm({
       title: "",
       description: "",
-      unlockLevel: 1,
-      badge: "NEW COURSE",
-      price: 49,
+      unlockLevel: "",
+      badge: "",
+      price: "",
       isPremiumOnly: false,
     });
     setShowCourseModal(true);
@@ -128,7 +135,7 @@ export function AdminClassroom() {
       description: course.description,
       unlockLevel: course.unlockLevel || 1,
       badge: course.badge || "",
-      price: course.price || 49,
+      price: course.price !== undefined ? course.price : "",
       isPremiumOnly: Boolean(course.isPremiumOnly),
     });
     setShowCourseModal(true);
@@ -197,9 +204,9 @@ export function AdminClassroom() {
       id: isEditingCourse && course ? course.id : undefined,
       title: courseForm.title.trim(),
       description: courseForm.description.trim(),
-      unlockLevel: Number(courseForm.unlockLevel) || 1,
+      unlockLevel: courseForm.unlockLevel !== "" ? Number(courseForm.unlockLevel) : 1,
       badge: courseForm.badge.trim().toUpperCase() || undefined,
-      price: Number(courseForm.price) || 49,
+      price: courseForm.price !== "" ? Number(courseForm.price) : 0,
       isPremiumOnly: courseForm.isPremiumOnly,
     });
     setBusy(false);
@@ -615,8 +622,9 @@ export function AdminClassroom() {
                 min={1}
                 max={9}
                 className={inputClass}
+                placeholder="1"
                 value={courseForm.unlockLevel}
-                onChange={(e) => setCourseForm((f) => ({ ...f, unlockLevel: Number(e.target.value) || 1 }))}
+                onChange={(e) => setCourseForm((f) => ({ ...f, unlockLevel: e.target.value }))}
               />
             </Field>
 
@@ -634,8 +642,9 @@ export function AdminClassroom() {
                 type="number"
                 min={0}
                 className={inputClass}
+                placeholder="0"
                 value={courseForm.price}
-                onChange={(e) => setCourseForm((f) => ({ ...f, price: Number(e.target.value) || 49 }))}
+                onChange={(e) => setCourseForm((f) => ({ ...f, price: e.target.value }))}
               />
             </Field>
           </div>

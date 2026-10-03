@@ -5,6 +5,7 @@ import { COURSE_CATALOG_IDS, OLD_COURSE_IDS, createClassroomCourses, createSeed 
 import {
   fetchDatabaseFromSupabase,
   syncUserToSupabase,
+  deleteUserFromSupabase,
   syncPostToSupabase,
   deletePostFromSupabase,
   syncCommentToSupabase,
@@ -220,10 +221,17 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     const promises: Promise<unknown>[] = [];
 
     // 1. Sync updated / new users
+    const currentUserIds = new Set(db.users.map((u) => u.id));
     for (const user of db.users) {
       const prev = prevUsers.get(user.id);
       if (!prev || JSON.stringify(prev) !== JSON.stringify(user)) {
         promises.push(syncUserToSupabase(user));
+      }
+    }
+    // Check deleted users
+    for (const [prevId] of prevUsers) {
+      if (!currentUserIds.has(prevId)) {
+        promises.push(deleteUserFromSupabase(prevId));
       }
     }
 

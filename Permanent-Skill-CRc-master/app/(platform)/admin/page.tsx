@@ -109,6 +109,7 @@ export default function AdminPage() {
     courses,
     approveUser,
     rejectUser,
+    deleteMember,
     createMember,
     updateMember,
     releaseMemberLogin,
@@ -589,12 +590,17 @@ export default function AdminPage() {
                   onApprove={async () => {
                     const res = await approveUser(u.id);
                     if (res.ok) setMessage({ type: "success", text: `✓ Approved ${u.name}.` });
+                    else setMessage({ type: "error", text: res.error || "Failed to approve applicant." });
                   }}
                   onReject={async () => {
-                    if (confirm(`Reject application for ${u.name}?`)) {
-                      const res = await rejectUser(u.id);
-                      if (res.ok) setMessage({ type: "success", text: `Rejected application for ${u.name}.` });
-                    }
+                    const res = await rejectUser(u.id);
+                    if (res.ok) setMessage({ type: "success", text: `✓ Rejected application for ${u.name}.` });
+                    else setMessage({ type: "error", text: res.error || "Failed to reject applicant." });
+                  }}
+                  onDelete={async () => {
+                    const res = await deleteMember(u.id);
+                    if (res.ok) setMessage({ type: "success", text: `✓ Removed application for ${u.name}.` });
+                    else setMessage({ type: "error", text: res.error || "Failed to remove applicant." });
                   }}
                   onEdit={() => openEdit(u)}
                   onViewFull={() => setViewingStudentCard(u)}
@@ -673,6 +679,33 @@ export default function AdminPage() {
                 <StudentCard
                   key={m.id}
                   user={m}
+                  onApprove={
+                    m.status === "pending"
+                      ? async () => {
+                          const res = await approveUser(m.id);
+                          if (res.ok) setMessage({ type: "success", text: `✓ Approved ${m.name}.` });
+                          else setMessage({ type: "error", text: res.error || "Failed to approve member." });
+                        }
+                      : undefined
+                  }
+                  onReject={
+                    m.status !== "rejected" && m.role !== "admin"
+                      ? async () => {
+                          const res = await rejectUser(m.id);
+                          if (res.ok) setMessage({ type: "success", text: `✓ Rejected/Suspended ${m.name}.` });
+                          else setMessage({ type: "error", text: res.error || "Failed to reject user." });
+                        }
+                      : undefined
+                  }
+                  onDelete={
+                    m.role !== "admin" && m.id !== user?.id
+                      ? async () => {
+                          const res = await deleteMember(m.id);
+                          if (res.ok) setMessage({ type: "success", text: `✓ Deleted member record for ${m.name}.` });
+                          else setMessage({ type: "error", text: res.error || "Failed to delete member." });
+                        }
+                      : undefined
+                  }
                   onEdit={() => openEdit(m)}
                   onReleaseSession={m.hasActiveSession ? () => onReleaseLogin(m.id) : undefined}
                   onViewFull={() => setViewingStudentCard(m)}
@@ -755,16 +788,46 @@ export default function AdminPage() {
                           <button
                             type="button"
                             onClick={() => setViewingStudentCard(m)}
-                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 border border-primary/20 transition"
+                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary/10 border border-primary/20 transition cursor-pointer"
                             title="View Student Card Dossier"
                           >
                             Card
                           </button>
 
+                          {m.status === "pending" && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const res = await approveUser(m.id);
+                                if (res.ok) setMessage({ type: "success", text: `✓ Approved ${m.name}.` });
+                                else setMessage({ type: "error", text: res.error || "Failed to approve member." });
+                              }}
+                              className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 border border-emerald-200 transition cursor-pointer"
+                              title="Approve Member"
+                            >
+                              <Check size={13} />
+                            </button>
+                          )}
+
+                          {m.status !== "rejected" && m.role !== "admin" && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                const res = await rejectUser(m.id);
+                                if (res.ok) setMessage({ type: "success", text: `✓ Rejected ${m.name}.` });
+                                else setMessage({ type: "error", text: res.error || "Failed to reject user." });
+                              }}
+                              className="rounded-lg p-1.5 text-red-600 hover:bg-red-50 border border-red-200 transition cursor-pointer"
+                              title="Reject / Suspend Member"
+                            >
+                              <UserX size={13} />
+                            </button>
+                          )}
+
                           {m.hasActiveSession && (
                             <button
                               onClick={() => onReleaseLogin(m.id)}
-                              className="rounded-lg p-1.5 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition"
+                              className="rounded-lg p-1.5 text-zinc-400 hover:text-amber-600 hover:bg-amber-50 transition cursor-pointer"
                               title="Release device login"
                             >
                               <RefreshCw size={13} />
@@ -773,10 +836,24 @@ export default function AdminPage() {
 
                           <button
                             onClick={() => openEdit(m)}
-                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition"
+                            className="rounded-lg px-2.5 py-1 text-xs font-semibold text-zinc-700 hover:bg-zinc-100 border border-zinc-200 transition cursor-pointer"
                           >
                             Edit
                           </button>
+
+                          {m.role !== "admin" && m.id !== user?.id && (
+                            <button
+                              onClick={async () => {
+                                const res = await deleteMember(m.id);
+                                if (res.ok) setMessage({ type: "success", text: `✓ Deleted member ${m.name}.` });
+                                else setMessage({ type: "error", text: res.error || "Failed to delete member." });
+                              }}
+                              className="rounded-lg p-1.5 text-zinc-400 hover:text-red-600 hover:bg-red-50 transition cursor-pointer"
+                              title="Delete Member"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1313,19 +1390,34 @@ export default function AdminPage() {
                       if (res.ok) {
                         setMessage({ type: "success", text: `✓ Approved ${viewingStudentCard.name}.` });
                         setViewingStudentCard(null);
+                      } else {
+                        setMessage({ type: "error", text: res.error || "Failed to approve applicant." });
                       }
                     }
                   : undefined
               }
               onReject={
-                viewingStudentCard.status === "pending"
+                viewingStudentCard.role !== "admin"
                   ? async () => {
-                      if (confirm(`Reject application for ${viewingStudentCard.name}?`)) {
-                        const res = await rejectUser(viewingStudentCard.id);
-                        if (res.ok) {
-                          setMessage({ type: "success", text: `Rejected application for ${viewingStudentCard.name}.` });
-                          setViewingStudentCard(null);
-                        }
+                      const res = await rejectUser(viewingStudentCard.id);
+                      if (res.ok) {
+                        setMessage({ type: "success", text: `✓ Rejected application for ${viewingStudentCard.name}.` });
+                        setViewingStudentCard(null);
+                      } else {
+                        setMessage({ type: "error", text: res.error || "Failed to reject applicant." });
+                      }
+                    }
+                  : undefined
+              }
+              onDelete={
+                viewingStudentCard.role !== "admin" && viewingStudentCard.id !== user?.id
+                  ? async () => {
+                      const res = await deleteMember(viewingStudentCard.id);
+                      if (res.ok) {
+                        setMessage({ type: "success", text: `✓ Deleted student record for ${viewingStudentCard.name}.` });
+                        setViewingStudentCard(null);
+                      } else {
+                        setMessage({ type: "error", text: res.error || "Failed to delete student." });
                       }
                     }
                   : undefined
@@ -1344,7 +1436,7 @@ export default function AdminPage() {
               <button
                 type="button"
                 onClick={() => setViewingStudentCard(null)}
-                className="rounded-xl border border-zinc-200 bg-white px-5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition"
+                className="rounded-xl border border-zinc-200 bg-white px-5 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
               >
                 Close Dossier
               </button>
@@ -1357,13 +1449,14 @@ export default function AdminPage() {
 }
 
 /**
- * Reusable StudentCard Component matching Image 2
+ * Reusable StudentCard Component
  * Robustly renders all applicant/student metadata with clean fallbacks when fields are missing.
  */
 function StudentCard({
   user,
   onApprove,
   onReject,
+  onDelete,
   onEdit,
   onReleaseSession,
   onViewFull,
@@ -1371,6 +1464,7 @@ function StudentCard({
   user: PublicUser;
   onApprove?: () => void;
   onReject?: () => void;
+  onDelete?: () => void;
   onEdit?: () => void;
   onReleaseSession?: () => void;
   onViewFull?: () => void;
@@ -1383,9 +1477,9 @@ function StudentCard({
       ? `${app.city}, ${app.country}`
       : app?.city || app?.country || user.location || "Not specified";
 
-  const experience = app?.experience || "Not specified";
+  const experience = app?.experience?.trim() || "Not specified";
   const website = app?.website?.trim() || "";
-  const goals = app?.goals?.trim() || "Not specified";
+  const goals = app?.goals?.trim() || user.bio?.trim() || "Not specified";
   const bio = app?.notes?.trim() || user.notes?.trim() || user.bio?.trim() || "No background bio provided.";
   const profession =
     app?.profession?.trim() ||
@@ -1395,8 +1489,9 @@ function StudentCard({
         ? "Operations Manager"
         : user.role === "team_member"
           ? "Team Specialist"
-          : "Independent consultant");
+          : "Independent Consultant");
 
+  const phone = user.phone?.trim() || app?.phone?.trim() || "";
   const isPending = user.status === "pending";
   const isApproved = user.status === "approved" || !user.status;
 
@@ -1420,7 +1515,7 @@ function StudentCard({
                       : "bg-red-100 text-red-900 border border-red-300"
                 }`}
               >
-                {isPending ? "Pending Review" : isApproved ? "Active Member" : "Suspended"}
+                {isPending ? "Pending Review" : isApproved ? "Active Member" : "Rejected / Suspended"}
               </span>
 
               {/* Sub-badge / Profession Tag */}
@@ -1440,12 +1535,14 @@ function StudentCard({
               <span className="font-mono text-zinc-800 font-semibold">{user.email}</span>
               <span>•</span>
               <span>{isPending ? `Applied ${timeAgo(user.joinedAt)}` : `Joined ${timeAgo(user.joinedAt)}`}</span>
-              {(user.phone || app?.phone) && (
+              {phone ? (
                 <>
                   <span>•</span>
-                  <span className="font-mono text-zinc-600">{user.phone || app?.phone}</span>
+                  <span className="font-mono text-zinc-600 inline-flex items-center gap-1">
+                    <Phone size={11} className="text-zinc-400" /> {phone}
+                  </span>
                 </>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
@@ -1457,16 +1554,27 @@ function StudentCard({
               onClick={onApprove}
               className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer"
             >
-              <Check size={13} /> Approve Member
+              <Check size={13} /> Approve
             </button>
           )}
 
           {onReject && (
             <button
               onClick={onReject}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/70 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-100 transition cursor-pointer"
+              title="Reject application"
             >
-              <X size={13} /> Reject
+              <UserX size={13} /> Reject
+            </button>
+          )}
+
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-red-50/70 px-2.5 py-2 text-xs font-semibold text-red-700 hover:bg-red-100 transition cursor-pointer"
+              title="Delete member completely"
+            >
+              <Trash2 size={12} /> Delete
             </button>
           )}
 
@@ -1500,7 +1608,7 @@ function StudentCard({
         </div>
       </div>
 
-      {/* Details Box matching Image 2 */}
+      {/* Details Box matching requested design */}
       <div className="rounded-xl border border-zinc-200/90 bg-white/70 p-4 sm:p-5 text-xs sm:text-[13px] text-zinc-700 space-y-2.5 leading-relaxed">
         {/* Row 1: Location & Experience */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1543,12 +1651,15 @@ function StudentCard({
           <span className="text-zinc-900">{bio}</span>
         </div>
 
-        {/* Row 5: How they heard (if present) */}
-        {app?.howHeard && (
-          <div className="pt-1 text-[11px] text-zinc-500">
-            <span className="font-medium">Referred / Discovered via:</span> {app.howHeard}
+        {/* Row 5: Referral / Discovered via & Phone (if present) */}
+        <div className="pt-1 text-[11px] text-zinc-500 flex flex-wrap items-center gap-4">
+          <div>
+            <span className="font-medium">Referred / Discovered via:</span> {app?.howHeard || "Direct / Website"}
           </div>
-        )}
+          <div>
+            <span className="font-medium">Contact Phone:</span> {phone || "Not provided"}
+          </div>
+        </div>
       </div>
     </div>
   );

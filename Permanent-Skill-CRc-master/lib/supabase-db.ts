@@ -315,6 +315,16 @@ export async function syncUserToSupabase(u: User) {
   }
 }
 
+export async function deleteUserFromSupabase(userId: string) {
+  try {
+    const supabase = getAdminSupabase();
+    const { error } = await supabase.from("users").delete().eq("id", userId);
+    if (error) console.error("Error deleting user from Supabase:", error);
+  } catch (err) {
+    console.error("Error deleting user from Supabase:", err);
+  }
+}
+
 export async function syncPostToSupabase(p: Post) {
   try {
     const supabase = getAdminSupabase();

@@ -447,6 +447,27 @@ export async function rejectUser(userId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
+export async function deleteMember(userId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  const db = readDb();
+  const target = db.users.find((u) => u.id === userId);
+  if (!target) return { ok: false, error: "User not found." };
+  if (target.role === "admin") return { ok: false, error: "Cannot delete an administrator account." };
+  if (target.id === me.id) return { ok: false, error: "Cannot delete your own account." };
+
+  await updateDb((d) => {
+    d.users = d.users.filter((u) => u.id !== userId);
+    d.sessions = d.sessions.filter((s) => s.userId !== userId);
+    d.comments = d.comments.filter((c) => c.authorId !== userId);
+    d.posts = d.posts.filter((p) => p.authorId !== userId);
+    d.progress = d.progress.filter((p) => p.userId !== userId);
+    d.sales = d.sales.filter((s) => s.userId !== userId);
+    d.reviews = d.reviews.filter((r) => r.userId !== userId);
+  });
+  return { ok: true };
+}
+
 export async function createMember(input: {
   name: string;
   email: string;
