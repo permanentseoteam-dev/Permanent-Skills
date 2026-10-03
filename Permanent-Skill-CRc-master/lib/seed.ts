@@ -1198,12 +1198,12 @@ export function createSeed(): Database {
   ];
 
   const sales: Sale[] = [
-    { id: "sale1", userId: "u-ayaan", amount: 9, plan: "VIP monthly", createdAt: "2026-03-04T10:10:00.000Z" },
-    { id: "sale2", userId: "u-priya", amount: 9, plan: "VIP monthly", createdAt: "2026-04-18T09:20:00.000Z" },
-    { id: "sale3", userId: "u-james", amount: 9, plan: "VIP monthly", createdAt: "2026-02-11T12:15:00.000Z" },
-    { id: "sale4", userId: "u-wei", amount: 9, plan: "VIP monthly", createdAt: "2026-06-20T08:30:00.000Z" },
-    { id: "sale5", userId: "u-amira", amount: 9, plan: "VIP monthly", createdAt: "2026-01-28T11:12:00.000Z" },
-    { id: "sale6", userId: "u-admin", amount: 9, plan: "Founder", createdAt: "2025-01-12T08:00:00.000Z" },
+    { id: "sale1", userId: "u-ayaan", amount: 99, plan: "Business Clarity Course ($99)", createdAt: "2026-03-04T10:10:00.000Z" },
+    { id: "sale2", userId: "u-priya", amount: 149, plan: "Learn to Build Apps ($149)", createdAt: "2026-04-18T09:20:00.000Z" },
+    { id: "sale3", userId: "u-james", amount: 199, plan: "The Daily Pulse 🔥 VIP Mastermind ($199)", createdAt: "2026-02-11T12:15:00.000Z" },
+    { id: "sale4", userId: "u-wei", amount: 89, plan: "n8n Course + Templates ($89)", createdAt: "2026-06-20T08:30:00.000Z" },
+    { id: "sale5", userId: "u-amira", amount: 129, plan: "Make.com Course + Templates ($129)", createdAt: "2026-01-28T11:12:00.000Z" },
+    { id: "sale6", userId: "u-daniel", amount: 99, plan: "Business Clarity Course ($99)", createdAt: "2026-02-14T11:15:00.000Z" },
   ];
 
   const communities: Community[] = [

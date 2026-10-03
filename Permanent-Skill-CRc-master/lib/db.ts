@@ -191,6 +191,36 @@ function migrate(db: Database) {
     db.videoResources = createSeed().videoResources || [];
     changed = true;
   }
+  if (!db.sales || db.sales.length === 0) {
+    db.sales = createSeed().sales;
+    changed = true;
+  } else {
+    for (const s of db.sales) {
+      if (s.amount === 9) {
+        if (s.userId === "u-ayaan" || s.userId === "u-daniel") {
+          s.amount = 99;
+          s.plan = "Business Clarity Course ($99)";
+          changed = true;
+        } else if (s.userId === "u-priya") {
+          s.amount = 149;
+          s.plan = "Learn to Build Apps ($149)";
+          changed = true;
+        } else if (s.userId === "u-james") {
+          s.amount = 199;
+          s.plan = "The Daily Pulse 🔥 VIP Mastermind ($199)";
+          changed = true;
+        } else if (s.userId === "u-wei") {
+          s.amount = 89;
+          s.plan = "n8n Course + Templates ($89)";
+          changed = true;
+        } else if (s.userId === "u-amira") {
+          s.amount = 129;
+          s.plan = "Make.com Course + Templates ($129)";
+          changed = true;
+        }
+      }
+    }
+  }
   if (changed) persist(db);
 }
 
