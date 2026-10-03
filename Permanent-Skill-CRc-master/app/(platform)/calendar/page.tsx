@@ -79,12 +79,13 @@ function isMeetingOlder(event?: CalendarEvent | null): boolean {
   if (!event) return false;
   try {
     const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    // Normalize today's start of day in local time
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
     
     const eventDate = new Date(event.start || event.end);
-    const startOfEventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate()).getTime();
+    const startOfEventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 0, 0, 0, 0).getTime();
 
-    // 1. Any date strictly before today is an older meeting
+    // 1. Any date strictly before today is an older ended meeting
     if (startOfEventDay < startOfToday) {
       return true;
     }
@@ -1049,16 +1050,27 @@ export default function MeetPage() {
                         className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
                           isRsvped
                             ? "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
-                            : e.type === "premium"
-                              ? "bg-primary/10 text-primary hover:bg-primary/20"
-                              : "bg-blue-50 text-blue-700 hover:bg-blue-100"
-                        } ${isOlder && !isRsvped ? "opacity-75" : ""}`}
+                            : isOlder
+                              ? "bg-zinc-100 text-zinc-600 border border-zinc-200/80 hover:bg-zinc-200/60"
+                              : e.type === "premium"
+                                ? "bg-primary/10 text-primary hover:bg-primary/20"
+                                : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                        }`}
                         title={`${e.title} (${formatDateTime(e.start)})${isRsvped ? " • In My Schedule" : ""}${isOlder ? " • Meeting Ended" : ""}`}
                       >
-                        <span className="flex items-center gap-1 truncate">
-                          {isRsvped && <span className="text-emerald-600 font-bold shrink-0">✓</span>}
-                          <span className="truncate">{eventTimeLabel(e.start)} - {e.title}</span>
-                        </span>
+                        <div className="flex items-center justify-between gap-1 truncate">
+                          <span className="flex items-center gap-1 truncate min-w-0 flex-1">
+                            {isRsvped && <span className="text-emerald-600 font-bold shrink-0">✓</span>}
+                            <span className={`truncate ${isOlder ? "line-through text-zinc-400 font-normal" : ""}`}>
+                              {eventTimeLabel(e.start)} - {e.title}
+                            </span>
+                          </span>
+                          {isOlder && (
+                            <span className="shrink-0 rounded bg-amber-100 px-1 py-0.2 text-[9px] font-bold text-amber-800">
+                              Ended
+                            </span>
+                          )}
+                        </div>
                       </button>
                     );
                   })}
@@ -1125,24 +1137,38 @@ export default function MeetPage() {
 
               <div className="pt-2 space-y-2.5">
                 {/* Join Video Room Button (directs to /meeting-ended for older meetings) */}
-                <a
-                  href={isEventOver ? endedUrl : "https://meet.google.com/new"}
-                  target={isEventOver ? "_self" : "_blank"}
-                  rel="noopener noreferrer"
-                  onClick={() => {
-                    if (isEventOver) {
-                      setSelectedEvent(null);
-                    }
-                  }}
-                  className={`flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 font-bold text-white shadow-md transition text-sm cursor-pointer ${
-                    isEventOver
-                      ? "bg-zinc-800 hover:bg-zinc-900"
-                      : "bg-[#5051F9] hover:bg-[#4041d8]"
-                  }`}
-                >
-                  {isEventOver ? <VideoOff size={16} /> : <Video size={16} />}
-                  <span>{isEventOver ? "Join Video Room (Meeting Ended)" : "Join Video Room"}</span>
-                </a>
+                {isEventOver ? (
+                  <div className="space-y-2">
+                    <div className="rounded-xl bg-amber-50/70 border border-amber-200 p-3 text-left">
+                      <p className="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+                        <VideoOff size={14} className="text-amber-600" />
+                        This Meeting Has Concluded
+                      </p>
+                      <p className="text-[11px] text-amber-700 mt-0.5 leading-normal">
+                        This session took place before today. Click below to view the post-meeting interface, recap, notes, and recording details.
+                      </p>
+                    </div>
+
+                    <a
+                      href={endedUrl}
+                      onClick={() => setSelectedEvent(null)}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-4 py-2.5 font-bold text-white shadow-md transition text-sm cursor-pointer"
+                    >
+                      <VideoOff size={16} className="text-amber-400" />
+                      <span>Meeting Ended — View Session Recap</span>
+                    </a>
+                  </div>
+                ) : (
+                  <a
+                    href="https://meet.google.com/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-2.5 font-bold text-white shadow-md transition text-sm cursor-pointer"
+                  >
+                    <Video size={16} />
+                    <span>Join Video Room</span>
+                  </a>
+                )}
 
                 {/* Add to my schedule / RSVP with sync options */}
                 <div className="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
