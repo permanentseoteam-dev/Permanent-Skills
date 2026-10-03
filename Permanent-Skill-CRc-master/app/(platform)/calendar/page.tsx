@@ -783,10 +783,7 @@ export default function MeetPage() {
                     return (
                       <button
                         key={e.id}
-                        onClick={() => {
-                          setSelectedEvent(e);
-                          setRsvpSuccess(false);
-                        }}
+                        onClick={() => setSelectedEvent(e)}
                         className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
                           isRsvped
                             ? "bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100"
@@ -824,10 +821,7 @@ export default function MeetPage() {
       {/* 3. Event Detail Modal */}
       <Modal
         open={!!selectedEvent}
-        onClose={() => {
-          setSelectedEvent(null);
-          setRsvpSuccess(false);
-        }}
+        onClose={() => setSelectedEvent(null)}
         title={selectedEvent?.title || "Meet Session"}
       >
         {selectedEvent && (() => {
