@@ -28,40 +28,6 @@ import { Avatar, Card, Field, Modal, PrimaryButton, ProgressBar, inputClass } fr
 import { eventTimeLabel, formatDateTime } from "@/lib/format";
 import type { CalendarEvent, Project, ProjectTask, PublicUser } from "@/lib/types";
 
-
-
-
-function downloadIcsFile(event: CalendarEvent) {
-  const start = formatGoogleDate(event.start);
-  const end = formatGoogleDate(event.end);
-  const ics = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Permanent Skills//Calendar//EN",
-    "BEGIN:VEVENT",
-    `UID:${event.id}@permanentskills.com`,
-    `DTSTAMP:${formatGoogleDate(new Date().toISOString())}`,
-    `DTSTART:${start}`,
-    `DTEND:${end}`,
-    `SUMMARY:${event.title}`,
-    `DESCRIPTION:${event.description.replace(/\n/g, " ")}`,
-    `LOCATION:Nexus Meet`,
-    "STATUS:CONFIRMED",
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].join("\r\n");
-
-  const blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${event.title.replace(/[^a-zA-Z0-9]/g, "_")}.ics`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 function isMeetingOlder(event?: CalendarEvent | null): boolean {
   if (!event) return false;
   try {
@@ -148,7 +114,6 @@ export default function MeetPage() {
 
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [rsvpSuccess, setRsvpSuccess] = useState(false);
   const [rsvpEventIds, setRsvpEventIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -685,76 +650,41 @@ export default function MeetPage() {
                     </div>
                   </div>
 
-                  {/* Right: Dropdown block with Join now button and time of meeting in red below it */}
-                  <div className="flex flex-col items-start sm:items-end gap-2.5 border-t sm:border-t-0 sm:border-l border-zinc-100 pt-3 sm:pt-0 sm:pl-6 shrink-0 w-full sm:w-auto">
-                    <div className="w-full sm:w-[280px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
-                          Join now
-                        </span>
-                      </div>
+                  {/* Right: Only Join now button and below it Time of Meeting in red */}
+                  <div className="flex flex-col items-start sm:items-end gap-1.5 border-t sm:border-t-0 sm:border-l border-zinc-100 pt-3 sm:pt-0 sm:pl-6 shrink-0 w-full sm:w-auto">
+                    {activeProject.meetUrl && (() => {
+                      const matchedEvent = events.find(
+                        (ev) =>
+                          `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
+                          ev.title === activeProject.meetSyncTime ||
+                          ev.id === activeProject.meetSyncTime
+                      );
+                      const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
+                      const targetUrl = isProjMeetOlder && matchedEvent
+                        ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
+                        : activeProject.meetUrl;
 
-                      {/* Dropdown showing current projects */}
-                      <div className="relative">
-                        <select
-                          value={activeProject.id}
-                          onChange={(e) => setSelectedProjectId(e.target.value)}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-2.5 py-1.5 pr-7 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
+                      return (
+                        <a
+                          href={targetUrl}
+                          target={isProjMeetOlder ? "_self" : "_blank"}
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold shadow-xs transition cursor-pointer w-full sm:w-auto ${
+                            isProjMeetOlder
+                              ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                              : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
+                          }`}
                         >
-                          {currentProjects.length > 0 ? (
-                            currentProjects.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.title}
-                              </option>
-                            ))
-                          ) : (
-                            projects.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {p.title}
-                              </option>
-                            ))
-                          )}
-                        </select>
-                        <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400" />
-                      </div>
-                    </div>
+                          {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
+                          <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
+                        </a>
+                      );
+                    })()}
 
-                    {/* Only Join now button and below it Time of Meeting in red */}
-                    <div className="flex flex-col items-start sm:items-end gap-1.5 w-full sm:w-auto">
-                      {activeProject.meetUrl && (() => {
-                        const matchedEvent = events.find(
-                          (ev) =>
-                            `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
-                            ev.title === activeProject.meetSyncTime ||
-                            ev.id === activeProject.meetSyncTime
-                        );
-                        const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
-                        const targetUrl = isProjMeetOlder && matchedEvent
-                          ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
-                          : activeProject.meetUrl;
-
-                        return (
-                          <a
-                            href={targetUrl}
-                            target={isProjMeetOlder ? "_self" : "_blank"}
-                            rel="noopener noreferrer"
-                            className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer w-full sm:w-auto ${
-                              isProjMeetOlder
-                                ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
-                                : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
-                            }`}
-                          >
-                            {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
-                            <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
-                          </a>
-                        );
-                      })()}
-
-                      {/* Time of the meeting in red colored below the button */}
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
-                        <Clock size={13} className="text-red-500 shrink-0" />
-                        <span>{activeProject.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}</span>
-                      </div>
+                    {/* Time of the meeting in red colored below the button */}
+                    <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
+                      <Clock size={13} className="text-red-500 shrink-0" />
+                      <span>{activeProject.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}</span>
                     </div>
                   </div>
                 </div>
