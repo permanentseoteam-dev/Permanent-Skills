@@ -370,48 +370,7 @@ function AboutPageContent() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* 1. Global Navigation Bar: Course & Community Switcher Pills */}
-      <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1 scrollbar-none border-b border-zinc-200/80 pb-3">
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          <Link
-            href="/about"
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow-2xs ${
-              !selectedCourse
-                ? "bg-zinc-900 text-white shadow-xs"
-                : "bg-white text-zinc-700 border border-zinc-200 hover:border-zinc-400 hover:text-primary"
-            }`}
-          >
-            <span>🌐</span>
-            <span>AI Automation Society</span>
-          </Link>
-
-          <span className="text-zinc-300">|</span>
-
-          {courses.map((c) => {
-            const isTarget = selectedCourse?.id === c.id;
-            return (
-              <Link
-                key={c.id}
-                href={`/about?course=${c.id}`}
-                className={`inline-flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-semibold transition shrink-0 shadow-2xs ${
-                  isTarget
-                    ? "bg-primary text-white shadow-xs font-bold"
-                    : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
-                }`}
-                title={c.title}
-              >
-                <span>{c.badge === "VIP" ? "👑" : "📚"}</span>
-                <span className="max-w-[130px] sm:max-w-none truncate">{c.title}</span>
-                <span className="text-[10px] opacity-80">
-                  {c.isPremiumOnly ? "VIP" : c.price ? `$${c.price}` : "Free"}
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 2. Main About View: Either Course Specific OR Global Community */}
+      {/* Main About View: Either Course Specific OR Global Community */}
       {selectedCourse ? (
         /* ================= COURSE SPECIFIC ABOUT PAGE ================= */
         <div className="space-y-5 sm:space-y-6">
