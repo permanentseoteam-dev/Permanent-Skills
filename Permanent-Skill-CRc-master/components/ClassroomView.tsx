@@ -507,12 +507,12 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
       ) : (
         /* 2. DETAILED MODULE / COURSE LESSON VIEW */
         <div className="space-y-4 sm:space-y-6">
-      {/* Navigation Bar: Back to Classroom & Course Switcher */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-zinc-200/90 pb-3 sm:pb-4">
+      {/* Navigation Bar: Back to Classroom & Course Title */}
+      <div className="flex items-center justify-between gap-3 border-b border-zinc-200/90 pb-3 sm:pb-4">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={handleBackToClassroom}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 sm:px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition cursor-pointer shadow-xs shrink-0"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 sm:px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition cursor-pointer shadow-xs shrink-0 active:scale-95"
           >
             <ChevronLeft size={16} /> Back to Classroom
           </button>
@@ -522,38 +522,6 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           <h1 className="text-xs sm:text-sm font-bold text-zinc-900 truncate">
             {activeCourse.title}
           </h1>
-        </div>
-
-        {/* Course Switcher Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
-          {availableCourses.map((c, idx) => {
-            const isSelected = c.id === activeCourse.id;
-            const cRow = progress.find(
-              (p) => p.courseId === c.id && p.userId === user?.id
-            );
-            const cDone = c.lessons.filter((l) =>
-              cRow?.completedLessonIds.includes(l.id)
-            ).length;
-            const cPct = c.lessons.length
-              ? Math.round((cDone / c.lessons.length) * 100)
-              : 0;
-
-            return (
-              <button
-                key={c.id}
-                onClick={() => handleSelectCourse(c)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-semibold transition cursor-pointer shrink-0 ${
-                  isSelected
-                    ? "bg-primary text-white shadow-xs"
-                    : "bg-white text-zinc-600 border border-zinc-200 hover:border-primary/30 hover:text-primary"
-                }`}
-                title={c.title}
-              >
-                <span>{idx + 1}</span>
-                <span className="text-[10px] opacity-80">{cPct}%</span>
-              </button>
-            );
-          })}
         </div>
       </div>
 
