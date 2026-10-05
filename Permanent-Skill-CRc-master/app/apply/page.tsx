@@ -20,6 +20,9 @@ const empty: Application = {
   notes: "",
 };
 
+import Link from "next/link";
+import { ArrowRight, AlertCircle, Send, Sparkles } from "lucide-react";
+
 export default function ApplyPage() {
   const { apply, user } = useApp();
   const router = useRouter();
@@ -48,39 +51,50 @@ export default function ApplyPage() {
     try {
       const result = await apply(form);
       if (!result.ok) {
-        setError(result.error || "Could not submit.");
+        setError(result.error || "Could not submit application.");
         return;
       }
       router.replace(result.next || "/pending");
     } catch {
-      setError("Could not submit. Please try again.");
+      setError("Could not submit application. Please check your connection and try again.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <AuthCard title="Application" subtitle="Admin reviews every request before full access is granted">
+    <AuthCard
+      title="Member Application"
+      subtitle="Admin reviews every request before full platform access is granted"
+      stepBadge="Step 2 of 2 · Application Details"
+      maxWidth="max-w-md sm:max-w-xl"
+    >
       <form onSubmit={onSubmit} className="space-y-3 sm:space-y-3.5">
-        <Field label="Full name">
-          <input
-            className={inputClass}
-            value={form.fullName}
-            onChange={(e) => set("fullName", e.target.value)}
-            placeholder="e.g. Alex Morgan"
-            required
-          />
-        </Field>
-        <Field label="Phone Number">
-          <input
-            className={inputClass}
-            type="tel"
-            value={form.phone}
-            onChange={(e) => set("phone", e.target.value)}
-            placeholder="e.g. +1 (555) 019-2834"
-            required
-          />
-        </Field>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Full name">
+            <input
+              className={inputClass}
+              value={form.fullName}
+              onChange={(e) => set("fullName", e.target.value)}
+              placeholder="e.g. Alex Morgan"
+              autoComplete="name"
+              required
+            />
+          </Field>
+
+          <Field label="Phone Number">
+            <input
+              className={inputClass}
+              type="tel"
+              value={form.phone}
+              onChange={(e) => set("phone", e.target.value)}
+              placeholder="e.g. +1 (555) 019-2834"
+              autoComplete="tel"
+              required
+            />
+          </Field>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Field label="Country">
             <input
@@ -91,6 +105,7 @@ export default function ApplyPage() {
               required
             />
           </Field>
+
           <Field label="City">
             <input
               className={inputClass}
@@ -101,35 +116,65 @@ export default function ApplyPage() {
             />
           </Field>
         </div>
-        <Field label="Website (optional)">
-          <input
-            className={inputClass}
-            type="url"
-            value={form.website}
-            onChange={(e) => set("website", e.target.value)}
-            placeholder="https://yourportfolio.com"
-          />
-        </Field>
-        <Field label="What do you want to achieve here?">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Website or Portfolio" hint="Optional">
+            <input
+              className={inputClass}
+              type="url"
+              value={form.website}
+              onChange={(e) => set("website", e.target.value)}
+              placeholder="https://yourportfolio.com"
+            />
+          </Field>
+
+          <Field label="How did you hear about us?" hint="Optional">
+            <input
+              className={inputClass}
+              value={form.howHeard}
+              onChange={(e) => set("howHeard", e.target.value)}
+              placeholder="e.g. YouTube, Twitter, Referral"
+            />
+          </Field>
+        </div>
+
+        <Field
+          label="What do you want to achieve here?"
+          hint={`${form.goals.length}/500`}
+        >
           <textarea
-            className={`${inputClass} min-h-[85px] sm:min-h-[95px] text-xs sm:text-sm resize-y`}
+            className={`${inputClass} min-h-[85px] sm:min-h-[105px] resize-y`}
             value={form.goals}
             onChange={(e) => set("goals", e.target.value)}
-            placeholder="Tell us about your learning goals, current background, and what systems you want to build..."
+            placeholder="Tell us about your learning goals, current background, and what systems you want to build with our community..."
+            maxLength={500}
             required
           />
         </Field>
-        <Field label="How did you hear about us?">
-          <input
-            className={inputClass}
-            value={form.howHeard}
-            onChange={(e) => set("howHeard", e.target.value)}
-            placeholder="e.g. YouTube, Twitter, Referral, Search"
-          />
-        </Field>
-        {error && <p className="text-xs sm:text-sm text-red-600 bg-red-50/80 border border-red-200 rounded-xl p-2.5">{error}</p>}
-        <PrimaryButton type="submit" className="w-full py-2.5 sm:py-3 text-xs sm:text-sm font-bold" disabled={busy}>
-          {busy ? "Submitting..." : "Submit for approval"}
+
+        {error && (
+          <div className="rounded-xl border border-red-200 bg-red-50/90 p-3 text-xs sm:text-sm text-red-700 flex items-start gap-2.5">
+            <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+            <div className="flex-1 leading-relaxed">
+              <span>{error}</span>
+              {error.toLowerCase().includes("log in") && (
+                <div className="mt-1">
+                  <Link href="/login" className="font-bold text-primary hover:underline inline-flex items-center gap-1">
+                    Log in here <ArrowRight size={12} />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <PrimaryButton
+          type="submit"
+          className="w-full py-3 text-xs sm:text-sm font-bold flex items-center justify-center gap-2"
+          disabled={busy}
+        >
+          <span>{busy ? "Submitting application..." : "Submit for Admin Approval"}</span>
+          {!busy && <Send size={14} />}
         </PrimaryButton>
       </form>
     </AuthCard>

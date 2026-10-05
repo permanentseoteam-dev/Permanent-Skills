@@ -71,7 +71,7 @@ export function PrimaryButton({
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 sm:py-3 text-sm font-semibold text-white transition hover:bg-primary-dark active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 cursor-pointer shadow-xs ${className}`}
     >
       {children}
     </button>
@@ -86,7 +86,7 @@ export function GoldButton({
   return (
     <button
       {...props}
-      className={`inline-flex items-center justify-center rounded-lg bg-[#f0c14b] px-4 py-2.5 text-sm font-bold tracking-wide text-zinc-900 transition hover:bg-[#e3b33a] disabled:opacity-60 ${className}`}
+      className={`inline-flex items-center justify-center rounded-xl bg-[#f0c14b] px-4 py-2.5 sm:py-3 text-sm font-bold tracking-wide text-zinc-900 transition hover:bg-[#e3b33a] active:scale-[0.99] disabled:opacity-60 disabled:active:scale-100 cursor-pointer shadow-xs ${className}`}
     >
       {children}
     </button>
@@ -96,20 +96,25 @@ export function GoldButton({
 export function Field({
   label,
   children,
+  hint,
 }: {
   label: string;
   children: React.ReactNode;
+  hint?: string;
 }) {
   return (
     <div className="block">
-      <span className="mb-1.5 block text-sm font-medium text-zinc-700">{label}</span>
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <span className="block text-xs sm:text-sm font-semibold text-zinc-800">{label}</span>
+        {hint && <span className="text-[11px] text-zinc-400 font-normal">{hint}</span>}
+      </div>
       {children}
     </div>
   );
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-primary focus:ring-2 focus:ring-primary/20";
+  "w-full rounded-xl border border-zinc-200/90 bg-white px-3.5 py-2.5 sm:py-2.5 text-base sm:text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-primary focus:ring-2 focus:ring-primary/20 shadow-xs";
 
 export function PasswordInput({
   className = "",

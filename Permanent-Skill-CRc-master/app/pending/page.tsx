@@ -155,7 +155,7 @@ export default function PendingPage() {
 
           {/* Live Sync Status Pill */}
           <div className="mt-3.5 sm:mt-4 rounded-xl bg-white/85 p-2.5 sm:p-3 border border-amber-200 text-left text-xs text-amber-900 space-y-1.5">
-            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
               <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700 text-[10px] sm:text-[11px]">
                 <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
                 Live Auto-Sync Active
