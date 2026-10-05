@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -31,6 +32,7 @@ interface ClassroomViewProps {
 }
 
 export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
+  const router = useRouter();
   const { courses, progress, user, completeLesson } = useApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -47,7 +49,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     return null;
   });
 
-  // Sync selected course when initialCourseSlug changes from navigation
+  // Sync selected course when initialCourseSlug changes from navigation / browser back
   useEffect(() => {
     if (initialCourseSlug) {
       const found = availableCourses.find((c) => c.slug === initialCourseSlug);
@@ -56,8 +58,26 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
         setActiveLessonId(null);
         setPlaying(false);
       }
+    } else {
+      setSelectedCourseId(null);
+      setActiveLessonId(null);
+      setPlaying(false);
     }
   }, [initialCourseSlug, availableCourses]);
+
+  function handleSelectCourse(course: Course) {
+    setSelectedCourseId(course.id);
+    setActiveLessonId(null);
+    setPlaying(false);
+    router.push(`/classroom/${course.slug}`);
+  }
+
+  function handleBackToClassroom() {
+    setSelectedCourseId(null);
+    setActiveLessonId(null);
+    setPlaying(false);
+    router.push("/classroom");
+  }
 
   const activeCourse = useMemo(() => {
     if (!selectedCourseId) return null;
@@ -248,11 +268,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
             return (
               <div
                 key={course.id}
-                onClick={() => {
-                  setSelectedCourseId(course.id);
-                  setActiveLessonId(null);
-                  setPlaying(false);
-                }}
+                onClick={() => handleSelectCourse(course)}
                 className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-zinc-400 cursor-pointer"
               >
                 {/* Course Banner */}
@@ -299,11 +315,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/90 pb-4">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => {
-              setSelectedCourseId(null);
-              setActiveLessonId(null);
-              setPlaying(false);
-            }}
+            onClick={handleBackToClassroom}
             className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition cursor-pointer shadow-xs"
           >
             <ChevronLeft size={16} /> Back to Classroom
@@ -333,11 +345,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
             return (
               <button
                 key={c.id}
-                onClick={() => {
-                  setSelectedCourseId(c.id);
-                  setActiveLessonId(null);
-                  setPlaying(false);
-                }}
+                onClick={() => handleSelectCourse(c)}
                 className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
                   isSelected
                     ? "bg-primary text-white shadow-xs"
