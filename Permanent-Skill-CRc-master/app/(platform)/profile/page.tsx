@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ChevronLeft,
+  Lock,
   MapPin,
   MessageCircle,
   Settings,
@@ -184,12 +185,24 @@ function ProfileView() {
 
           {!isMe && (
             <div className="mt-5 sm:mt-6">
-              <PrimaryButton
-                className="gap-1.5 shadow-sm py-2.5 sm:py-3 text-xs sm:text-sm font-bold active:scale-95"
-                onClick={() => setChatId(person.id)}
-              >
-                <MessageCircle size={15} /> Send Direct Message
-              </PrimaryButton>
+              {user?.role === "admin" || user?.role === "manager" ? (
+                <PrimaryButton
+                  className="gap-1.5 shadow-sm py-2.5 sm:py-3 text-xs sm:text-sm font-bold active:scale-95"
+                  onClick={() => setChatId(person.id)}
+                >
+                  <MessageCircle size={15} /> Send Direct Message
+                </PrimaryButton>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  title="Direct messaging is locked for members and team specialists. Only Managers and Admins can start direct chats."
+                  className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-100 border border-zinc-200 px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-bold text-zinc-400 cursor-not-allowed select-none shadow-2xs"
+                >
+                  <Lock size={15} className="text-zinc-400" />
+                  <span>Direct Message (Locked)</span>
+                </button>
+              )}
             </div>
           )}
         </div>

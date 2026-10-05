@@ -379,14 +379,27 @@ export default function MembersPage() {
                   {/* Action Buttons */}
                   <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                     {m.id !== user?.id ? (
-                      <button
-                        type="button"
-                        onClick={() => setChatUserId(m.id)}
-                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 hover:border-primary/40 px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:text-primary transition shadow-2xs cursor-pointer"
-                      >
-                        <MessageCircle size={14} className="text-primary" />
-                        <span>CHAT</span>
-                      </button>
+                      canChat ? (
+                        <button
+                          type="button"
+                          onClick={() => setChatUserId(m.id)}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/80 bg-zinc-100/90 hover:bg-zinc-200/80 active:bg-zinc-200 px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:text-zinc-900 transition shadow-2xs cursor-pointer active:scale-95"
+                          title={`Chat with ${m.name}`}
+                        >
+                          <span>CHAT</span>
+                          <MessageCircle size={14} className="text-zinc-600 stroke-[2]" />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setLockedChatModalOpen(true)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-[#e4e6eb] border border-zinc-200/60 px-3.5 py-1.5 text-xs font-bold text-zinc-400 cursor-not-allowed select-none shadow-2xs hover:opacity-90 transition"
+                          title="Direct messaging is locked for members and team members. Only Managers and Admins can start chats."
+                        >
+                          <span>CHAT</span>
+                          <MessageCircle size={14} className="text-zinc-400 stroke-[1.8]" />
+                        </button>
+                      )
                     ) : (
                       <span className="rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-semibold text-zinc-500">
                         You
@@ -395,7 +408,7 @@ export default function MembersPage() {
 
                     <Link
                       href={`/profile?id=${m.id}`}
-                      className="inline-flex items-center justify-center rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 p-2 text-zinc-500 hover:text-zinc-800 transition shadow-2xs"
+                      className="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 p-2 text-zinc-500 hover:text-zinc-800 transition shadow-2xs"
                       title="View Member Profile"
                     >
                       <ExternalLink size={13} />
@@ -508,6 +521,46 @@ export default function MembersPage() {
                 ? "💡 Directs to the Login Page with an invitation banner + 1-click option to create account & join."
                 : "💡 Directs straight to the Account Application page with your referral attribution."}
             </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Locked Chat Info Modal for Members & Team Members */}
+      <Modal
+        open={lockedChatModalOpen}
+        onClose={() => setLockedChatModalOpen(false)}
+        title="Direct Messaging Locked"
+      >
+        <div className="space-y-4 text-center py-2">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 shadow-xs">
+            <Lock size={22} />
+          </div>
+
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-zinc-900">
+              Chat Access is Restricted
+            </h3>
+            <p className="mt-1.5 text-xs text-zinc-600 leading-relaxed max-w-sm mx-auto">
+              Direct messaging in the member directory is currently locked for members and team specialists. Only <strong>Managers</strong> and <strong>Admins</strong> can initiate direct chats.
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-zinc-50 p-3.5 border border-zinc-200 text-xs text-zinc-600 text-left space-y-1.5">
+            <div className="font-bold text-zinc-900">How to connect with peers:</div>
+            <p className="text-[11px] text-zinc-500 leading-normal">
+              • Post your questions or wins in the <strong>Community</strong> feed to discuss with peers & coaches.<br />
+              • Reach out to an Admin or Community Manager if you need dedicated support.
+            </p>
+          </div>
+
+          <div className="pt-2 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => setLockedChatModalOpen(false)}
+              className="w-full sm:w-auto rounded-xl bg-zinc-900 px-6 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition cursor-pointer shadow-sm"
+            >
+              Understood
+            </button>
           </div>
         </div>
       </Modal>
