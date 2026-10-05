@@ -331,6 +331,35 @@ function loadFromDisk(): Database | null {
   }
 }
 
+let inFlightFetch: Promise<Database | null> | null = null;
+
+export async function ensureDbLoaded(): Promise<Database> {
+  if (isInitialFetchDone && cache) return cache;
+  if (!inFlightFetch) {
+    inFlightFetch = fetchDatabaseFromSupabase()
+      .then((remoteDb) => {
+        if (remoteDb && remoteDb.users.length > 0) {
+          migrate(remoteDb);
+          cache = remoteDb;
+          persist(remoteDb);
+          isInitialFetchDone = true;
+          return remoteDb;
+        }
+        return null;
+      })
+      .catch((err) => {
+        console.error("Error in ensureDbLoaded:", err);
+        return null;
+      })
+      .finally(() => {
+        inFlightFetch = null;
+      });
+  }
+  const remote = await inFlightFetch;
+  if (remote) return remote;
+  return readDb();
+}
+
 // Background async loader from Supabase
 export async function refreshFromSupabase(): Promise<Database> {
   const remoteDb = await fetchDatabaseFromSupabase();
@@ -386,15 +415,21 @@ export function writeDb(db: Database) {
 }
 
 export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
+  if (!isInitialFetchDone) {
+    await ensureDbLoaded().catch(() => {});
+  }
   const db = readDb();
-  const prevUsers = new Map(db.users.map((u) => [u.id, u]));
-  const prevPosts = new Map(db.posts.map((p) => [p.id, p]));
-  const prevComments = new Map(db.comments.map((c) => [c.id, c]));
-  const prevCourses = new Map(db.courses.map((c) => [c.id, c]));
-  const prevProjects = new Map(db.projects.map((p) => [p.id, p]));
-  const prevReviews = new Map((db.reviews || []).map((r) => [r.id, r]));
-  const prevVideoResources = new Map((db.videoResources || []).map((v) => [v.id, v]));
-  const prevCommunities = new Map((db.communities || []).map((c) => [c.id, c]));
+  const prevUsers = new Map(db.users.map((u) => [u.id, JSON.stringify(u)]));
+  const prevPosts = new Map(db.posts.map((p) => [p.id, JSON.stringify(p)]));
+  const prevComments = new Map(db.comments.map((c) => [c.id, JSON.stringify(c)]));
+  const prevCourses = new Map(db.courses.map((c) => [c.id, JSON.stringify(c)]));
+  const prevProjects = new Map(db.projects.map((p) => [p.id, JSON.stringify(p)]));
+  const prevReviews = new Map((db.reviews || []).map((r) => [r.id, JSON.stringify(r)]));
+  const prevVideoResources = new Map((db.videoResources || []).map((v) => [v.id, JSON.stringify(v)]));
+  const prevCommunities = new Map((db.communities || []).map((c) => [c.id, JSON.stringify(c)]));
+  const prevNotifications = new Map((db.notifications || []).map((n) => [n.id, JSON.stringify(n)]));
+  const prevMessages = new Map((db.messages || []).map((m) => [m.id, JSON.stringify(m)]));
+  const prevSales = new Map((db.sales || []).map((s) => [s.id, JSON.stringify(s)]));
 
   const result = mutator(db);
   persist(db);
@@ -406,8 +441,8 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 1. Sync updated / new users
     const currentUserIds = new Set(db.users.map((u) => u.id));
     for (const user of db.users) {
-      const prev = prevUsers.get(user.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(user)) {
+      const prevJson = prevUsers.get(user.id);
+      if (!prevJson || prevJson !== JSON.stringify(user)) {
         promises.push(syncUserToSupabase(user));
       }
     }
@@ -421,8 +456,8 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 2. Sync updated / new posts
     const currentPostIds = new Set(db.posts.map((p) => p.id));
     for (const post of db.posts) {
-      const prev = prevPosts.get(post.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(post)) {
+      const prevJson = prevPosts.get(post.id);
+      if (!prevJson || prevJson !== JSON.stringify(post)) {
         promises.push(syncPostToSupabase(post));
       }
     }
@@ -436,8 +471,8 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 3. Sync updated / new comments
     const currentCommentIds = new Set(db.comments.map((c) => c.id));
     for (const comment of db.comments) {
-      const prev = prevComments.get(comment.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(comment)) {
+      const prevJson = prevComments.get(comment.id);
+      if (!prevJson || prevJson !== JSON.stringify(comment)) {
         promises.push(syncCommentToSupabase(comment));
       }
     }
@@ -451,8 +486,8 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 4. Sync courses
     const currentCourseIds = new Set(db.courses.map((c) => c.id));
     for (const course of db.courses) {
-      const prev = prevCourses.get(course.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(course)) {
+      const prevJson = prevCourses.get(course.id);
+      if (!prevJson || prevJson !== JSON.stringify(course)) {
         promises.push(syncCourseToSupabase(course));
       }
     }
@@ -465,8 +500,8 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 5. Sync projects
     const currentProjectIds = new Set(db.projects.map((p) => p.id));
     for (const project of db.projects) {
-      const prev = prevProjects.get(project.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(project)) {
+      const prevJson = prevProjects.get(project.id);
+      if (!prevJson || prevJson !== JSON.stringify(project)) {
         promises.push(syncProjectToSupabase(project));
       }
     }
@@ -484,8 +519,8 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 7. Reviews
     const currentReviewIds = new Set((db.reviews || []).map((r) => r.id));
     for (const rev of db.reviews || []) {
-      const prev = prevReviews.get(rev.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(rev)) {
+      const prevJson = prevReviews.get(rev.id);
+      if (!prevJson || prevJson !== JSON.stringify(rev)) {
         promises.push(syncReviewToSupabase(rev));
       }
     }
@@ -498,8 +533,8 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     // 8. Video Resources
     const currentVideoIds = new Set((db.videoResources || []).map((v) => v.id));
     for (const vid of db.videoResources || []) {
-      const prev = prevVideoResources.get(vid.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(vid)) {
+      const prevJson = prevVideoResources.get(vid.id);
+      if (!prevJson || prevJson !== JSON.stringify(vid)) {
         promises.push(syncVideoResourceToSupabase(vid));
       }
     }
@@ -511,20 +546,39 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
 
     // 9. Sales
     for (const sale of db.sales || []) {
-      promises.push(syncSaleToSupabase(sale));
+      const prevJson = prevSales.get(sale.id);
+      if (!prevJson || prevJson !== JSON.stringify(sale)) {
+        promises.push(syncSaleToSupabase(sale));
+      }
     }
 
     // 10. Communities
     const currentCommunityIds = new Set((db.communities || []).map((c) => c.id));
     for (const comm of db.communities || []) {
-      const prev = prevCommunities.get(comm.id);
-      if (!prev || JSON.stringify(prev) !== JSON.stringify(comm)) {
+      const prevJson = prevCommunities.get(comm.id);
+      if (!prevJson || prevJson !== JSON.stringify(comm)) {
         promises.push(syncCommunityToSupabase(comm));
       }
     }
     for (const [prevId] of prevCommunities) {
       if (!currentCommunityIds.has(prevId)) {
         promises.push(deleteCommunityFromSupabase(prevId));
+      }
+    }
+
+    // 11. Notifications
+    for (const notif of db.notifications || []) {
+      const prevJson = prevNotifications.get(notif.id);
+      if (!prevJson || prevJson !== JSON.stringify(notif)) {
+        promises.push(syncNotificationToSupabase(notif));
+      }
+    }
+
+    // 12. Messages
+    for (const msg of db.messages || []) {
+      const prevJson = prevMessages.get(msg.id);
+      if (!prevJson || prevJson !== JSON.stringify(msg)) {
+        promises.push(syncMessageToSupabase(msg));
       }
     }
 

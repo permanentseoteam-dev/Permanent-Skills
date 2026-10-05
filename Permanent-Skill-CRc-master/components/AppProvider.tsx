@@ -481,7 +481,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
     return run(() => deleteCommentAction(commentId));
   }, [run]);
-  const togglePinFn = useCallback((postId: string) => run(() => togglePinAction(postId)), [run]);
+  const togglePinFn = useCallback(
+    (postId: string) => {
+      setState((prev) => ({
+        ...prev,
+        posts: prev.posts.map((p) => (p.id === postId ? { ...p, pinned: !p.pinned } : p)),
+      }));
+      return run(() => togglePinAction(postId));
+    },
+    [run],
+  );
   const completeLessonFn = useCallback(
     (courseId: string, lessonId: string) => run(() => completeLessonAction(courseId, lessonId)),
     [run],

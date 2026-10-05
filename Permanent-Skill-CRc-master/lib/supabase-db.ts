@@ -337,11 +337,25 @@ export async function syncUserToSupabase(u: User) {
       .eq("id", u.id)
       .select("id");
 
-    // 2. If user doesn't exist yet, insert
-    if (updateErr || !updated || updated.length === 0) {
-      const { error: upsertErr } = await supabase.from("users").upsert(payload, { onConflict: "id" });
-      if (upsertErr) console.error("Error upserting user to Supabase:", upsertErr);
+    if (updated && updated.length > 0) {
+      return;
     }
+
+    // 2. If ID wasn't matched, try updating by email if available
+    if (u.email) {
+      const { data: updatedEmail } = await supabase
+        .from("users")
+        .update(payload)
+        .eq("email", u.email.trim().toLowerCase())
+        .select("id");
+      if (updatedEmail && updatedEmail.length > 0) {
+        return;
+      }
+    }
+
+    // 3. If user doesn't exist yet, insert / upsert
+    const { error: upsertErr } = await supabase.from("users").upsert(payload, { onConflict: "id" });
+    if (upsertErr) console.error("Error upserting user to Supabase:", upsertErr);
   } catch (err) {
     console.error("Error syncing user to Supabase:", err);
   }
@@ -372,22 +386,31 @@ export async function deleteUserFromSupabase(userId: string) {
 export async function syncPostToSupabase(p: Post) {
   try {
     const supabase = getAdminSupabase();
-    const { error } = await supabase.from("posts").upsert(
-      {
-        id: p.id,
-        author_id: p.authorId,
-        category: p.category,
-        title: p.title,
-        body: p.body,
-        pinned: !!p.pinned,
-        likes: p.likes || [],
-        created_at: p.createdAt || new Date().toISOString(),
-        thumbnail: p.thumbnail || null,
-        community_id: p.communityId || null,
-      },
-      { onConflict: "id" }
-    );
-    if (error) console.error("Error upserting post to Supabase:", error);
+    const payload = {
+      id: p.id,
+      author_id: p.authorId,
+      category: p.category,
+      title: p.title,
+      body: p.body,
+      pinned: !!p.pinned,
+      likes: p.likes || [],
+      created_at: p.createdAt || new Date().toISOString(),
+      thumbnail: p.thumbnail || null,
+      community_id: p.communityId || null,
+    };
+
+    // 1. Try direct update first by ID
+    const { error: updateErr, data: updated } = await supabase
+      .from("posts")
+      .update(payload)
+      .eq("id", p.id)
+      .select("id");
+
+    // 2. If row doesn't exist yet, insert/upsert
+    if (updateErr || !updated || updated.length === 0) {
+      const { error: upsertErr } = await supabase.from("posts").upsert(payload, { onConflict: "id" });
+      if (upsertErr) console.error("Error upserting post to Supabase:", upsertErr);
+    }
   } catch (err) {
     console.error("Error syncing post to Supabase:", err);
   }

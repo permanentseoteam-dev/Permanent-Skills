@@ -2,7 +2,7 @@
 
 import { cookies, headers } from "next/headers";
 import { randomBytes } from "crypto";
-import { readDb, updateDb, upsertUser } from "./db";
+import { ensureDbLoaded, readDb, refreshFromSupabase, updateDb, upsertUser } from "./db";
 import { hashPassword, verifyPassword } from "./password";
 import { nextPathFor, signPayload, verifyPayload } from "./session";
 import { slugify, formatDateTime } from "./format";
@@ -120,6 +120,7 @@ async function currentUser(): Promise<User | null> {
   const session = verifyPayload<SessionPayload>(jar.get(COOKIE)?.value);
   if (!session?.userId) return null;
 
+  await ensureDbLoaded().catch(() => {});
   const db = readDb();
   const existing = db.users.find((u) => u.id === session.userId);
   if (existing) return existing;
@@ -158,6 +159,7 @@ function award(user: User, amount: number) {
 const COLORS = ["#5051F9", "#0ea5e9", "#db2777", "#16a34a", "#ea580c", "#7c3aed", "#0891b2"];
 
 export async function getAppState(): Promise<AppState> {
+  await ensureDbLoaded().catch(() => {});
   const me = await currentUser();
   const empty: AppState = {
     user: null,
@@ -468,8 +470,13 @@ export async function submitApplication(form: Application): Promise<ActionResult
 export async function approveUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  await ensureDbLoaded().catch(() => {});
   const db = readDb();
-  const target = db.users.find((u) => u.id === userId);
+  let target = db.users.find((u) => u.id === userId);
+  if (!target) {
+    await refreshFromSupabase().catch(() => {});
+    target = readDb().users.find((u) => u.id === userId);
+  }
   if (!target) return { ok: false, error: "User not found." };
   const targetEmail = target.email?.trim().toLowerCase();
 
@@ -551,8 +558,13 @@ export async function approveUser(userId: string): Promise<ActionResult> {
 export async function rejectUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  await ensureDbLoaded().catch(() => {});
   const db = readDb();
-  const target = db.users.find((u) => u.id === userId);
+  let target = db.users.find((u) => u.id === userId);
+  if (!target) {
+    await refreshFromSupabase().catch(() => {});
+    target = readDb().users.find((u) => u.id === userId);
+  }
   if (!target) return { ok: false, error: "User not found." };
   if (target.role === "admin" && me.role !== "admin") return { ok: false, error: "Cannot reject an admin." };
   if (target.id === me.id) return { ok: false, error: "Cannot reject yourself." };
@@ -575,8 +587,13 @@ export async function rejectUser(userId: string): Promise<ActionResult> {
 export async function deleteMember(userId: string): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  await ensureDbLoaded().catch(() => {});
   const db = readDb();
-  const target = db.users.find((u) => u.id === userId);
+  let target = db.users.find((u) => u.id === userId);
+  if (!target) {
+    await refreshFromSupabase().catch(() => {});
+    target = readDb().users.find((u) => u.id === userId);
+  }
   if (!target) return { ok: false, error: "User not found." };
   if (target.role === "admin") return { ok: false, error: "Cannot delete an administrator account." };
   if (target.id === me.id) return { ok: false, error: "Cannot delete your own account." };
