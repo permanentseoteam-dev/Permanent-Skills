@@ -501,38 +501,38 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* SECTION 1: HEADER & KPI STATS STRIP */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-zinc-900">Admin & Operations Hub</h1>
-            <span className="rounded-md bg-zinc-900 text-white px-2 py-0.5 text-[10px] font-black uppercase">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-900">Admin & Operations Hub</h1>
+            <span className="rounded-md bg-zinc-900 text-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wider">
               Superuser Access
             </span>
           </div>
-          <p className="mt-0.5 text-xs text-zinc-500">
+          <p className="mt-0.5 text-xs text-zinc-500 leading-normal">
             Real-time management for applicant approvals, members directory, delegated staff, comment moderation, sales, and classroom curriculum.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <PrimaryButton onClick={openCreate} className="rounded-xl px-4 py-2 text-xs font-bold gap-1.5 shadow-sm">
+        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+          <PrimaryButton onClick={openCreate} className="w-full sm:w-auto justify-center rounded-xl px-4 py-2 text-xs font-bold gap-1.5 shadow-sm active:scale-95 cursor-pointer">
             <UserPlus size={14} /> Add Member
           </PrimaryButton>
         </div>
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3">
         <button
           type="button"
           onClick={() => setTab("members")}
           className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
         >
-          <Card className="p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs">
+          <Card className="p-3.5 sm:p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs h-full flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Users</span>
-            <p className="mt-1 text-xl font-black text-zinc-900">{approvedUsers.length}</p>
+            <p className="mt-1 text-lg sm:text-xl font-black text-zinc-900">{approvedUsers.length}</p>
           </Card>
         </button>
 
@@ -541,9 +541,9 @@ export default function AdminPage() {
           onClick={() => setTab("sales")}
           className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
         >
-          <Card className="p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs">
+          <Card className="p-3.5 sm:p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs h-full flex flex-col justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Sales</span>
-            <p className="mt-1 text-xl font-black text-emerald-600">{formatMoney(totalSalesRevenue)}</p>
+            <p className="mt-1 text-lg sm:text-xl font-black text-emerald-600 truncate">{formatMoney(totalSalesRevenue)}</p>
           </Card>
         </button>
 
@@ -552,9 +552,9 @@ export default function AdminPage() {
           onClick={() => setTab("pending")}
           className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
         >
-          <Card className={`p-4 shadow-2xs ${pending.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
+          <Card className={`p-3.5 sm:p-4 shadow-2xs h-full flex flex-col justify-between ${pending.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pending Requests</span>
-            <p className="mt-1 text-xl font-black text-amber-700 flex items-center gap-1.5">
+            <p className="mt-1 text-lg sm:text-xl font-black text-amber-700 flex items-center gap-1.5">
               {pending.length}
               {pending.length > 0 && <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
             </p>
@@ -566,9 +566,9 @@ export default function AdminPage() {
           onClick={() => setTab("posts")}
           className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
         >
-          <Card className={`p-4 shadow-2xs ${pendingPosts.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
+          <Card className={`p-3.5 sm:p-4 shadow-2xs h-full flex flex-col justify-between ${pendingPosts.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pending Posts</span>
-            <p className="mt-1 text-xl font-black text-amber-700 flex items-center gap-1.5">
+            <p className="mt-1 text-lg sm:text-xl font-black text-amber-700 flex items-center gap-1.5">
               {pendingPosts.length}
               {pendingPosts.length > 0 && <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
             </p>
@@ -578,11 +578,11 @@ export default function AdminPage() {
         <button
           type="button"
           onClick={() => setTab("comments")}
-          className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
+          className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98 col-span-2 sm:col-span-1"
         >
-          <Card className={`p-4 shadow-2xs ${pendingComments.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
+          <Card className={`p-3.5 sm:p-4 shadow-2xs h-full flex flex-col justify-between ${pendingComments.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
             <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pending Comments</span>
-            <p className="mt-1 text-xl font-black text-primary flex items-center gap-1.5">
+            <p className="mt-1 text-lg sm:text-xl font-black text-primary flex items-center gap-1.5">
               {pendingComments.length}
               {pendingComments.length > 0 && <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />}
             </p>
@@ -593,7 +593,7 @@ export default function AdminPage() {
       {/* Global Feedback Banner */}
       {message && (
         <div
-          className={`rounded-2xl p-4 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs ${
+          className={`rounded-2xl p-3.5 sm:p-4 text-xs font-semibold flex items-center justify-between gap-2 shadow-2xs ${
             message.type === "success"
               ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
               : "bg-red-50 text-red-800 border border-red-200"
@@ -603,53 +603,69 @@ export default function AdminPage() {
             {message.type === "success" ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
             <span>{message.text}</span>
           </div>
-          <button onClick={() => setMessage(null)} className="text-zinc-400 hover:text-zinc-600">
+          <button onClick={() => setMessage(null)} className="text-zinc-400 hover:text-zinc-600 p-1 cursor-pointer">
             <X size={14} />
           </button>
         </div>
       )}
 
       {/* SECTION 2: SUBTAB NAVIGATION BAR */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-        <TabButton
-          active={tab === "pending"}
-          onClick={() => setTab("pending")}
-          label={`Pending Requests (${pending.length})`}
-          badgeColor={pending.length > 0 ? "bg-amber-500 text-zinc-950 font-black animate-pulse" : undefined}
-        />
-        <TabButton
-          active={tab === "members"}
-          onClick={() => setTab("members")}
-          label={`Members Directory (${users.filter((u) => u.role !== "admin").length})`}
-        />
-        <TabButton
-          active={tab === "manager"}
-          onClick={() => setTab("manager")}
-          label={`★ Manager Setup (${managerUsers.length})`}
-          badgeColor="bg-blue-600 text-white"
-        />
-        <TabButton
-          active={tab === "posts"}
-          onClick={() => setTab("posts")}
-          label={`Posts Moderation (${pendingPosts.length})`}
-          badgeColor={pendingPosts.length > 0 ? "bg-amber-500 text-zinc-950 font-bold" : undefined}
-        />
-        <TabButton
-          active={tab === "comments"}
-          onClick={() => setTab("comments")}
-          label={`Comments Moderation (${pendingComments.length})`}
-          badgeColor={pendingComments.length > 0 ? "bg-amber-500 text-zinc-950 font-bold" : undefined}
-        />
-        <TabButton
-          active={tab === "sales"}
-          onClick={() => setTab("sales")}
-          label={`Sales & Revenue (${sales.length})`}
-        />
-        <TabButton
-          active={tab === "classroom"}
-          onClick={() => setTab("classroom")}
-          label={`Classroom Curriculum (${courses.length})`}
-        />
+      <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+          <TabButton
+            active={tab === "pending"}
+            onClick={() => setTab("pending")}
+            label="Pending Requests"
+            count={pending.length}
+            icon={Clock}
+            badgeVariant="amber"
+          />
+          <TabButton
+            active={tab === "members"}
+            onClick={() => setTab("members")}
+            label="Members Directory"
+            count={users.filter((u) => u.role !== "admin").length}
+            icon={Users}
+          />
+          <TabButton
+            active={tab === "manager"}
+            onClick={() => setTab("manager")}
+            label="Manager Setup"
+            count={managerUsers.length}
+            icon={Key}
+            badgeVariant="blue"
+          />
+          <TabButton
+            active={tab === "posts"}
+            onClick={() => setTab("posts")}
+            label="Posts Moderation"
+            count={pendingPosts.length}
+            icon={MessageSquare}
+            badgeVariant="amber"
+          />
+          <TabButton
+            active={tab === "comments"}
+            onClick={() => setTab("comments")}
+            label="Comments Moderation"
+            count={pendingComments.length}
+            icon={MessageCircle}
+            badgeVariant="amber"
+          />
+          <TabButton
+            active={tab === "sales"}
+            onClick={() => setTab("sales")}
+            label="Sales & Revenue"
+            count={sales.length}
+            icon={DollarSign}
+          />
+          <TabButton
+            active={tab === "classroom"}
+            onClick={() => setTab("classroom")}
+            label="Classroom Curriculum"
+            count={courses.length}
+            icon={BookOpen}
+          />
+        </div>
       </div>
 
       {/* SECTION 3: SUBTAB 1 - PENDING APPLICATIONS */}
@@ -808,7 +824,7 @@ export default function AdminPage() {
             </div>
           ) : (
             <Card className="overflow-x-auto shadow-sm">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs min-w-[680px]">
                 <thead className="bg-zinc-50 border-b border-zinc-100 uppercase tracking-wider text-zinc-400 text-[10px]">
                   <tr>
                     <th className="px-4 py-3">Member</th>
@@ -831,7 +847,7 @@ export default function AdminPage() {
                             <button
                               type="button"
                               onClick={() => setViewingStudentCard(m)}
-                              className="font-bold text-zinc-900 hover:text-primary transition truncate block text-left"
+                              className="font-bold text-zinc-900 hover:text-primary transition truncate block text-left cursor-pointer"
                             >
                               {m.name}
                             </button>
@@ -1456,7 +1472,7 @@ export default function AdminPage() {
           </div>
 
           <Card className="overflow-x-auto shadow-sm">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[560px]">
               <thead className="bg-zinc-50 border-b border-zinc-100 uppercase tracking-wider text-zinc-400 text-[10px]">
                 <tr>
                   <th className="px-4 py-3">Transaction Date</th>
@@ -1870,11 +1886,11 @@ function StudentCard({
   return (
     <div className="rounded-2xl border border-zinc-200/90 bg-white p-5 sm:p-6 shadow-xs transition hover:shadow-sm space-y-4">
       {/* Top Header Row */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex items-start gap-3.5 min-w-0 flex-1">
-          <Avatar user={user} size={48} className="border-2 border-zinc-200 shrink-0" />
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4">
+        <div className="flex items-start gap-3 sm:gap-3.5 min-w-0 flex-1">
+          <Avatar user={user} size={44} className="border-2 border-zinc-200 shrink-0 sm:w-12 sm:h-12" />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <h3 className="text-base sm:text-lg font-black text-zinc-950 tracking-tight">{user.name}</h3>
 
               {/* Status Badge */}
@@ -1891,7 +1907,7 @@ function StudentCard({
               </span>
 
               {/* Sub-badge / Profession Tag */}
-              <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-700">
+              <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-700 truncate max-w-[200px]">
                 {profession}
               </span>
 
@@ -1903,14 +1919,14 @@ function StudentCard({
             </div>
 
             {/* Subline Info */}
-            <div className="mt-1 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-zinc-500 font-medium">
-              <span className="font-mono text-zinc-800 font-semibold">{user.email}</span>
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-3 text-xs text-zinc-500 font-medium">
+              <span className="font-mono text-zinc-800 font-semibold break-all">{user.email}</span>
               <span>•</span>
-              <span>{isPending ? `Applied ${timeAgo(user.joinedAt)}` : `Joined ${timeAgo(user.joinedAt)}`}</span>
+              <span className="whitespace-nowrap">{isPending ? `Applied ${timeAgo(user.joinedAt)}` : `Joined ${timeAgo(user.joinedAt)}`}</span>
               {phone ? (
                 <>
                   <span>•</span>
-                  <span className="font-mono text-zinc-600 inline-flex items-center gap-1">
+                  <span className="font-mono text-zinc-600 inline-flex items-center gap-1 whitespace-nowrap">
                     <Phone size={11} className="text-zinc-400" /> {phone}
                   </span>
                 </>
@@ -1920,7 +1936,7 @@ function StudentCard({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-2 shrink-0 self-end sm:self-center flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto justify-start sm:justify-end flex-wrap pt-2.5 sm:pt-0 border-t sm:border-t-0 border-zinc-100">
           {onApprove && (
             <button
               onClick={onApprove}
@@ -1981,7 +1997,7 @@ function StudentCard({
       </div>
 
       {/* Details Box matching requested design */}
-      <div className="rounded-xl border border-zinc-200/90 bg-white/70 p-4 sm:p-5 text-xs sm:text-[13px] text-zinc-700 space-y-2.5 leading-relaxed">
+      <div className="rounded-xl border border-zinc-200/90 bg-white/70 p-3.5 sm:p-5 text-xs sm:text-[13px] text-zinc-700 space-y-2.5 leading-relaxed break-words">
         {/* Row 1: Location & Experience */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <div>
@@ -2002,9 +2018,9 @@ function StudentCard({
               href={website.startsWith("http") ? website : `https://${website}`}
               target="_blank"
               rel="noreferrer"
-              className="font-mono text-primary hover:underline font-semibold inline-flex items-center gap-1"
+              className="font-mono text-primary hover:underline font-semibold inline-flex items-center gap-1 break-all"
             >
-              {website} <ExternalLink size={12} />
+              {website} <ExternalLink size={12} className="shrink-0" />
             </a>
           ) : (
             <span className="text-zinc-400 font-mono">None provided</span>
@@ -2041,23 +2057,47 @@ function TabButton({
   active,
   onClick,
   label,
-  badgeColor = "bg-zinc-100 text-zinc-700",
+  count,
+  icon: Icon,
+  badgeVariant,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
-  badgeColor?: string;
+  count?: number;
+  icon?: React.ComponentType<{ size?: number; className?: string }>;
+  badgeVariant?: "amber" | "blue" | "zinc";
 }) {
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold transition whitespace-nowrap active:scale-95 cursor-pointer ${
+      className={`group relative inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3.5 sm:px-4 py-2 text-xs font-bold transition whitespace-nowrap active:scale-95 cursor-pointer shrink-0 ${
         active
           ? "bg-zinc-900 text-white shadow-sm ring-1 ring-zinc-900"
-          : "bg-white ring-1 ring-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-2xs"
+          : "bg-white ring-1 ring-zinc-200 text-zinc-600 hover:text-zinc-900 hover:bg-zinc-50 shadow-2xs"
       }`}
     >
+      {Icon && <Icon size={14} className={active ? "text-white" : "text-zinc-400 group-hover:text-zinc-600"} />}
       <span>{label}</span>
+      {count !== undefined && count > 0 && (
+        <span
+          className={`inline-flex items-center justify-center rounded-full px-1.5 py-0.2 text-[10px] font-black min-w-4.5 ${
+            badgeVariant === "amber"
+              ? active
+                ? "bg-amber-400 text-zinc-950 animate-pulse"
+                : "bg-amber-500 text-zinc-950 font-black animate-pulse"
+              : badgeVariant === "blue"
+                ? active
+                  ? "bg-blue-400 text-zinc-950"
+                  : "bg-blue-600 text-white"
+                : active
+                  ? "bg-white/20 text-white"
+                  : "bg-zinc-100 text-zinc-700"
+          }`}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }

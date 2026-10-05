@@ -249,8 +249,8 @@ export function AdminClassroom() {
   return (
     <div className="space-y-6">
       {/* SECTION 1: COURSE SELECTOR & MANAGEMENT BAR */}
-      <Card className="p-5 border border-zinc-200">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <Card className="p-4 sm:p-5 border border-zinc-200">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <BookOpen size={20} />
@@ -261,7 +261,7 @@ export function AdminClassroom() {
                 Active Course
               </label>
               <select
-                className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-sm font-bold text-zinc-900 outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
+                className="w-full rounded-xl border border-zinc-200 bg-white py-2 px-3 text-xs sm:text-sm font-bold text-zinc-900 outline-none focus:border-zinc-900 cursor-pointer shadow-2xs"
                 value={course?.id || ""}
                 onChange={(e) => {
                   setCourseId(e.target.value);
@@ -277,13 +277,13 @@ export function AdminClassroom() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+          <div className="flex items-center gap-2 shrink-0 self-start sm:self-center flex-wrap w-full sm:w-auto justify-end">
             {course && (
               <>
                 <button
                   type="button"
                   onClick={openEditCourse}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 shadow-2xs transition"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-bold text-zinc-700 hover:bg-zinc-50 shadow-2xs transition cursor-pointer"
                   title="Edit course title, description, or level"
                 >
                   <Pencil size={13} /> Edit Course
@@ -292,7 +292,7 @@ export function AdminClassroom() {
                 <button
                   type="button"
                   onClick={handleDeleteCourse}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/60 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100/80 shadow-2xs transition"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/60 px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-100/80 shadow-2xs transition cursor-pointer"
                   title="Delete Course"
                 >
                   <Trash2 size={13} /> Delete
@@ -300,7 +300,7 @@ export function AdminClassroom() {
               </>
             )}
 
-            <PrimaryButton onClick={openCreateCourse} className="rounded-xl px-3.5 py-2 text-xs font-bold gap-1.5 shadow-sm">
+            <PrimaryButton onClick={openCreateCourse} className="rounded-xl px-3.5 py-2 text-xs font-bold gap-1.5 shadow-sm cursor-pointer">
               <Plus size={14} /> New Course
             </PrimaryButton>
           </div>
@@ -536,7 +536,7 @@ export function AdminClassroom() {
                   {modLessons.map((lesson, idx) => (
                     <div
                       key={lesson.id}
-                      className="flex items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl transition gap-3"
+                      className="flex flex-col sm:flex-row sm:items-center justify-between py-2.5 px-2 hover:bg-white rounded-xl transition gap-2 sm:gap-3"
                     >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -565,11 +565,11 @@ export function AdminClassroom() {
                         )}
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0 self-end sm:self-auto">
                         <button
                           type="button"
                           onClick={() => startEditLesson(lesson)}
-                          className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition"
+                          className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 transition cursor-pointer"
                           title="Edit Lesson"
                         >
                           <Pencil size={14} />
@@ -581,7 +581,7 @@ export function AdminClassroom() {
                               deleteLesson(course.id, lesson.id);
                             }
                           }}
-                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition"
+                          className="rounded-lg p-1.5 text-zinc-400 hover:bg-red-50 hover:text-red-600 transition cursor-pointer"
                           title="Delete Lesson"
                         >
                           <Trash2 size={14} />
