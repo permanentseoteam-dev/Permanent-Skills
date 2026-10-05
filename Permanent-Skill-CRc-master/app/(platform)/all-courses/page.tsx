@@ -195,7 +195,7 @@ export default function AllCoursesPage() {
     if (isLevel1 || glow === "yellow") {
       return (
         <div
-          className="relative h-44 sm:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none"
+          className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none"
           style={{
             backgroundImage:
               "radial-gradient(circle, rgba(0,0,0,0.22) 1.5px, transparent 1.5px)",
@@ -203,16 +203,16 @@ export default function AllCoursesPage() {
           }}
         >
           {/* Terminal Watermark behind */}
-          <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-black/35 tracking-tight pointer-events-none select-none">
+          <div className="absolute inset-x-0 bottom-3 sm:bottom-4 text-center font-mono text-xl sm:text-2xl md:text-3xl font-black text-black/35 tracking-tight pointer-events-none select-none">
             {watermark}
           </div>
 
           {/* Center Black Lock Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
-              <Lock size={20} className="stroke-[2.5]" />
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
+              <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
             </div>
-            <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+            <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
               {isAdmin ? "Unlocked for Admin" : "Unlock at Level 1"}
             </span>
           </div>
@@ -223,7 +223,7 @@ export default function AllCoursesPage() {
     // Glow Configurations
     let glowBg = "bg-emerald-500/25";
     let ringBorder = "border-emerald-400/90 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]";
-    let lockIcon = <Lock size={20} className="stroke-[2.5]" />;
+    let lockIcon = <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />;
 
     if (glow === "green") {
       glowBg = "bg-emerald-500/25";
@@ -234,7 +234,7 @@ export default function AllCoursesPage() {
     } else if (glow === "orange") {
       glowBg = "bg-orange-500/30";
       ringBorder = "border-orange-400/90 text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.45)]";
-      lockIcon = <Flame size={20} className="stroke-[2.5]" />;
+      lockIcon = <Flame size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />;
     } else if (glow === "red") {
       glowBg = "bg-rose-500/25";
       ringBorder = "border-rose-400/90 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]";
@@ -244,24 +244,24 @@ export default function AllCoursesPage() {
     }
 
     return (
-      <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
+      <div className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
         {/* Radial Glow */}
-        <div className={`absolute h-28 w-28 rounded-full ${glowBg} blur-2xl pointer-events-none`} />
+        <div className={`absolute h-24 sm:h-28 w-24 sm:w-28 rounded-full ${glowBg} blur-2xl pointer-events-none`} />
 
         {/* Terminal Watermark behind */}
-        <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-white/10 tracking-tight pointer-events-none select-none">
+        <div className="absolute inset-x-0 bottom-3 sm:bottom-4 text-center font-mono text-xl sm:text-2xl md:text-3xl font-black text-white/10 tracking-tight pointer-events-none select-none">
           {watermark}
         </div>
 
         {/* Center Glowing Lock Badge */}
         <div className="relative z-10 flex flex-col items-center justify-center text-center">
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
+            className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
           >
             {lockIcon}
           </div>
 
-          <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+          <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
             {isAdmin
               ? "Unlocked for Admin"
               : isPremiumOnly
@@ -270,7 +270,7 @@ export default function AllCoursesPage() {
           </span>
 
           {!isAdmin && !isPremiumOnly && (
-            <span className="text-[10.5px] text-zinc-400 font-medium">
+            <span className="text-[10px] sm:text-[10.5px] text-zinc-400 font-medium">
               or Upgrade to VIP
             </span>
           )}
@@ -295,18 +295,20 @@ export default function AllCoursesPage() {
   }
 
   return (
-    <div className="space-y-7 pb-12">
+    <div className="space-y-5 sm:space-y-7 pb-12">
       {/* 1. Header with Learning Portfolio Summary */}
-      <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white via-zinc-50/50 to-primary/5 p-6 shadow-xs">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-5">
+      <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-white via-zinc-50/50 to-primary/5 p-4 sm:p-6 md:p-7 shadow-xs">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-5">
           <div>
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-white shadow-md">
-                <BookOpen size={20} />
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl bg-primary text-white shadow-md shrink-0">
+                <BookOpen size={18} className="sm:w-5 sm:h-5" />
               </div>
               <div>
-                <h1 className="text-2xl font-black tracking-tight text-zinc-900">All Courses & Masterminds</h1>
-                <p className="text-xs text-zinc-500 font-medium">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-black tracking-tight text-zinc-900 leading-tight">
+                  All Courses & Masterminds
+                </h1>
+                <p className="text-[11px] sm:text-xs text-zinc-500 font-medium mt-0.5">
                   Complete training library. Earn community points to unlock courses for free, or unlock instantly via VIP.
                 </p>
               </div>
@@ -317,16 +319,16 @@ export default function AllCoursesPage() {
             {!user?.isPremium && (
               <GoldButton
                 onClick={() => setUpgradeOpen(true)}
-                className="inline-flex items-center gap-1.5 text-xs shadow-xs"
+                className="inline-flex items-center gap-1.5 text-xs shadow-xs py-2 px-3.5"
               >
-                <Sparkles size={14} /> Upgrade to VIP ($9/mo)
+                <Sparkles size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Upgrade to VIP ($9/mo)</span>
               </GoldButton>
             )}
 
             {user?.role === "admin" && (
               <Link href="/admin">
-                <PrimaryButton className="inline-flex items-center gap-1.5 text-xs">
-                  <Plus size={14} /> Course Editor
+                <PrimaryButton className="inline-flex items-center gap-1.5 text-xs py-2 px-3.5">
+                  <Plus size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Course Editor</span>
                 </PrimaryButton>
               </Link>
             )}
@@ -334,45 +336,45 @@ export default function AllCoursesPage() {
         </div>
 
         {/* Learning Scorecard Strip */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-5 border-t border-zinc-200/80">
-          <div className="rounded-xl bg-white p-3.5 border border-zinc-200/80 shadow-2xs">
+        <div className="mt-5 sm:mt-6 grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 pt-4 sm:pt-5 border-t border-zinc-200/80">
+          <div className="rounded-xl bg-white p-3 sm:p-3.5 border border-zinc-200/80 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Total Courses</span>
-              <Layers size={14} className="text-primary" />
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Total Courses</span>
+              <Layers size={13} className="sm:w-3.5 sm:h-3.5 text-primary" />
             </div>
-            <div className="text-xl font-extrabold text-zinc-900">{stats.totalCourses}</div>
-            <div className="text-[11px] text-zinc-400 mt-0.5">Curriculum modules</div>
+            <div className="text-lg sm:text-xl font-extrabold text-zinc-900">{stats.totalCourses}</div>
+            <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">Curriculum modules</div>
           </div>
 
-          <div className="rounded-xl bg-white p-3.5 border border-zinc-200/80 shadow-2xs">
+          <div className="rounded-xl bg-white p-3 sm:p-3.5 border border-zinc-200/80 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Video Lessons</span>
-              <Play size={14} className="text-primary" />
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Video Lessons</span>
+              <Play size={13} className="sm:w-3.5 sm:h-3.5 text-primary" />
             </div>
-            <div className="text-xl font-extrabold text-zinc-900">{stats.totalLessons}</div>
-            <div className="text-[11px] text-zinc-400 mt-0.5">Step-by-step videos</div>
+            <div className="text-lg sm:text-xl font-extrabold text-zinc-900">{stats.totalLessons}</div>
+            <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5">Step-by-step videos</div>
           </div>
 
-          <div className="rounded-xl bg-white p-3.5 border border-zinc-200/80 shadow-2xs">
+          <div className="rounded-xl bg-white p-3 sm:p-3.5 border border-zinc-200/80 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Lessons Completed</span>
-              <CheckCircle2 size={14} className="text-emerald-500" />
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Completed</span>
+              <CheckCircle2 size={13} className="sm:w-3.5 sm:h-3.5 text-emerald-500" />
             </div>
-            <div className="text-xl font-extrabold text-emerald-600">
-              {stats.completedLessons} <span className="text-xs font-semibold text-zinc-400">({stats.overallPct}%)</span>
+            <div className="text-lg sm:text-xl font-extrabold text-emerald-600">
+              {stats.completedLessons} <span className="text-[11px] sm:text-xs font-semibold text-zinc-400">({stats.overallPct}%)</span>
             </div>
-            <div className="text-[11px] text-zinc-400 mt-0.5">{stats.completedCourses} courses finished</div>
+            <div className="text-[10px] sm:text-[11px] text-zinc-400 mt-0.5 truncate">{stats.completedCourses} courses finished</div>
           </div>
 
-          <div className="rounded-xl bg-white p-3.5 border border-zinc-200/80 shadow-2xs">
+          <div className="rounded-xl bg-white p-3 sm:p-3.5 border border-zinc-200/80 shadow-2xs">
             <div className="flex items-center justify-between text-zinc-500 mb-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider">Your Rank</span>
-              <Trophy size={14} className="text-amber-500" />
+              <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider">Your Rank</span>
+              <Trophy size={13} className="sm:w-3.5 sm:h-3.5 text-amber-500" />
             </div>
-            <div className="text-base font-extrabold text-zinc-900 truncate">
+            <div className="text-sm sm:text-base font-extrabold text-zinc-900 truncate">
               {userLevelData.name}
             </div>
-            <div className="text-[11px] text-amber-600 font-bold mt-0.5">
+            <div className="text-[10px] sm:text-[11px] text-amber-600 font-bold mt-0.5">
               Level {userLevel} ({user?.points || 0} pts)
             </div>
           </div>
@@ -396,10 +398,10 @@ export default function AllCoursesPage() {
       )}
 
       {/* 2. Search, Filter Tabs & Sorting Toolbar */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
         {/* Search Bar */}
-        <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+        <div className="relative flex-1 max-w-full md:max-w-md">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
           <input
             type="text"
             placeholder="Search courses, lessons, topics, or modules..."
@@ -418,12 +420,12 @@ export default function AllCoursesPage() {
         </div>
 
         {/* Sorting Dropdown */}
-        <div className="flex items-center gap-2 self-end md:self-auto">
+        <div className="flex items-center justify-between sm:justify-start gap-2 self-stretch sm:self-auto">
           <span className="text-xs font-semibold text-zinc-500 shrink-0">Sort:</span>
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as SortOption)}
-            className="rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 shadow-2xs outline-none focus:border-primary cursor-pointer"
+            className="rounded-xl border border-zinc-200 bg-white px-3 py-1.5 sm:py-2 text-xs font-semibold text-zinc-700 shadow-2xs outline-none focus:border-primary cursor-pointer w-full sm:w-auto"
           >
             <option value="default">Default Order</option>
             <option value="progress_desc">Highest Progress</option>
@@ -436,7 +438,7 @@ export default function AllCoursesPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-zinc-200/80 text-xs scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 border-b border-zinc-200/80 text-xs scrollbar-none">
         {[
           { id: "all" as const, label: "All Courses", count: courses.filter((c) => canViewTeam || !(c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team"))).length },
           { id: "unlocked" as const, label: "Unlocked", count: courses.filter((c) => {
@@ -474,7 +476,7 @@ export default function AllCoursesPage() {
             <button
               key={tab.id}
               onClick={() => setSelectedFilter(tab.id as FilterTab)}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 font-bold transition cursor-pointer shrink-0 ${
+              className={`inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer shrink-0 ${
                 isActive
                   ? "bg-primary text-white shadow-xs"
                   : "bg-white text-zinc-600 border border-zinc-200 hover:border-primary/40 hover:text-primary"
@@ -489,7 +491,7 @@ export default function AllCoursesPage() {
               )}
               <span>{tab.label}</span>
               <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold ${
+                className={`rounded-full px-1.5 py-0.2 text-[9px] sm:text-[10px] font-extrabold ${
                   isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
                 }`}
               >
@@ -502,9 +504,9 @@ export default function AllCoursesPage() {
 
       {/* 3. Course Cards Grid */}
       {filteredCourses.length === 0 ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-xs">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-8 sm:p-12 text-center shadow-xs">
           <BookOpen className="mx-auto mb-3 text-zinc-300" size={36} />
-          <h3 className="text-base font-bold text-zinc-900">No courses found</h3>
+          <h3 className="text-sm sm:text-base font-bold text-zinc-900">No courses found</h3>
           <p className="mt-1 text-xs text-zinc-500 max-w-sm mx-auto">
             We couldn&apos;t find any courses matching your active search query or filter selection.
           </p>
@@ -519,7 +521,7 @@ export default function AllCoursesPage() {
           </button>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
           {filteredCourses.map((course) => {
             const row = progress.find((p) => p.courseId === course.id && p.userId === user?.id);
             const total = course.lessons.length;
@@ -549,13 +551,13 @@ export default function AllCoursesPage() {
                       <h3 className="text-[15px] sm:text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1">
                         {course.title}
                       </h3>
-                      <p className="mt-1 text-xs sm:text-[13px] text-zinc-600 line-clamp-2 leading-relaxed min-h-[36px]">
+                      <p className="mt-1 text-xs sm:text-[13px] text-zinc-600 line-clamp-2 leading-relaxed min-h-[32px] sm:min-h-[36px]">
                         {course.description}
                       </p>
                     </div>
 
                     {/* Clean Pill Progress Bar */}
-                    <div className="mt-4">
+                    <div className="mt-3.5 sm:mt-4">
                       <div className="relative h-5 w-full overflow-hidden rounded-full bg-[#e5e7eb] flex items-center shadow-inner">
                         {pct > 0 && (
                           <div
@@ -596,25 +598,25 @@ export default function AllCoursesPage() {
                 ) : (
                   <Link
                     href={`/classroom/${course.slug}`}
-                    className={`relative h-44 sm:h-48 bg-gradient-to-br ${course.accent || "from-zinc-900 to-zinc-950"} p-5 text-white flex flex-col justify-between overflow-hidden select-none cursor-pointer`}
+                    className={`relative h-40 sm:h-44 md:h-48 bg-gradient-to-br ${course.accent || "from-zinc-900 to-zinc-950"} p-4 sm:p-5 text-white flex flex-col justify-between overflow-hidden select-none cursor-pointer`}
                   >
                     {/* Subtle Glow overlay */}
                     <div className="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
 
                     <div className="relative z-10 flex items-center justify-between">
-                      <span className="rounded-md bg-black/40 backdrop-blur-xs px-2.5 py-1 text-[10px] font-black tracking-wider text-white uppercase border border-white/15">
+                      <span className="rounded-md bg-black/40 backdrop-blur-xs px-2.5 py-0.5 sm:py-1 text-[10px] font-black tracking-wider text-white uppercase border border-white/15">
                         {course.badge || "MODULE"}
                       </span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 backdrop-blur-xs px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 backdrop-blur-xs px-2 sm:px-2.5 py-0.5 text-[11px] sm:text-xs font-bold text-white shadow-xs">
                         <ShieldCheck size={13} /> Unlocked
                       </span>
                     </div>
 
                     <div className="relative z-10">
-                      <h2 className="text-base sm:text-lg font-black leading-snug group-hover:text-primary-light transition-colors line-clamp-1">
+                      <h2 className="text-sm sm:text-base md:text-lg font-black leading-snug group-hover:text-primary-light transition-colors line-clamp-1">
                         {course.title}
                       </h2>
-                      <div className="mt-1 flex items-center gap-3 text-xs text-white/80 font-medium">
+                      <div className="mt-1 flex items-center gap-2.5 sm:gap-3 text-[11px] sm:text-xs text-white/80 font-medium">
                         <span className="flex items-center gap-1">
                           <Play size={12} /> {total} Lessons
                         </span>
@@ -631,15 +633,15 @@ export default function AllCoursesPage() {
                 {isAccessible ? (
                   <Link
                     href={`/classroom/${course.slug}`}
-                    className="flex flex-1 flex-col justify-between p-5 cursor-pointer hover:bg-zinc-50/50 transition-colors"
+                    className="flex flex-1 flex-col justify-between p-4 sm:p-5 cursor-pointer hover:bg-zinc-50/50 transition-colors"
                   >
                     <div>
-                      <p className="min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                      <p className="min-h-[32px] sm:min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
                         {course.description}
                       </p>
 
                       {/* Progress */}
-                      <div className="mt-4">
+                      <div className="mt-3.5 sm:mt-4">
                         <div className="flex items-center justify-between text-xs font-bold text-zinc-700 mb-1.5">
                           <span className="text-zinc-500">Progress ({completedCount}/{total})</span>
                           <span className={pct === 100 ? "text-emerald-600" : "text-primary"}>
@@ -659,24 +661,24 @@ export default function AllCoursesPage() {
                         setPurchasingCourse(course);
                       }
                     }}
-                    className="flex flex-1 flex-col justify-between p-5 cursor-pointer hover:bg-zinc-50/50 transition-colors"
+                    className="flex flex-1 flex-col justify-between p-4 sm:p-5 cursor-pointer hover:bg-zinc-50/50 transition-colors"
                   >
                     <div>
-                      <h3 className="text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1 mb-1">
+                      <h3 className="text-sm sm:text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1 mb-1">
                         {course.title}
                       </h3>
-                      <p className="min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                      <p className="min-h-[32px] sm:min-h-[40px] text-xs text-zinc-600 line-clamp-2 leading-relaxed">
                         {course.description}
                       </p>
 
-                      <div className="mt-4 rounded-xl bg-zinc-50 p-3 text-xs text-zinc-600 border border-zinc-100 flex items-center justify-between">
+                      <div className="mt-3.5 sm:mt-4 rounded-xl bg-zinc-50 p-3 text-xs text-zinc-600 border border-zinc-100 flex items-center justify-between gap-2">
                         <div>
                           <div className="font-bold text-zinc-800">
                             {course.isPremiumOnly
                               ? "👑 VIP Mastermind"
                               : `Unlocks at Level ${course.unlockLevel}`}
                           </div>
-                          <div className="text-[11px] text-zinc-500 mt-0.5">
+                          <div className="text-[10.5px] sm:text-[11px] text-zinc-500 mt-0.5">
                             {course.isPremiumOnly
                               ? "Requires active VIP subscription ($9/mo)"
                               : `You are Level ${userLevel} (${userLevelData.name})`}
@@ -695,25 +697,25 @@ export default function AllCoursesPage() {
 
       {/* 4. Gamification Roadmap & Points Callout Banner */}
       {!isAdminOrManager && (
-        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-r from-zinc-900 via-zinc-950 to-primary/30 p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-5">
-          <div className="space-y-1 text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/30 px-3 py-1 text-xs font-bold text-primary-light ring-1 ring-primary/40">
+        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-r from-zinc-900 via-zinc-950 to-primary/30 p-4 sm:p-6 text-white shadow-md flex flex-col md:flex-row items-start md:items-center justify-between gap-4 sm:gap-5">
+          <div className="space-y-1 text-left">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/30 px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-primary-light ring-1 ring-primary/40">
               <Flame size={14} className="text-amber-400" /> Unlock Courses by Leveling Up
             </div>
-            <h2 className="text-lg font-black tracking-tight">Want to unlock all courses without purchasing?</h2>
+            <h2 className="text-base sm:text-lg font-black tracking-tight">Want to unlock all courses without purchasing?</h2>
             <p className="text-xs text-zinc-300 max-w-xl">
               Post your business wins, answer peer questions, and climb the Leaderboard. Each level you reach unlocks exclusive new course modules and resources automatically!
             </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
             <Link href="/leaderboards">
-              <PrimaryButton className="inline-flex items-center gap-1.5 text-xs">
+              <PrimaryButton className="inline-flex items-center gap-1.5 text-xs py-2 px-3.5">
                 <Trophy size={14} /> View Leaderboard
               </PrimaryButton>
             </Link>
             <Link href="/community">
-              <button className="rounded-lg bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition cursor-pointer border border-white/20">
+              <button className="rounded-xl bg-white/10 px-3.5 py-2 text-xs font-bold text-white hover:bg-white/20 transition cursor-pointer border border-white/20">
                 Go to Community
               </button>
             </Link>
@@ -729,16 +731,16 @@ export default function AllCoursesPage() {
           title={previewCourse.title}
           wide
         >
-          <div className="space-y-5">
+          <div className="space-y-4 sm:space-y-5">
             {/* Course Meta Banner */}
-            <div className={`rounded-xl bg-gradient-to-br ${previewCourse.accent || "from-zinc-900 to-zinc-950"} p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3`}>
+            <div className={`rounded-xl bg-gradient-to-br ${previewCourse.accent || "from-zinc-900 to-zinc-950"} p-3.5 sm:p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3`}>
               <div>
                 <span className="rounded bg-black/40 px-2 py-0.5 text-[10px] font-black uppercase text-white">
                   {previewCourse.badge || "MODULE"}
                 </span>
                 <p className="mt-1 text-xs text-white/80">{previewCourse.description}</p>
               </div>
-              <div className="text-right shrink-0">
+              <div className="text-left sm:text-right shrink-0">
                 <div className="text-xs font-semibold text-white/90">
                   {previewCourse.lessons.length} Lessons • {getCourseDuration(previewCourse)}
                 </div>
@@ -749,7 +751,7 @@ export default function AllCoursesPage() {
             </div>
 
             {/* Lessons Syllabus List */}
-            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-[300px] sm:max-h-[380px] overflow-y-auto pr-1">
               <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">
                 Curriculum & Lesson Breakdown
               </h4>
@@ -763,10 +765,10 @@ export default function AllCoursesPage() {
                   return (
                     <div
                       key={lesson.id}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3.5 hover:bg-white transition"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-zinc-50/50 p-3 sm:p-3.5 hover:bg-white transition"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-200 text-xs font-bold text-zinc-700 shrink-0">
+                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="flex h-6 w-6 sm:h-7 sm:w-7 items-center justify-center rounded-lg bg-zinc-200 text-xs font-bold text-zinc-700 shrink-0">
                           {idx + 1}
                         </div>
                         <div className="min-w-0">
@@ -782,7 +784,7 @@ export default function AllCoursesPage() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <span className="font-mono text-[11px] text-zinc-500">
+                        <span className="font-mono text-[10px] sm:text-[11px] text-zinc-500">
                           {lesson.duration || "10:00"}
                         </span>
                         {isDone && (
@@ -798,10 +800,10 @@ export default function AllCoursesPage() {
             </div>
 
             {/* Action Footer */}
-            <div className="flex items-center justify-between pt-4 border-t border-zinc-200">
+            <div className="flex flex-col-reverse xs:flex-row items-stretch xs:items-center justify-between gap-2.5 pt-3 sm:pt-4 border-t border-zinc-200">
               <button
                 onClick={() => setPreviewCourse(null)}
-                className="rounded-lg px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition cursor-pointer"
+                className="rounded-lg px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition cursor-pointer text-center"
               >
                 Close Preview
               </button>
@@ -812,8 +814,8 @@ export default function AllCoursesPage() {
                 user?.isPremium ||
                 user?.purchasedCourseIds?.includes(previewCourse.id) ||
                 (!previewCourse.isPremiumOnly && (previewCourse.unlockLevel <= 1 || userLevel >= previewCourse.unlockLevel)) ? (
-                  <Link href={`/classroom/${previewCourse.slug}`}>
-                    <PrimaryButton className="inline-flex items-center gap-1.5 text-xs">
+                  <Link href={`/classroom/${previewCourse.slug}`} className="w-full xs:w-auto">
+                    <PrimaryButton className="inline-flex items-center justify-center gap-1.5 text-xs w-full xs:w-auto">
                       <Play size={14} /> Open in Classroom
                     </PrimaryButton>
                   </Link>
@@ -823,7 +825,7 @@ export default function AllCoursesPage() {
                       setPreviewCourse(null);
                       setUpgradeOpen(true);
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs"
+                    className="inline-flex items-center justify-center gap-1.5 text-xs w-full xs:w-auto"
                   >
                     <Sparkles size={14} /> Upgrade to VIP ($9/mo)
                   </GoldButton>
@@ -834,7 +836,7 @@ export default function AllCoursesPage() {
                       setPreviewCourse(null);
                       setPurchasingCourse(c);
                     }}
-                    className="inline-flex items-center gap-1.5 text-xs"
+                    className="inline-flex items-center justify-center gap-1.5 text-xs w-full xs:w-auto"
                   >
                     <Sparkles size={14} /> Unlock Course — {formatMoney(previewCourse.price || 49)}
                   </GoldButton>
@@ -853,15 +855,15 @@ export default function AllCoursesPage() {
           title="Unlock Course Access"
         >
           <div className="space-y-4">
-            <div className="rounded-xl bg-zinc-50 p-4 border border-zinc-200">
-              <div className="text-sm font-bold text-zinc-900">{purchasingCourse.title}</div>
+            <div className="rounded-xl bg-zinc-50 p-3.5 sm:p-4 border border-zinc-200">
+              <div className="text-xs sm:text-sm font-bold text-zinc-900">{purchasingCourse.title}</div>
               <p className="text-xs text-zinc-500 mt-1">{purchasingCourse.description}</p>
               
-              <div className="mt-3 flex items-baseline gap-2">
-                <span className="text-2xl font-black text-zinc-900">
+              <div className="mt-3 flex flex-wrap items-baseline gap-2">
+                <span className="text-xl sm:text-2xl font-black text-zinc-900">
                   {formatMoney(purchasingCourse.price || 49)}
                 </span>
-                <span className="text-xs font-semibold text-zinc-500">One-time payment • Lifetime Access</span>
+                <span className="text-[11px] sm:text-xs font-semibold text-zinc-500">One-time payment • Lifetime Access</span>
               </div>
             </div>
 
@@ -884,7 +886,7 @@ export default function AllCoursesPage() {
               </div>
             </div>
 
-            <div className="rounded-xl bg-amber-50/80 p-3 border border-amber-200/80 text-[11.5px] text-amber-900">
+            <div className="rounded-xl bg-amber-50/80 p-3 border border-amber-200/80 text-[11px] sm:text-[11.5px] text-amber-900">
               <span className="font-bold">💡 Free Unlock Alternative:</span> You can also unlock this course for free by participating in community discussions to reach <strong>Level {purchasingCourse.unlockLevel}</strong> (Currently Level {userLevel}).
             </div>
 
