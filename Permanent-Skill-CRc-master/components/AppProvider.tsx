@@ -231,6 +231,9 @@ type AppContextValue = AppState & {
     aboutFeatures?: string[];
     aboutPainPoints?: string[];
     aboutClosingText?: string;
+    creatorName?: string;
+    creatorAvatarUrl?: string;
+    creatorBadge?: string;
   }) => Promise<ActionResult>;
   joinCommunity: (communityId: string) => Promise<ActionResult>;
   purchaseCommunity: (communityId: string) => Promise<ActionResult>;

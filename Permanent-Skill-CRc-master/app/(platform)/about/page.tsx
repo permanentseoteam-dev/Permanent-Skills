@@ -154,6 +154,14 @@ function AboutPageContent() {
   const [descSaveError, setDescSaveError] = useState("");
   const [descSaveSuccess, setDescSaveSuccess] = useState(false);
 
+  // Creator Info Edit State (Admin & Manager)
+  const [editCreatorModalOpen, setEditCreatorModalOpen] = useState(false);
+  const [editCreatorName, setEditCreatorName] = useState(activeCommunity?.creatorName || "Nate Herk");
+  const [editCreatorBadge, setEditCreatorBadge] = useState(activeCommunity?.creatorBadge || "💎");
+  const [editCreatorAvatarUrl, setEditCreatorAvatarUrl] = useState(activeCommunity?.creatorAvatarUrl || "");
+  const [savingCreator, setSavingCreator] = useState(false);
+  const [creatorSaveError, setCreatorSaveError] = useState("");
+
   // Sync stored video resource
   useEffect(() => {
     const vrMap = videoResources as Record<string, any> | undefined;
@@ -201,9 +209,36 @@ function AboutPageContent() {
       activeCommunity?.aboutClosingText ||
         `If any of those sound familiar, ${activeCommunity?.name || "Permanent Skills"} is built for you.`
     );
+    setEditCreatorName(activeCommunity?.creatorName || "Nate Herk");
+    setEditCreatorBadge(activeCommunity?.creatorBadge || "💎");
+    setEditCreatorAvatarUrl(activeCommunity?.creatorAvatarUrl || "");
     setDescSaveError("");
     setDescSaveSuccess(false);
     setEditDescModalOpen(true);
+  }
+
+  async function handleSaveCreator(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editCreatorName.trim()) {
+      setCreatorSaveError("Creator name is required.");
+      return;
+    }
+    setSavingCreator(true);
+    setCreatorSaveError("");
+    try {
+      const targetCommId = activeCommunity?.id || "comm-ps-main";
+      await updateCommunityDescription({
+        communityId: targetCommId,
+        creatorName: editCreatorName.trim(),
+        creatorBadge: editCreatorBadge.trim() || "💎",
+        creatorAvatarUrl: editCreatorAvatarUrl.trim() || undefined,
+      });
+      setEditCreatorModalOpen(false);
+    } catch {
+      setCreatorSaveError("Failed to update creator details.");
+    } finally {
+      setSavingCreator(false);
+    }
   }
 
   async function handleSaveVideo(e: React.FormEvent) {
@@ -249,6 +284,9 @@ function AboutPageContent() {
         aboutFeatures: editDescFeatures.filter((f) => f.trim().length > 0),
         aboutPainPoints: editDescPainPoints.filter((p) => p.trim().length > 0),
         aboutClosingText: editDescClosingText.trim(),
+        creatorName: editCreatorName.trim(),
+        creatorBadge: editCreatorBadge.trim() || "💎",
+        creatorAvatarUrl: editCreatorAvatarUrl.trim() || undefined,
       });
       setDescSaveSuccess(true);
       setTimeout(() => {

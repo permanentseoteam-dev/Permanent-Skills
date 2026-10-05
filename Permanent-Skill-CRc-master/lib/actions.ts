@@ -1683,6 +1683,9 @@ export async function updateCommunityDescription(input: {
   aboutFeatures?: string[];
   aboutPainPoints?: string[];
   aboutClosingText?: string;
+  creatorName?: string;
+  creatorAvatarUrl?: string;
+  creatorBadge?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in first." };
@@ -1713,6 +1716,15 @@ export async function updateCommunityDescription(input: {
     }
     if (input.aboutClosingText !== undefined) {
       target.aboutClosingText = input.aboutClosingText.trim();
+    }
+    if (input.creatorName !== undefined) {
+      target.creatorName = input.creatorName.trim();
+    }
+    if (input.creatorAvatarUrl !== undefined) {
+      target.creatorAvatarUrl = input.creatorAvatarUrl.trim();
+    }
+    if (input.creatorBadge !== undefined) {
+      target.creatorBadge = input.creatorBadge.trim();
     }
   });
 

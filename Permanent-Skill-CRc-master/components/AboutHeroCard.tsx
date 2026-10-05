@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Play, X, Film, Globe, Lock, Users, Tag, Sparkles } from "lucide-react";
+import { Play, X, Film, Globe, Lock, Users, Tag, Sparkles, Pencil } from "lucide-react";
 import { toEmbed } from "@/lib/video";
 
 export interface AboutSlide {
@@ -21,12 +21,14 @@ interface AboutHeroCardProps {
   priceText?: string;
   creatorName?: string;
   creatorAvatarUrl?: string;
+  creatorBadge?: string;
   defaultVideoUrl?: string;
   customThumbnailUrl?: string;
   slides?: AboutSlide[];
   onUpgradeClick?: () => void;
   isAdminOrManager?: boolean;
   onEditVideo?: () => void;
+  onEditCreator?: () => void;
 }
 
 export function AboutHeroCard({
@@ -36,12 +38,14 @@ export function AboutHeroCard({
   priceText = "Free",
   creatorName = "Nate Herk",
   creatorAvatarUrl,
+  creatorBadge = "💎",
   defaultVideoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   customThumbnailUrl,
   slides,
   onUpgradeClick,
   isAdminOrManager,
   onEditVideo,
+  onEditCreator,
 }: AboutHeroCardProps) {
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -632,21 +636,35 @@ export function AboutHeroCard({
           </div>
         </div>
 
-        {/* Creator Info: [Avatar] By Creator 💎 */}
+        {/* Creator Info: [Avatar] By Creator 💎 (Editable for Admin / Manager) */}
         <div className="inline-flex items-center gap-2 font-medium text-zinc-800">
-          {creatorAvatarUrl ? (
-            <img
-              src={creatorAvatarUrl}
-              alt={creatorName}
-              className="h-6 w-6 rounded-full object-cover border border-zinc-200"
-            />
-          ) : (
-            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-indigo-600 text-[10px] font-black text-white">
-              {creatorName.charAt(0)}
-            </div>
+          <div className="flex items-center gap-2">
+            {creatorAvatarUrl ? (
+              <img
+                src={creatorAvatarUrl}
+                alt={creatorName}
+                className="h-6 w-6 rounded-full object-cover border border-zinc-200"
+              />
+            ) : (
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-tr from-primary to-indigo-600 text-[10px] font-black text-white">
+                {creatorName.charAt(0)}
+              </div>
+            )}
+            <span>By {creatorName}</span>
+            <span className="text-xs">{creatorBadge || "💎"}</span>
+          </div>
+
+          {isAdminOrManager && onEditCreator && (
+            <button
+              type="button"
+              onClick={onEditCreator}
+              className="inline-flex items-center gap-1 rounded-md bg-zinc-100 hover:bg-zinc-200/80 px-2 py-0.5 text-[11px] font-bold text-zinc-700 transition cursor-pointer border border-zinc-200/80 shadow-2xs"
+              title="Edit Creator Name, Badge & Avatar"
+            >
+              <Pencil size={11} className="text-primary" />
+              <span>Edit</span>
+            </button>
           )}
-          <span>By {creatorName}</span>
-          <span className="text-xs">💎</span>
         </div>
       </div>
     </div>

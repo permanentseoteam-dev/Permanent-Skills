@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { LockedCourseModal } from "@/components/LockedCourseModal";
 import { WordDocumentNotes } from "@/components/WordDocumentNotes";
 import { LessonComments } from "@/components/LessonComments";
 import { Card, Field, Modal, PrimaryButton, StaffRoleFavicon, inputClass } from "@/components/ui";
@@ -39,6 +40,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   const router = useRouter();
   const { courses, progress, user, completeLesson, saveCourse } = useApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  const [lockedModalCourse, setLockedModalCourse] = useState<Course | null>(null);
   const [playing, setPlaying] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState<"overview" | "word-notes" | "comments">("overview");
 
@@ -128,7 +130,21 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     }
   }, [initialCourseSlug, availableCourses]);
 
+  function isCourseUnlocked(c: Course) {
+    if (!user) return false;
+    if (user.role === "admin" || user.role === "manager") return true;
+    if (user.isPremium) return true;
+    if (user.purchasedCourseIds?.includes(c.id)) return true;
+    if (c.isPremiumOnly) return false;
+    const userLevel = getLevel(user.points || 0).level;
+    return (c.unlockLevel || 1) <= 1 || userLevel >= (c.unlockLevel || 1);
+  }
+
   function handleSelectCourse(course: Course) {
+    if (!isCourseUnlocked(course)) {
+      setLockedModalCourse(course);
+      return;
+    }
     setSelectedCourseId(course.id);
     setActiveLessonId(null);
     setPlaying(false);
@@ -228,6 +244,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
       user?.purchasedCourseIds?.includes(course.id) ||
       (!course.isPremiumOnly && (course.unlockLevel <= 1 || userLevel >= (course.unlockLevel || 1)))
     );
+    const isStaff = Boolean(user?.role === "admin" || user?.role === "manager");
     const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
     const isPremiumOnly = Boolean(course.isPremiumOnly);
     const glow = course.glowColor || "yellow";
@@ -270,13 +287,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           {/* Center Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center text-center">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/85 text-white shadow-xl border border-white/25">
-              {isPurchased ? (
+              {isStaff ? (
                 <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               ) : (
                 <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               )}
             </div>
-            {!isPurchased && (
+            {!isStaff && (
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 {isPremiumOnly ? "👑 Unlock with VIP" : `Unlock at Level ${course.unlockLevel}`}
               </span>
@@ -319,13 +336,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           {/* Center Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
-              {isPurchased ? (
+              {isStaff ? (
                 <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               ) : (
                 <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               )}
             </div>
-            {!isPurchased && (
+            {!isStaff && (
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 Unlock at Level 1
               </span>
@@ -386,7 +403,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           <div
             className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
           >
-            {isPurchased ? (
+            {isStaff ? (
               <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
             ) : glow === "orange" ? (
               <Flame size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -395,7 +412,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
             )}
           </div>
 
-          {!isPurchased && (
+          {!isStaff && (
             <>
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 {isPremiumOnly
@@ -1046,6 +1063,16 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           </div>
         </div>
       </Modal>
+
+      <LockedCourseModal
+        course={lockedModalCourse}
+        open={Boolean(lockedModalCourse)}
+        onClose={() => setLockedModalCourse(null)}
+        onUpgradeClick={() => {
+          setLockedModalCourse(null);
+          setUpgradeOpen(true);
+        }}
+      />
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>

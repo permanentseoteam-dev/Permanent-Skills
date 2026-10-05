@@ -25,6 +25,7 @@ import {
 import { useApp } from "@/components/AppProvider";
 import { Card, PrimaryButton, GoldButton, ProgressBar, Modal } from "@/components/ui";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { LockedCourseModal } from "@/components/LockedCourseModal";
 import { getLevel } from "@/lib/levels";
 import { formatMoney } from "@/lib/format";
 import type { Course } from "@/lib/types";
@@ -42,6 +43,7 @@ export default function AllCoursesPage() {
   const [sortBy, setSortBy] = useState<SortOption>("default");
   const [previewCourse, setPreviewCourse] = useState<Course | null>(null);
   const [purchasingCourse, setPurchasingCourse] = useState<Course | null>(null);
+  const [lockedModalCourse, setLockedModalCourse] = useState<Course | null>(null);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -642,14 +644,8 @@ export default function AllCoursesPage() {
                 {!isAccessible ? (
                   <div
                     className="cursor-pointer"
-                    onClick={() => {
-                      if (course.isPremiumOnly) {
-                        setUpgradeOpen(true);
-                      } else {
-                        setPurchasingCourse(course);
-                      }
-                    }}
-                    title="Click to unlock this course"
+                    onClick={() => setLockedModalCourse(course)}
+                    title="Click to view unlock details"
                   >
                     {renderCourseBanner(course)}
                   </div>
@@ -712,13 +708,7 @@ export default function AllCoursesPage() {
                   </Link>
                 ) : (
                   <div
-                    onClick={() => {
-                      if (course.isPremiumOnly) {
-                        setUpgradeOpen(true);
-                      } else {
-                        setPurchasingCourse(course);
-                      }
-                    }}
+                    onClick={() => setLockedModalCourse(course)}
                     className="flex flex-1 flex-col justify-between p-4 sm:p-5 cursor-pointer hover:bg-zinc-50/50 transition-colors"
                   >
                     <div>
@@ -997,7 +987,18 @@ export default function AllCoursesPage() {
         </Modal>
       )}
 
-      {/* 7. Upgrade Modal */}
+      {/* 7. Locked Course Modal */}
+      <LockedCourseModal
+        course={lockedModalCourse}
+        open={Boolean(lockedModalCourse)}
+        onClose={() => setLockedModalCourse(null)}
+        onUpgradeClick={() => {
+          setLockedModalCourse(null);
+          setUpgradeOpen(true);
+        }}
+      />
+
+      {/* 8. Upgrade Modal */}
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>
   );

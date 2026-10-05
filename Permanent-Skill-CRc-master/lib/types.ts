@@ -244,6 +244,9 @@ export interface Community {
   aboutFeatures?: string[];
   aboutPainPoints?: string[];
   aboutClosingText?: string;
+  creatorName?: string;
+  creatorAvatarUrl?: string;
+  creatorBadge?: string;
   createdAt: string;
   createdBy: string;
 }
