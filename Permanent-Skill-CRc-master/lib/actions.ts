@@ -6,6 +6,7 @@ import { readDb, updateDb, upsertUser } from "./db";
 import { hashPassword, verifyPassword } from "./password";
 import { nextPathFor, signPayload, verifyPayload } from "./session";
 import { slugify, formatDateTime } from "./format";
+import { checkMeetingStatus, parseMeetingStartTime } from "./calendar-utils";
 import { getLevel } from "./levels";
 import type {
   ActionResult,
@@ -776,9 +777,78 @@ export async function releaseMemberLogin(userId: string): Promise<ActionResult> 
 export async function heartbeat(): Promise<ActionResult> {
   const me = await currentUser();
   if (!me) return { ok: false };
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const dateKey = nowIso.slice(0, 10);
+
   await updateDb((db) => {
     const user = db.users.find((u) => u.id === me.id);
-    if (user) user.lastSeenAt = new Date().toISOString();
+    if (user) user.lastSeenAt = nowIso;
+
+    // Automated 5-minute pre-meeting notification check for the active user
+    db.notifications = db.notifications || [];
+
+    // 1. Check Project Meetings
+    const activeProjects = (db.projects || []).filter(
+      (p) => p.meetSyncTime && (p.isMeetActive || p.status === "active")
+    );
+    for (const proj of activeProjects) {
+      if (!proj.meetSyncTime) continue;
+      const timing = checkMeetingStatus(undefined, undefined, proj.meetSyncTime);
+      const diffMs = timing.startDate.getTime() - now.getTime();
+      // Pre-meeting window: within 5 minutes before start and up to 30 minutes after start
+      if (diffMs <= 5 * 60 * 1000 && diffMs >= -30 * 60 * 1000) {
+        const notifPrefix = `n-auto5m-proj-${proj.id}-${dateKey}`;
+        const alreadySent = db.notifications.some(
+          (n) =>
+            n.userId === me.id &&
+            (n.id.startsWith(notifPrefix) ||
+              (n.title.includes("5 Minutes") && n.body.includes(proj.title) && n.createdAt.slice(0, 10) === dateKey))
+        );
+        if (!alreadySent) {
+          const meetUrl = proj.meetUrl || "https://meet.google.com/new";
+          db.notifications.unshift({
+            id: `${notifPrefix}-${me.id}`,
+            userId: me.id,
+            actorId: proj.leadId || "u-admin",
+            title: "🚨 Meeting Starting in 5 Minutes!",
+            body: `"${proj.title}" meeting is starting in 5 minutes! Room: ${proj.meetRoom || "Nexus Meet"}. Link: ${meetUrl}`,
+            link: `/calendar?meet=${proj.id}`,
+            read: false,
+            createdAt: nowIso,
+          });
+        }
+      }
+    }
+
+    // 2. Check Calendar Events
+    for (const ev of db.events || []) {
+      if (!ev.start) continue;
+      const evStart = new Date(ev.start);
+      if (isNaN(evStart.getTime())) continue;
+      const diffMs = evStart.getTime() - now.getTime();
+      if (diffMs <= 5 * 60 * 1000 && diffMs >= -30 * 60 * 1000) {
+        const notifPrefix = `n-auto5m-ev-${ev.id}-${dateKey}`;
+        const alreadySent = db.notifications.some(
+          (n) =>
+            n.userId === me.id &&
+            (n.id.startsWith(notifPrefix) ||
+              (n.title.includes("5 Minutes") && n.body.includes(ev.title) && n.createdAt.slice(0, 10) === dateKey))
+        );
+        if (!alreadySent) {
+          db.notifications.unshift({
+            id: `${notifPrefix}-${me.id}`,
+            userId: me.id,
+            actorId: "u-admin",
+            title: "🚨 Meeting Starting in 5 Minutes!",
+            body: `Live Mastermind "${ev.title}" starts in 5 minutes! Click here to join.`,
+            link: `/calendar?event=${ev.id}`,
+            read: false,
+            createdAt: nowIso,
+          });
+        }
+      }
+    }
   });
   return { ok: true };
 }
@@ -1979,6 +2049,53 @@ export async function selectMeetProject(projectId: string): Promise<ActionResult
       p.isMeetActive = p.id === projectId;
     }
   });
+  return { ok: true };
+}
+
+export async function send5MinMeetingReminder(projectId?: string, eventId?: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  if (me.role !== "admin" && me.role !== "manager") {
+    return { ok: false, error: "Only admins and managers can broadcast meeting reminders." };
+  }
+
+  const now = new Date().toISOString();
+  let title = "Live Meeting";
+  let meetUrl = "https://meet.google.com/new";
+  let room = "Nexus Meet #room-general";
+
+  await updateDb((db) => {
+    db.notifications = db.notifications || [];
+
+    if (projectId) {
+      const proj = (db.projects || []).find((p) => p.id === projectId);
+      if (proj) {
+        title = proj.title;
+        meetUrl = proj.meetUrl || meetUrl;
+        room = proj.meetRoom || room;
+      }
+    } else if (eventId) {
+      const ev = (db.events || []).find((e) => e.id === eventId);
+      if (ev) {
+        title = ev.title;
+      }
+    }
+
+    const roleLabel = me.role === "admin" ? "Administrator" : "Manager";
+    for (const u of db.users) {
+      db.notifications.unshift({
+        id: `n-remind5m-${projectId || eventId || "meet"}-${u.id}-${Date.now()}`,
+        userId: u.id,
+        actorId: me.id,
+        title: "🚨 Meeting Starting in 5 Minutes!",
+        body: `${me.name} (${roleLabel}) sent a 5-minute reminder for "${title}". Room: ${room}. Meet Link: ${meetUrl}`,
+        link: `/calendar?meet=${projectId || eventId || ""}`,
+        read: false,
+        createdAt: now,
+      });
+    }
+  });
+
   return { ok: true };
 }
 

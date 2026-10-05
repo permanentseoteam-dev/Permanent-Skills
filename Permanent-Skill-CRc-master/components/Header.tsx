@@ -12,7 +12,9 @@ import {
   ChevronDown,
   ChevronsUpDown,
   Compass,
+  Copy,
   Download,
+  ExternalLink,
   Globe,
   HelpCircle,
   LogOut,
@@ -68,6 +70,7 @@ export function Header() {
   const [communitySearch, setCommunitySearch] = useState("");
   const [chatSearch, setChatSearch] = useState("");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
+  const [copiedNotifId, setCopiedNotifId] = useState<string | null>(null);
 
   const communityRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -626,6 +629,41 @@ export function Header() {
                                 <Calendar size={13} className="text-emerald-600" />
                                 <span>Add to Google Cal</span>
                               </a>
+
+                              {meetUrl && (
+                                <button
+                                  type="button"
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    try {
+                                      await navigator.clipboard.writeText(meetUrl);
+                                    } catch {
+                                      const el = document.createElement("textarea");
+                                      el.value = meetUrl;
+                                      document.body.appendChild(el);
+                                      el.select();
+                                      document.execCommand("copy");
+                                      document.body.removeChild(el);
+                                    }
+                                    setCopiedNotifId(n.id);
+                                    setTimeout(() => setCopiedNotifId(null), 2500);
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 px-2.5 py-1 text-xs font-semibold text-[#5051F9] border border-indigo-200/70 transition shadow-2xs cursor-pointer"
+                                  title="Copy Meeting Link"
+                                >
+                                  {copiedNotifId === n.id ? (
+                                    <>
+                                      <Check size={13} className="text-emerald-600" />
+                                      <span className="text-emerald-700">Copied!</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Copy size={13} className="text-[#5051F9]" />
+                                      <span>Copy Meet Link</span>
+                                    </>
+                                  )}
+                                </button>
+                              )}
 
                               <button
                                 type="button"

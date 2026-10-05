@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Bell,
   Calendar as CalendarIcon,
   Check,
   CheckCircle2,
@@ -11,8 +12,11 @@ import {
   ChevronRight,
   ChevronUp,
   Clock,
+  Copy,
   Download,
+  ExternalLink,
   Layers,
+  Link2,
   ListTodo,
   Minus,
   MoreVertical,
@@ -139,6 +143,7 @@ export default function MeetPage() {
     toggleProjectTask,
     addProjectTask,
     selectMeetProject,
+    send5MinMeetingReminder,
   } = useApp();
 
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
@@ -279,7 +284,28 @@ export default function MeetPage() {
     "proj-nexus": true,
   });
   const [cardNewTask, setCardNewTask] = useState<Record<string, string>>({});
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("ps_last_selected_meet_project_id") || null;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [copiedProjectId, setCopiedProjectId] = useState<string | null>(null);
+  const [broadcastSending, setBroadcastSending] = useState<string | null>(null);
+  const [broadcastSent, setBroadcastSent] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const savedProj = localStorage.getItem("ps_last_selected_meet_project_id");
+      if (savedProj && !selectedProjectId) {
+        setSelectedProjectId(savedProj);
+      }
+    } catch {}
+  }, []);
 
   // @ Mention state in Description
   const [mentionQuery, setMentionQuery] = useState("");
@@ -592,10 +618,52 @@ export default function MeetPage() {
       const found = projects.find((p) => p.id === selectedProjectId);
       if (found) return found;
     }
+    if (typeof window !== "undefined") {
+      try {
+        const savedId = localStorage.getItem("ps_last_selected_meet_project_id");
+        if (savedId) {
+          const found = projects.find((p) => p.id === savedId);
+          if (found) return found;
+        }
+      } catch {}
+    }
     const meetActive = projects.find((p) => p.isMeetActive);
     if (meetActive) return meetActive;
     return currentProjects[0] || projects[0] || null;
   }, [selectedProjectId, projects, currentProjects]);
+
+  useEffect(() => {
+    if (activeProject?.id && typeof window !== "undefined") {
+      try {
+        localStorage.setItem("ps_last_selected_meet_project_id", activeProject.id);
+      } catch {}
+    }
+  }, [activeProject?.id]);
+
+  async function handleCopyMeetLink(url: string, projectId: string) {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const el = document.createElement("textarea");
+      el.value = url;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    setCopiedProjectId(projectId);
+    setTimeout(() => setCopiedProjectId(null), 2500);
+  }
+
+  async function handleBroadcast5MinReminder(projectId: string) {
+    setBroadcastSending(projectId);
+    const res = await send5MinMeetingReminder(projectId);
+    setBroadcastSending(null);
+    if (res.ok) {
+      setBroadcastSent(projectId);
+      setTimeout(() => setBroadcastSent(null), 3500);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -782,16 +850,22 @@ export default function MeetPage() {
                     </div>
                   </div>
 
-                  {/* Right: Join now Box with Single Project Selector Dropdown & Actions */}
-                  <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0">
-                    <div className="w-full lg:w-[280px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2.5">
+                  {/* Right: Meet Link Box with Single Project Selector Dropdown, Copyable Link & Actions */}
+                  <div className="flex flex-col items-stretch lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0 w-full lg:w-auto">
+                    <div className="w-full lg:w-[320px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
+                        <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/90 font-mono">
                           Select Project for Meeting
                         </span>
+                        {activeProject.isMeetActive && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live Sync
+                          </span>
+                        )}
                       </div>
 
-                      {/* Single Dropdown showing current projects - synced for all users when changed by admin */}
+                      {/* Single Dropdown showing current projects - remembered across refreshes */}
                       <div className="relative">
                         <select
                           value={activeProject.id}
@@ -802,28 +876,116 @@ export default function MeetPage() {
                               return;
                             }
                             setSelectedProjectId(val);
+                            try {
+                              localStorage.setItem("ps_last_selected_meet_project_id", val);
+                            } catch {}
                             if (isAdminOrManager) {
                               await selectMeetProject(val);
                             }
                           }}
-                          className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-2.5 py-1.5 pr-7 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
+                          className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-3 py-1.5 pr-8 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
                         >
                           {currentProjects.length > 0 ? (
                             currentProjects.map((p) => (
                               <option key={p.id} value={p.id}>
-                                {p.title} {p.isMeetActive ? "★ (Active)" : ""}
+                                {p.title} {p.isMeetActive ? "★ (Active Meet)" : ""}
                               </option>
                             ))
                           ) : (
                             projects.map((p) => (
                               <option key={p.id} value={p.id}>
-                                {p.title} {p.isMeetActive ? "★ (Active)" : ""}
+                                {p.title} {p.isMeetActive ? "★ (Active Meet)" : ""}
                               </option>
                             ))
                           )}
                           <option value="__CREATE_NEW_PROJECT__">+ Create New Project...</option>
                         </select>
-                        <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-zinc-400" />
+                        <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      </div>
+
+                      {/* Admin/Manager Copyable Meet Link & Quick Controls */}
+                      <div className="space-y-2 pt-2 border-t border-[#5051F9]/10">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 font-mono flex items-center gap-1">
+                            <Link2 size={12} className="text-[#5051F9]" /> Meeting Room Link
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono font-medium">
+                            {activeProject.meetRoom || "Nexus Meet"}
+                          </span>
+                        </div>
+
+                        {/* Copyable Link Input with Copy Button and Open in New Tab */}
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative flex-1 min-w-0">
+                            <input
+                              type="text"
+                              readOnly
+                              value={activeProject.meetUrl || "https://meet.google.com/new"}
+                              onClick={(e) => (e.target as HTMLInputElement).select()}
+                              className="w-full rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-mono text-zinc-700 shadow-inner outline-none select-all focus:border-[#5051F9] truncate"
+                              title="Click to select meeting URL"
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopyMeetLink(activeProject.meetUrl || "https://meet.google.com/new", activeProject.id)}
+                            className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer shrink-0 ${
+                              copiedProjectId === activeProject.id
+                                ? "bg-emerald-600 text-white"
+                                : "bg-zinc-900 hover:bg-black text-white"
+                            }`}
+                            title="Copy Meeting Link to Clipboard"
+                          >
+                            {copiedProjectId === activeProject.id ? (
+                              <>
+                                <Check size={13} />
+                                <span>Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy size={13} />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+
+                          <a
+                            href={activeProject.meetUrl || "https://meet.google.com/new"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center rounded-lg bg-[#5051F9] hover:bg-[#4041d8] text-white p-1.5 shadow-xs transition cursor-pointer shrink-0"
+                            title="Open Meeting in New Tab"
+                          >
+                            <ExternalLink size={14} />
+                          </a>
+                        </div>
+
+                        {/* Broadcast 5-Min Notification Button */}
+                        <div className="pt-1 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleBroadcast5MinReminder(activeProject.id)}
+                            disabled={broadcastSending === activeProject.id}
+                            className={`inline-flex items-center gap-1.5 text-[11px] font-semibold transition cursor-pointer ${
+                              broadcastSent === activeProject.id
+                                ? "text-emerald-600 font-bold"
+                                : "text-[#5051F9] hover:text-[#4041d8] hover:underline"
+                            }`}
+                            title="Broadcast a 5-minute pre-meeting reminder notification with copyable meet link to all members"
+                          >
+                            {broadcastSent === activeProject.id ? (
+                              <>
+                                <CheckCircle2 size={13} />
+                                <span>5m Alert Sent to All Members!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Bell size={13} />
+                                <span>{broadcastSending === activeProject.id ? "Sending Alert..." : "Broadcast 5m Reminder"}</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
 
                       {/* Fallback button if no projects exist */}
@@ -838,44 +1000,15 @@ export default function MeetPage() {
                       )}
                     </div>
 
-                    {/* Project actions (Join Meet, Edit, Delete) */}
+                    {/* Project actions (Edit, Delete) */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {activeProject.meetUrl && (
-                        <a
-                          href={targetUrl}
-                          target={canJoinLive ? "_blank" : "_self"}
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer ${
-                            isProjMeetEnded
-                              ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
-                              : canJoinLive
-                                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md animate-pulse"
-                                : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
-                          }`}
-                        >
-                          {isProjMeetEnded ? (
-                            <VideoOff size={13} />
-                          ) : isWaiting ? (
-                            <Clock size={13} />
-                          ) : (
-                            <Video size={13} />
-                          )}
-                          <span>
-                            {isProjMeetEnded
-                              ? "Meet Ended"
-                              : canJoinLive
-                                ? "Join Meet (Live Now)"
-                                : "Join Meet"}
-                          </span>
-                        </a>
-                      )}
-
                       <button
                         onClick={() => openEditProject(activeProject)}
-                        className="rounded-lg p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 transition cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 shadow-2xs transition cursor-pointer"
                         title="Edit Project"
                       >
-                        <Pencil size={15} />
+                        <Pencil size={13} />
+                        <span>Edit Project</span>
                       </button>
                       <button
                         onClick={() => onDeleteProject(activeProject.id)}

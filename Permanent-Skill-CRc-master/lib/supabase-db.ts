@@ -172,6 +172,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       meetSyncTime: p.meet_sync_time || undefined,
       meetRoom: p.meet_room || undefined,
       meetUrl: p.meet_url || undefined,
+      isMeetActive: !!p.is_meet_active,
       createdAt: p.created_at,
       createdBy: p.created_by || "u-admin",
     }));
@@ -448,6 +449,7 @@ export async function syncProjectToSupabase(p: Project) {
         meet_sync_time: p.meetSyncTime || null,
         meet_room: p.meetRoom || null,
         meet_url: p.meetUrl || null,
+        is_meet_active: !!p.isMeetActive,
         created_at: p.createdAt || new Date().toISOString(),
         created_by: p.createdBy || "u-admin",
       },

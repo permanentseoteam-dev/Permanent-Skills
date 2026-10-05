@@ -46,6 +46,7 @@ import {
   deleteCalendarEvent as deleteCalendarEventAction,
   updateProjectStatus as updateProjectStatusAction,
   selectMeetProject as selectMeetProjectAction,
+  send5MinMeetingReminder as send5MinMeetingReminderAction,
   updateProjectMeetSync as updateProjectMeetSyncAction,
   updateProjectProgress as updateProjectProgressAction,
   toggleProjectTask as toggleProjectTaskAction,
@@ -185,6 +186,7 @@ type AppContextValue = AppState & {
   deleteCalendarEvent: (id: string) => Promise<ActionResult>;
   updateProjectStatus: (projectId: string, status: "active" | "completed" | "paused") => Promise<ActionResult>;
   selectMeetProject: (projectId: string) => Promise<ActionResult>;
+  send5MinMeetingReminder: (projectId?: string, eventId?: string) => Promise<ActionResult>;
   updateProjectMeetSync: (projectId: string, meetSyncTime: string, meetRoom: string, meetUrl: string) => Promise<ActionResult>;
   updateProjectProgress: (projectId: string, progress: number) => Promise<ActionResult>;
   toggleProjectTask: (projectId: string, taskId: string) => Promise<ActionResult>;
@@ -466,6 +468,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (projectId: string) => run(() => selectMeetProjectAction(projectId)),
     [run],
   );
+  const send5MinMeetingReminderFn = useCallback(
+    (projectId?: string, eventId?: string) => run(() => send5MinMeetingReminderAction(projectId, eventId)),
+    [run],
+  );
   const updateProjectMeetSyncFn = useCallback(
     (projectId: string, meetSyncTime: string, meetRoom: string, meetUrl: string) =>
       run(() => updateProjectMeetSyncAction(projectId, meetSyncTime, meetRoom, meetUrl)),
@@ -721,6 +727,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteCalendarEvent: deleteCalendarEventFn,
       updateProjectStatus: updateProjectStatusFn,
       selectMeetProject: selectMeetProjectFn,
+      send5MinMeetingReminder: send5MinMeetingReminderFn,
       updateProjectMeetSync: updateProjectMeetSyncFn,
       updateProjectProgress: updateProjectProgressFn,
       toggleProjectTask: toggleProjectTaskFn,
@@ -780,6 +787,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       deleteCalendarEventFn,
       updateProjectStatusFn,
       selectMeetProjectFn,
+      send5MinMeetingReminderFn,
       updateProjectMeetSyncFn,
       updateProjectProgressFn,
       toggleProjectTaskFn,
