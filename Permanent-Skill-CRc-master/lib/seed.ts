@@ -1084,6 +1084,7 @@ export function createSeed(): Database {
 
   const comments: Comment[] = [
     // Approved Community Comments
+    { id: "c-vercel-user-1", postId: "p-ecom-welcome", authorId: "u-daniel", body: "this is a testing comment from vercel user", createdAt: hoursAgo(0.1), status: "approved" },
     { id: "c-ecom-1", postId: "p-ecom-welcome", authorId: "u-daniel", body: "Glad to be here! Looking forward to implementing the retention systems.", createdAt: daysAgo(21), status: "approved" },
     { id: "c-ecom-2", postId: "p-ecom-welcome", authorId: "u-priya", body: "The deliverability framework is brilliant. Excited to be part of the community!", createdAt: daysAgo(20), status: "approved" },
     { id: "c-ecom-3", postId: "p-ecom-welcome", authorId: "u-james", body: "We warmed up our dedicated sending IP following Module 2 and saw inboxing jump to 98%.", createdAt: daysAgo(18), status: "approved" },
@@ -1111,6 +1112,7 @@ export function createSeed(): Database {
     { id: "c-team-2", postId: "p-team-welcome", authorId: "u-priya", body: "SOP checklists reviewed and integrated into daily sprint board.", createdAt: daysAgo(1), status: "approved" },
 
     // Classroom Lesson Comments
+    { id: "c-vercel-user-2", postId: "l-eem-1-1", authorId: "u-daniel", body: "this is a testing comment from vercel user", createdAt: hoursAgo(0.1), status: "approved" },
     { id: "c-les-1", postId: "l-eem-1-1", authorId: "u-admin", body: "Welcome to Module 1! Make sure to grab the Figma swipe files linked above and review the course roadmap.", createdAt: hoursAgo(5), status: "approved" },
     { id: "c-les-2", postId: "l-eem-1-1", authorId: "u-ayaan", body: "The breakdown of why owned audience assets compound faster than paid ads was super clear.", createdAt: hoursAgo(3), status: "approved" },
     { id: "c-les-3", postId: "l-eem-1-1", authorId: "u-sofia", body: "The deliverability benchmarks helped us identify 2 inactive domain records immediately.", createdAt: hoursAgo(2), status: "approved" },
@@ -1118,6 +1120,7 @@ export function createSeed(): Database {
     { id: "c-les-6", postId: "l-eem-1-3", authorId: "u-wei", body: "The automated re-engagement flow template saved us hours of custom copywriting.", createdAt: hoursAgo(6), status: "approved" },
 
     // Pending Moderation Comments (for Admin / Manager Approval Queue)
+    { id: "c-vercel-user-pending", postId: "p-ecom-welcome", authorId: "u-daniel", body: "this is a testing comment from vercel user (pending review)", createdAt: hoursAgo(0.05), status: "pending" },
     { id: "c-les-4", postId: "l-eem-1-1", authorId: "u-noah", body: "Can we apply these same segmentation principles to B2B eCommerce stores as well?", createdAt: hoursAgo(0.5), status: "pending" },
     { id: "c-pending-1", postId: "p-ecom-welcome", authorId: "u-daniel", body: "Could someone clarify if the cold outreach email templates from Module 1 are also compliant with EU GDPR regulations?", createdAt: hoursAgo(1.5), status: "pending" },
     { id: "c-pending-2", postId: "p-ecom-entrepreneur", authorId: "u-priya", body: "This mindset framework resonates heavily. When scaling to $50k/mo, how did you balance client delivery with building owned audience assets?", createdAt: hoursAgo(0.8), status: "pending" },
