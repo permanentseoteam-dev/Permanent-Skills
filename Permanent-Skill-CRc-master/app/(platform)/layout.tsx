@@ -28,7 +28,7 @@ export default function PlatformLayout({ children }: { children: React.ReactNode
     <div className="min-h-screen bg-bg relative">
       <Header />
       <LeftCommunityRail />
-      <div className="mx-auto max-w-[1180px] px-4 py-6 sm:pl-16 lg:pl-16 xl:px-4">{children}</div>
+      <div className="mx-auto max-w-[1180px] px-3 sm:px-4 py-4 sm:py-6 sm:pl-16 lg:pl-16 xl:px-4">{children}</div>
     </div>
   );
 }

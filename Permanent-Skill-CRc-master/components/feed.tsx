@@ -137,10 +137,10 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
     return (
       <button
         onClick={handleOpen}
-        className="flex w-full items-center gap-3.5 rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-left shadow-xs hover:border-zinc-300 hover:shadow-sm transition"
+        className="flex w-full items-center gap-3 rounded-2xl border border-zinc-200/90 bg-white px-3.5 sm:px-4 py-2.5 sm:py-3 text-left shadow-xs hover:border-zinc-300 hover:shadow-sm transition cursor-pointer active:scale-[0.99]"
       >
-        <AvatarWithLevel user={user} size={38} />
-        <span className="text-sm font-medium text-zinc-400">Write something</span>
+        <AvatarWithLevel user={user} size={36} />
+        <span className="text-xs sm:text-sm font-medium text-zinc-400">Write something...</span>
       </button>
     );
   }
@@ -151,7 +151,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
     : ["chat", "wins", "recorded", "reviews"];
 
   return (
-    <Card className="p-4">
+    <Card className="p-3.5 sm:p-5">
       {error && (
         <div className="mb-3 rounded-xl bg-red-50 p-2.5 text-xs font-semibold text-red-700 border border-red-200">
           {error}
@@ -163,12 +163,12 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
           <span>{success}</span>
         </div>
       )}
-      <div className="mb-3 flex gap-2 flex-wrap">
+      <div className="mb-3 flex gap-1.5 sm:gap-2 flex-wrap">
         {postCategories.map((c) => (
           <button
             key={c}
             onClick={() => setCategory(c)}
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold capitalize transition cursor-pointer ${
               category === c
                 ? "bg-zinc-900 text-white shadow-xs"
                 : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200/80"
@@ -185,19 +185,19 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         placeholder="Title (optional)"
-        className="mb-2 w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900"
+        className="mb-2 w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-base sm:text-sm text-zinc-900 outline-none focus:border-zinc-900 shadow-2xs"
       />
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
         placeholder="Share a question, win, or discussion..."
-        className="min-h-[110px] w-full rounded-lg border border-zinc-200 px-3 py-2 text-sm outline-none focus:border-zinc-900"
+        className="min-h-[105px] sm:min-h-[115px] w-full rounded-xl border border-zinc-200 px-3.5 py-2.5 text-base sm:text-sm text-zinc-900 outline-none focus:border-zinc-900 shadow-2xs resize-y"
       />
       <div className="mt-3 flex justify-end gap-2">
-        <button onClick={() => setOpen(false)} className="rounded-lg px-3 py-2 text-sm text-zinc-500 hover:text-zinc-800">
+        <button onClick={() => setOpen(false)} className="rounded-xl px-3.5 py-2 text-xs sm:text-sm font-medium text-zinc-500 hover:text-zinc-800 transition cursor-pointer">
           Cancel
         </button>
-        <PrimaryButton disabled={busy || !body.trim()} onClick={submit}>
+        <PrimaryButton disabled={busy || !body.trim()} onClick={submit} className="py-2 sm:py-2.5 px-4 text-xs sm:text-sm font-bold">
           {busy ? "Posting..." : "Post"}
         </PrimaryButton>
       </div>
@@ -469,7 +469,7 @@ function PostCard({
   return (
     <Card
       id={`post-${post.id}`}
-      className={`p-5 transition-all duration-500 ${
+      className={`p-3.5 sm:p-5 transition-all duration-500 ${
         isHighlighted
           ? "ring-2 ring-[#5051F9] ring-offset-2 shadow-lg bg-indigo-50/15"
           : isPending
@@ -477,68 +477,68 @@ function PostCard({
           : ""
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
-          <Link href={`/profile/${author?.id || ""}`}>
-            <AvatarWithLevel user={author} size={40} />
+      <div className="flex items-start justify-between gap-2.5 sm:gap-3">
+        <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+          <Link href={`/profile/${author?.id || ""}`} className="shrink-0">
+            <AvatarWithLevel user={author} size={38} />
           </Link>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Link href={`/profile/${author?.id || ""}`} className="font-bold text-sm text-zinc-950 hover:underline">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <Link href={`/profile/${author?.id || ""}`} className="font-bold text-xs sm:text-sm text-zinc-950 hover:underline truncate">
                 {author?.name || "Vex Media Group Admin"}
               </Link>
               <StaffRoleFavicon role={author?.role} size="xs" />
               {isPending && (
-                <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-300">
-                  <Clock size={11} /> ⏳ Pending Admin Approval
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-800 border border-amber-300">
+                  <Clock size={10} /> ⏳ Pending Approval
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-500 font-normal flex items-center gap-1.5 flex-wrap">
+            <p className="text-[11px] sm:text-xs text-zinc-500 font-normal flex items-center gap-1 sm:gap-1.5 flex-wrap">
               <span>{timeAgo(post.createdAt)}</span>
               <span>·</span>
               <span className="inline-flex items-center gap-1">
                 {post.category === "team" && (
-                  <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover inline-block shrink-0" />
+                  <img src="/team-icon.png" alt="" className="h-3 w-3 rounded object-cover inline-block shrink-0" />
                 )}
                 <span>{categoryLabel}</span>
               </span>
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 flex-wrap justify-end">
           {isStaff && isPending && (
-            <div className="flex items-center gap-1.5 mr-1">
+            <div className="flex items-center gap-1 mr-0.5">
               <button
                 onClick={onApprovePost}
-                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition"
+                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer active:scale-95"
                 title="Approve post"
               >
-                <Check size={12} /> Approve
+                <Check size={12} /> <span className="hidden sm:inline">Approve</span>
               </button>
               <button
                 onClick={onRejectPost}
-                className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700 hover:bg-red-200 transition"
+                className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-bold text-red-700 hover:bg-red-200 transition cursor-pointer active:scale-95"
                 title="Reject post"
               >
-                <X size={12} /> Reject
+                <X size={12} /> <span className="hidden sm:inline">Reject</span>
               </button>
             </div>
           )}
           {post.pinned && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-zinc-700 bg-transparent px-1 py-0.5">
-              <Pin size={12} className="fill-zinc-700" /> Pinned
+            <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-zinc-700 bg-transparent px-1 py-0.5">
+              <Pin size={12} className="fill-zinc-700" /> <span className="hidden sm:inline">Pinned</span>
             </span>
           )}
           {isStaff && (
-            <button onClick={onPin} className="text-xs font-medium text-zinc-400 hover:text-zinc-800 transition">
+            <button onClick={onPin} className="text-xs font-medium text-zinc-400 hover:text-zinc-800 transition cursor-pointer px-1">
               {post.pinned ? "Unpin" : "Pin"}
             </button>
           )}
           {(isStaff || post.authorId === currentUserId) && onDeletePost && (
             <button
               onClick={onDeletePost}
-              className="text-xs text-zinc-400 hover:text-red-500 transition p-1 rounded"
+              className="text-xs text-zinc-400 hover:text-red-500 transition p-1 rounded cursor-pointer"
               title="Delete post"
             >
               <Trash2 size={13} />
@@ -547,15 +547,15 @@ function PostCard({
         </div>
       </div>
 
-      <div className="mt-3.5 flex items-start justify-between gap-4">
+      <div className="mt-3 sm:mt-3.5 flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="text-base font-bold text-zinc-950 flex items-center gap-2">
+          <h3 className="text-sm sm:text-base font-bold text-zinc-950 flex items-center gap-2 break-words">
             {post.title.includes("Entrepreneurship") && !post.title.includes("🔵") ? (
               <span className="inline-block h-2 w-2 rounded-full bg-blue-500 shrink-0" />
             ) : null}
             <span>{post.title}</span>
           </h3>
-          <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">{post.body}</p>
+          <p className="mt-1.5 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-zinc-700 break-words">{post.body}</p>
         </div>
 
         {post.thumbnail === "ecom-mail" && <EcomMailGraphic />}
@@ -564,20 +564,20 @@ function PostCard({
       {post.thumbnail === "replay" && (
         <Link
           href="/calendar"
-          className="group block mt-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-8 text-white hover:shadow-md transition"
+          className="group block mt-3.5 sm:mt-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-5 sm:p-8 text-white hover:shadow-md transition"
         >
-          <p className="text-xs uppercase tracking-[0.25em] text-white/70">Replay Session</p>
-          <p className="mt-2 text-2xl font-black group-hover:underline">{post.title.replace("Replay: ", "")}</p>
-          <p className="mt-2 text-sm text-white/80">Watch the recording inside Classroom & Meet →</p>
+          <p className="text-[11px] sm:text-xs uppercase tracking-[0.25em] text-white/70">Replay Session</p>
+          <p className="mt-1.5 sm:mt-2 text-xl sm:text-2xl font-black group-hover:underline break-words">{post.title.replace("Replay: ", "")}</p>
+          <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-white/80">Watch the recording inside Classroom & Meet →</p>
         </Link>
       )}
 
       {/* Reaction & comments bar matching Skool format */}
-      <div className="mt-4 pt-2 flex items-center justify-between gap-3 text-xs text-zinc-500">
-        <div className="flex items-center gap-4">
+      <div className="mt-3.5 sm:mt-4 pt-2.5 flex items-center justify-between gap-3 text-xs text-zinc-500 border-t border-zinc-100/80">
+        <div className="flex items-center gap-3.5 sm:gap-4">
           <button
             onClick={onLike}
-            className={`inline-flex items-center gap-1.5 font-medium transition ${
+            className={`inline-flex items-center gap-1.5 font-medium transition cursor-pointer active:scale-95 ${
               liked ? "text-primary font-bold" : "text-zinc-600 hover:text-zinc-900"
             }`}
           >
@@ -585,14 +585,14 @@ function PostCard({
           </button>
           <button
             onClick={onToggleComments}
-            className="inline-flex items-center gap-1.5 font-medium text-zinc-600 hover:text-zinc-900 transition"
+            className="inline-flex items-center gap-1.5 font-medium text-zinc-600 hover:text-zinc-900 transition cursor-pointer active:scale-95"
           >
             <MessageCircle size={15} /> {visibleComments.length || 0}
           </button>
 
           {/* Commenters avatars stack */}
           {visibleComments.length > 0 && (
-            <div className="flex items-center -space-x-1.5 pl-1">
+            <div className="flex items-center -space-x-1.5 pl-0.5">
               {visibleComments.slice(0, 4).map((c) => (
                 <Avatar key={c.id} user={userById(c.authorId)} size={20} className="border border-white shadow-xs" />
               ))}
@@ -601,14 +601,14 @@ function PostCard({
         </div>
 
         {lastComment && (
-          <span className="text-[11px] text-zinc-400">
+          <span className="text-[10px] sm:text-[11px] text-zinc-400">
             Last comment {timeAgo(lastComment.createdAt)}
           </span>
         )}
       </div>
 
       {commentsOpen && (
-        <div className="mt-4 space-y-3 border-t border-zinc-100 pt-4">
+        <div className="mt-3.5 sm:mt-4 space-y-2.5 sm:space-y-3 border-t border-zinc-100 pt-3 sm:pt-4">
           {visibleComments.map((c) => {
             const isPending = c.status === "pending";
             const commentAuthor = userById(c.authorId);
@@ -617,7 +617,7 @@ function PostCard({
             return (
               <div
                 key={c.id}
-                className={`flex items-start justify-between gap-2 rounded-xl p-2 transition ${
+                className={`flex items-start justify-between gap-2 rounded-xl p-1.5 sm:p-2 transition ${
                   isCommentStaff
                     ? commentAuthor?.role === "admin"
                       ? "border border-amber-200/80 bg-amber-50/30"
@@ -625,20 +625,20 @@ function PostCard({
                     : "hover:bg-zinc-50/70"
                 }`}
               >
-                <div className="flex gap-2.5 min-w-0 flex-1">
-                  <AvatarWithLevel user={commentAuthor} size={30} />
-                  <div className={`rounded-xl px-3 py-2 flex-1 min-w-0 border ${isCommentStaff ? "bg-white border-zinc-200/80 shadow-2xs" : "bg-zinc-50 border-zinc-100"}`}>
+                <div className="flex gap-2 sm:gap-2.5 min-w-0 flex-1">
+                  <AvatarWithLevel user={commentAuthor} size={28} />
+                  <div className={`rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 flex-1 min-w-0 border ${isCommentStaff ? "bg-white border-zinc-200/80 shadow-2xs" : "bg-zinc-50 border-zinc-100"}`}>
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-xs font-bold text-zinc-900">{commentAuthor?.name}</p>
+                      <p className="text-xs font-bold text-zinc-900 truncate">{commentAuthor?.name}</p>
                       <StaffRoleFavicon role={commentAuthor?.role} size="xs" />
-                      <span className="text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
+                      <span className="text-[10px] sm:text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
                       {isPending && (
                         <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
                           <Clock size={10} /> Pending Approval
                         </span>
                       )}
                     </div>
-                    <p className="text-sm mt-0.5 text-zinc-800 break-words">{c.body}</p>
+                    <p className="text-xs sm:text-sm mt-0.5 text-zinc-800 break-words">{c.body}</p>
                   </div>
                 </div>
 
@@ -647,17 +647,17 @@ function PostCard({
                     <>
                       <button
                         onClick={() => onApproveComment(c.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-emerald-700 shadow-xs"
+                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-emerald-700 shadow-xs cursor-pointer active:scale-95"
                         title="Approve Comment"
                       >
-                        <Check size={12} /> Approve
+                        <Check size={11} /> <span className="hidden sm:inline">Approve</span>
                       </button>
                       <button
                         onClick={() => onRejectComment(c.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-1 text-[11px] font-semibold text-red-700 hover:bg-red-200"
+                        className="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-1 text-[10px] sm:text-[11px] font-semibold text-red-700 hover:bg-red-200 cursor-pointer active:scale-95"
                         title="Reject Comment"
                       >
-                        <X size={12} /> Reject
+                        <X size={11} /> <span className="hidden sm:inline">Reject</span>
                       </button>
                     </>
                   )}
@@ -668,7 +668,7 @@ function PostCard({
                           onDeleteComment(c.id);
                         }
                       }}
-                      className="p-1 text-zinc-400 hover:text-red-500 rounded transition"
+                      className="p-1 text-zinc-400 hover:text-red-500 rounded transition cursor-pointer"
                       title="Delete Comment"
                     >
                       <Trash2 size={13} />
@@ -698,17 +698,17 @@ function PostCard({
             }}
             className="space-y-1.5 pt-2"
           >
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
               <input
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Write a comment..."
-                className="flex-1 rounded-full bg-zinc-100 px-4 py-2 text-sm outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 border border-transparent focus:border-zinc-200"
+                className="flex-1 rounded-full bg-zinc-100 px-3.5 sm:px-4 py-2 text-base sm:text-sm outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 border border-transparent focus:border-zinc-200 shadow-2xs"
               />
-              <PrimaryButton type="submit">Send</PrimaryButton>
+              <PrimaryButton type="submit" className="py-2 px-3.5 sm:px-4 text-xs sm:text-sm font-bold shrink-0">Send</PrimaryButton>
             </div>
             {!isStaff && (
-              <p className="px-3 text-[11px] text-zinc-400 flex items-center gap-1">
+              <p className="px-3 text-[10px] sm:text-[11px] text-zinc-400 flex items-center gap-1">
                 <Clock size={11} /> Comments require manager or admin approval before becoming visible to all members.
               </p>
             )}
@@ -737,18 +737,18 @@ export function LiveBanner() {
   return (
     <Link
       href="/calendar"
-      className="group flex items-center justify-between rounded-2xl border border-zinc-200 bg-gradient-to-r from-zinc-50 via-zinc-100/60 to-transparent px-4 py-3 text-sm transition hover:border-zinc-300 shadow-xs"
+      className="group flex items-center justify-between gap-2 rounded-2xl border border-zinc-200/90 bg-gradient-to-r from-zinc-50 via-zinc-100/60 to-transparent px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm transition hover:border-zinc-300 shadow-xs"
     >
-      <div className="flex items-center gap-2.5 font-medium text-zinc-900">
-        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-zinc-200 text-zinc-800">
-          <CalendarDays size={16} />
+      <div className="flex items-center gap-2 sm:gap-2.5 font-medium text-zinc-900 min-w-0">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-zinc-200 text-zinc-800">
+          <CalendarDays size={15} />
         </span>
-        <span>
+        <span className="truncate">
           <strong className="font-bold text-zinc-900">{next.title}</strong> is happening{" "}
           <span className="font-extrabold underline decoration-zinc-400">{label}</span>
         </span>
       </div>
-      <span className="text-xs font-bold text-zinc-900 group-hover:translate-x-0.5 transition-transform flex items-center gap-1">
+      <span className="text-xs font-bold text-zinc-900 group-hover:translate-x-0.5 transition-transform flex items-center gap-1 shrink-0">
         Join Call →
       </span>
     </Link>
@@ -765,11 +765,11 @@ export function ReviewPrompt({
   return (
     <div
       onClick={onSelect}
-      className="flex items-center justify-between rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm cursor-pointer hover:bg-amber-100/70 transition shadow-2xs group"
+      className="flex items-center justify-between gap-2.5 rounded-2xl border border-amber-200/90 bg-amber-50 px-3.5 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm cursor-pointer hover:bg-amber-100/70 transition shadow-2xs group"
     >
-      <div className="flex items-center gap-2 font-medium text-amber-900 group-hover:text-amber-950 transition">
-        <Star size={16} className="text-amber-500 fill-amber-500 group-hover:scale-110 transition-transform" />
-        <span className="group-hover:underline">Enjoying this group? Leave a review</span>
+      <div className="flex items-center gap-2 font-medium text-amber-900 group-hover:text-amber-950 transition min-w-0">
+        <Star size={16} className="text-amber-500 fill-amber-500 shrink-0 group-hover:scale-110 transition-transform" />
+        <span className="group-hover:underline truncate">Enjoying this group? Leave a review</span>
       </div>
       <button
         type="button"
@@ -777,7 +777,7 @@ export function ReviewPrompt({
           e.stopPropagation();
           onDismiss();
         }}
-        className="text-zinc-400 hover:text-zinc-600 p-1 rounded-md transition cursor-pointer"
+        className="text-zinc-400 hover:text-zinc-600 p-1 rounded-md transition cursor-pointer shrink-0"
         title="Dismiss"
       >
         <X size={16} />
@@ -798,53 +798,53 @@ export function CategoryPills({
 
   return (
     <div className="flex items-center justify-between gap-2">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto py-1 scrollbar-none max-w-full">
         <button
           onClick={() => onChange("all")}
-          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+          className={`shrink-0 whitespace-nowrap rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-semibold transition cursor-pointer active:scale-95 ${
             value === "all"
               ? "bg-zinc-900 text-white shadow-xs"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              : "bg-white sm:bg-zinc-100 text-zinc-600 border border-zinc-200/70 sm:border-transparent hover:bg-zinc-200"
           }`}
         >
           All
         </button>
         <button
           onClick={() => onChange("chat")}
-          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+          className={`shrink-0 whitespace-nowrap rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-semibold transition cursor-pointer active:scale-95 ${
             value === "chat"
               ? "bg-zinc-900 text-white shadow-xs"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              : "bg-white sm:bg-zinc-100 text-zinc-600 border border-zinc-200/70 sm:border-transparent hover:bg-zinc-200"
           }`}
         >
           General discussion
         </button>
         <button
           onClick={() => onChange("wins")}
-          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+          className={`shrink-0 whitespace-nowrap rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-semibold transition cursor-pointer active:scale-95 ${
             value === "wins"
               ? "bg-zinc-900 text-white shadow-xs"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              : "bg-white sm:bg-zinc-100 text-zinc-600 border border-zinc-200/70 sm:border-transparent hover:bg-zinc-200"
           }`}
         >
           Wins
         </button>
         <button
           onClick={() => onChange("recorded")}
-          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+          className={`shrink-0 whitespace-nowrap rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-semibold transition cursor-pointer active:scale-95 ${
             value === "recorded"
               ? "bg-zinc-900 text-white shadow-xs"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              : "bg-white sm:bg-zinc-100 text-zinc-600 border border-zinc-200/70 sm:border-transparent hover:bg-zinc-200"
           }`}
         >
           Replays
         </button>
         <button
           onClick={() => onChange("reviews")}
-          className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+          className={`shrink-0 whitespace-nowrap rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-semibold transition cursor-pointer active:scale-95 ${
             value === "reviews"
               ? "bg-zinc-900 text-white shadow-xs"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+              : "bg-white sm:bg-zinc-100 text-zinc-600 border border-zinc-200/70 sm:border-transparent hover:bg-zinc-200"
           }`}
         >
           Reviews
@@ -852,10 +852,10 @@ export function CategoryPills({
         {canSeeTeam && (
           <button
             onClick={() => onChange("team")}
-            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+            className={`shrink-0 whitespace-nowrap inline-flex items-center gap-1.5 rounded-full px-3.5 sm:px-4 py-1.5 text-xs font-semibold transition cursor-pointer active:scale-95 ${
               value === "team"
                 ? "bg-zinc-900 text-white shadow-xs"
-                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                : "bg-white sm:bg-zinc-100 text-zinc-600 border border-zinc-200/70 sm:border-transparent hover:bg-zinc-200"
             }`}
           >
             <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
@@ -865,7 +865,7 @@ export function CategoryPills({
       </div>
 
       <button
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800 transition shadow-xs"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200/90 bg-white text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800 transition shadow-xs cursor-pointer active:scale-95"
         title="Filter & sort options"
       >
         <SlidersHorizontal size={14} />

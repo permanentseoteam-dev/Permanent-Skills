@@ -50,8 +50,8 @@ function CommunityContent() {
   }
 
   return (
-    <div className="relative flex flex-col gap-6 lg:flex-row">
-      <div className="min-w-0 flex-1 space-y-4">
+    <div className="relative flex flex-col gap-4 sm:gap-6 lg:flex-row items-start">
+      <div className="min-w-0 w-full flex-1 space-y-3 sm:space-y-4">
         <PostComposer defaultCategory={category === "reviews" ? "reviews" : undefined} />
         <CategoryPills value={category} onChange={setCategory} />
         {showReview && (

@@ -48,12 +48,12 @@ export function Modal({
 }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
-      <button className="absolute inset-0 bg-black/40" onClick={onClose} aria-label="Close" />
-      <div className={`relative z-10 w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl bg-white p-5 shadow-2xl`}>
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <h3 className="text-lg font-semibold text-zinc-900">{title}</h3>
-          <button onClick={onClose} className="rounded-lg p-1 text-zinc-500 hover:bg-zinc-100">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+      <button className="fixed inset-0 bg-black/45 backdrop-blur-xs cursor-pointer" onClick={onClose} aria-label="Close" />
+      <div className={`relative z-10 w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl bg-white p-4.5 sm:p-6 shadow-2xl my-auto transition-all`}>
+        <div className="mb-3.5 sm:mb-4 flex items-center justify-between gap-3">
+          <h3 className="text-base sm:text-lg font-bold text-zinc-900">{title}</h3>
+          <button onClick={onClose} className="rounded-lg p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition cursor-pointer active:scale-95">
             <X size={18} />
           </button>
         </div>

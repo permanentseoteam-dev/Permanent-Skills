@@ -31,16 +31,16 @@ export function Sidebar() {
   const adminCount = activeCommunity?.adminCount || admins;
 
   return (
-    <aside className="w-full shrink-0 space-y-4 lg:w-[310px]">
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-xs">
+    <aside className="w-full shrink-0 space-y-3.5 sm:space-y-4 lg:w-[310px] xl:w-[320px]">
+      <div className="overflow-hidden rounded-2xl border border-zinc-200/80 bg-white shadow-xs">
         {/* Banner matching reference site theme */}
-        <div className="bg-gradient-to-br from-[#0b1b4a] via-[#5051F9] to-[#7c83ff] px-4 py-5 text-white">
-          <p className="text-lg font-black tracking-wide">THE PERMANENT</p>
-          <p className="text-2xl font-black">SKILL METHOD</p>
+        <div className="bg-gradient-to-br from-[#0b1b4a] via-[#5051F9] to-[#7c83ff] px-4 py-4 sm:py-5 text-white">
+          <p className="text-base sm:text-lg font-black tracking-wide">THE PERMANENT</p>
+          <p className="text-xl sm:text-2xl font-black">SKILL METHOD</p>
           <p className="mt-1 text-xs text-white/80">Learn once. Compound forever.</p>
         </div>
 
-        <div className="p-4">
+        <div className="p-3.5 sm:p-4">
           <div className="mb-3 flex items-center gap-2">
             <Image
               src={activeCommunity?.type === "team" || activeCommunity?.slug === "team-members" || activeCommunity?.id === "comm-team" ? "/team-icon.png" : "/logo.png"}
@@ -49,48 +49,48 @@ export function Sidebar() {
               height={28}
               className={`h-7 w-7 ${activeCommunity?.type === "team" || activeCommunity?.slug === "team-members" || activeCommunity?.id === "comm-team" ? "object-cover rounded-lg" : "object-contain"}`}
             />
-            <div>
-              <p className="font-semibold text-zinc-900">{communityName}</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-zinc-900 text-sm truncate">{communityName}</p>
               <p className="text-xs text-zinc-500">permanentseo.com</p>
             </div>
           </div>
 
-          <p className="text-sm leading-relaxed text-zinc-600">
+          <p className="text-xs sm:text-sm leading-relaxed text-zinc-600">
             {communityDesc}
           </p>
 
-          <div className="mt-4 grid grid-cols-3 divide-x divide-zinc-200 border-y border-zinc-100 py-3 text-center">
+          <div className="mt-4 grid grid-cols-3 divide-x divide-zinc-200 border-y border-zinc-100 py-2.5 sm:py-3 text-center">
             <div>
-              <p className="text-lg font-semibold text-zinc-900">{memberCount}</p>
-              <p className="text-xs text-zinc-500">Members</p>
+              <p className="text-base sm:text-lg font-bold text-zinc-900">{memberCount}</p>
+              <p className="text-[11px] sm:text-xs text-zinc-500">Members</p>
             </div>
             <div>
-              <p className="text-lg font-semibold text-zinc-900">{onlineCount}</p>
-              <p className="text-xs text-zinc-500">Online</p>
+              <p className="text-base sm:text-lg font-bold text-zinc-900">{onlineCount}</p>
+              <p className="text-[11px] sm:text-xs text-zinc-500">Online</p>
             </div>
             <div>
-              <p className="text-lg font-semibold text-zinc-900">{adminCount}</p>
-              <p className="text-xs text-zinc-500">Admins</p>
+              <p className="text-base sm:text-lg font-bold text-zinc-900">{adminCount}</p>
+              <p className="text-[11px] sm:text-xs text-zinc-500">Admins</p>
             </div>
           </div>
 
-          <div className="mt-3 flex -space-x-2">
+          <div className="mt-3 flex -space-x-2 overflow-x-auto py-1">
             {visible.slice(0, 8).map((m) => (
-              <Link key={m.id} href={`/profile/${m.id}`} title={m.name} className="transition hover:scale-110">
+              <Link key={m.id} href={`/profile/${m.id}`} title={m.name} className="transition hover:scale-110 shrink-0">
                 <Avatar user={m} size={28} className="border-2 border-white shadow-xs" />
               </Link>
             ))}
           </div>
 
           {!user?.isPremium && (
-            <GoldButton className="mt-4 w-full cursor-pointer" onClick={() => setUpgradeOpen(true)}>
+            <GoldButton className="mt-4 w-full cursor-pointer py-2.5 sm:py-3 text-xs sm:text-sm font-bold" onClick={() => setUpgradeOpen(true)}>
               👑 UPGRADE TO VIP
             </GoldButton>
           )}
 
           <Link
             href="/settings"
-            className="mt-2 flex items-center justify-center gap-1 py-2 text-sm text-zinc-500 hover:text-zinc-800 transition"
+            className="mt-2 flex items-center justify-center gap-1.5 py-2 text-xs sm:text-sm font-medium text-zinc-500 hover:text-zinc-800 transition"
           >
             <Settings size={14} /> Settings
           </Link>
@@ -98,29 +98,29 @@ export function Sidebar() {
       </div>
 
       {user?.role === "admin" && stats && (
-        <div className="rounded-2xl border border-primary/20 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-primary/20 bg-white p-3.5 sm:p-4 shadow-sm">
           <p className="mb-3 text-xs font-bold uppercase tracking-wider text-primary">Admin only</p>
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 gap-2.5">
             <Stat label="Total users" value={String(stats.totalUsers)} />
             <Stat label="Total sales" value={formatMoney(stats.totalSales)} />
             <Stat label="Total logins" value={String(stats.totalLogins)} />
           </div>
-          <Link href="/admin" className="mt-3 block text-center text-sm font-medium text-primary">
+          <Link href="/admin" className="mt-3 block text-center text-xs sm:text-sm font-medium text-primary hover:underline">
             Open admin panel →
           </Link>
         </div>
       )}
 
-      <div className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-        <p className="mb-3 font-semibold">Leaderboard (30-day)</p>
-        <ol className="space-y-3">
+      <div className="rounded-2xl border border-zinc-200/80 bg-white p-3.5 sm:p-4 shadow-sm">
+        <p className="mb-3 text-xs sm:text-sm font-bold text-zinc-900">Leaderboard (30-day)</p>
+        <ol className="space-y-2.5 sm:space-y-3">
           {top.map((m, i) => (
             <li key={m.id}>
-              <Link href={`/profile/${m.id}`} className="flex items-center gap-3">
-                <span className={`w-5 text-sm font-bold ${i < 3 ? "text-amber-500" : "text-zinc-400"}`}>{i + 1}</span>
-                <Avatar user={m} size={32} />
-                <span className="flex-1 truncate text-sm font-medium">{m.name}</span>
-                <span className="text-sm font-semibold text-primary">+{m.points30d}</span>
+              <Link href={`/profile/${m.id}`} className="flex items-center gap-2.5 sm:gap-3 group">
+                <span className={`w-4 sm:w-5 text-xs sm:text-sm font-bold ${i < 3 ? "text-amber-500" : "text-zinc-400"}`}>{i + 1}</span>
+                <Avatar user={m} size={30} />
+                <span className="flex-1 truncate text-xs sm:text-sm font-medium text-zinc-800 group-hover:text-primary transition">{m.name}</span>
+                <span className="text-xs sm:text-sm font-bold text-primary">+{m.points30d}</span>
               </Link>
             </li>
           ))}
