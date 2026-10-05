@@ -1083,6 +1083,7 @@ export function createSeed(): Database {
   ];
 
   const comments: Comment[] = [
+    // Approved Community Comments
     { id: "c-ecom-1", postId: "p-ecom-welcome", authorId: "u-daniel", body: "Glad to be here! Looking forward to implementing the retention systems.", createdAt: daysAgo(21), status: "approved" },
     { id: "c-ecom-2", postId: "p-ecom-welcome", authorId: "u-priya", body: "The deliverability framework is brilliant. Excited to be part of the community!", createdAt: daysAgo(20), status: "approved" },
     { id: "c-ecom-3", postId: "p-ecom-welcome", authorId: "u-james", body: "We warmed up our dedicated sending IP following Module 2 and saw inboxing jump to 98%.", createdAt: daysAgo(18), status: "approved" },
@@ -1092,16 +1093,31 @@ export function createSeed(): Database {
     { id: "c-ecom-7", postId: "p-ecom-welcome", authorId: "u-ayaan", body: "If anyone has questions on setting up segmentation flows, feel free to drop them below.", createdAt: daysAgo(8), status: "approved" },
     { id: "c-ecom-8", postId: "p-ecom-welcome", authorId: "u-lisa", body: "Starting the Module 1 Introduction overview today!", createdAt: daysAgo(5), status: "approved" },
     { id: "c-ecom-9", postId: "p-ecom-welcome", authorId: "u-manager", body: "Welcome everyone! Feel free to ask questions anytime in the chat or reach out directly.", createdAt: daysAgo(2), status: "approved" },
-    { id: "c1", postId: "p-replay", authorId: "u-ayaan", body: "The section on rented vs owned attention was excellent.", createdAt: hoursAgo(14), status: "approved" },
+    { id: "c1", postId: "p-replay", authorId: "u-ayaan", body: "The section on rented vs owned attention was excellent. Complete paradigm shift.", createdAt: hoursAgo(14), status: "approved" },
     { id: "c2", postId: "p-replay", authorId: "u-priya", body: "Can we get the offer worksheet from the call in Toolkit?", createdAt: hoursAgo(12), status: "approved" },
-    { id: "c3", postId: "p-replay", authorId: "u-james", body: "Watching with my team tomorrow. Thank you.", createdAt: hoursAgo(10), status: "approved" },
+    { id: "c3", postId: "p-replay", authorId: "u-james", body: "Watching with my team tomorrow. Great breakdown of unit economics.", createdAt: hoursAgo(10), status: "approved" },
+    { id: "c-rep-4", postId: "p-replay", authorId: "u-admin", body: "Worksheet is uploaded in the resources section! Check the attachments tab.", createdAt: hoursAgo(8), status: "approved" },
     { id: "c4", postId: "p-win", authorId: "u-admin", body: "This is the compounding we talk about. Document the pages that converted.", createdAt: daysAgo(12), status: "approved" },
-    { id: "c5", postId: "p-win", authorId: "u-sofia", body: "Congrats James. Which cluster was the first client from?", createdAt: daysAgo(12), status: "approved" },
-    { id: "c6", postId: "p-welcome", authorId: "u-noah", body: "Glad to be here. Starting the classroom tonight.", createdAt: daysAgo(20), status: "approved" },
+    { id: "c5", postId: "p-win", authorId: "u-sofia", body: "Congrats James! Which cluster was the first client from?", createdAt: daysAgo(12), status: "approved" },
+    { id: "c-win-3", postId: "p-win", authorId: "u-james", body: "It came from the core CRM migration comparison piece. Highly targeted search intent.", createdAt: daysAgo(11), status: "approved" },
+    { id: "c6", postId: "p-welcome", authorId: "u-noah", body: "Glad to be here. Starting the classroom tonight. Let's build!", createdAt: daysAgo(20), status: "approved" },
+    { id: "c-wel-2", postId: "p-welcome", authorId: "u-admin", body: "Welcome Noah! Jump into Module 1 when ready and introduce your business model.", createdAt: daysAgo(19), status: "approved" },
+    { id: "c-wel-3", postId: "p-welcome", authorId: "u-hana", body: "Welcome! The community discussions here are gold. Make sure to check the SOP vault.", createdAt: daysAgo(18), status: "approved" },
     { id: "c7", postId: "p-chat-1", authorId: "u-admin", body: "Ship the 8, interlink tightly, then add. Waiting for a magic number usually delays learning.", createdAt: hoursAgo(18), status: "approved" },
-    { id: "c8", postId: "p-win-2", authorId: "u-amira", body: "Love this. Case studies are underrated authority assets.", createdAt: daysAgo(1), status: "approved" },
+    { id: "c-chat1-2", postId: "p-chat-1", authorId: "u-priya", body: "Understood! Interlinking the first 8 today.", createdAt: hoursAgo(15), status: "approved" },
+    { id: "c8", postId: "p-win-2", authorId: "u-amira", body: "Love this. Case studies are underrated authority assets. Big congrats Sofia!", createdAt: daysAgo(1), status: "approved" },
+    { id: "c-rev-1", postId: "p-review", authorId: "u-admin", body: "Appreciate the feedback Ayaan. The compounding effects only multiply from here.", createdAt: daysAgo(8), status: "approved" },
+    { id: "c-team-1", postId: "p-team-welcome", authorId: "u-manager", body: "All team specialists have been briefed on client SLA response times and QA protocols.", createdAt: daysAgo(2), status: "approved" },
+    { id: "c-team-2", postId: "p-team-welcome", authorId: "u-priya", body: "SOP checklists reviewed and integrated into daily sprint board.", createdAt: daysAgo(1), status: "approved" },
+
+    // Classroom Lesson Comments
     { id: "c-les-1", postId: "l-eem-1-1", authorId: "u-admin", body: "Welcome to Module 1! Make sure to grab the Figma swipe files linked above and review the course roadmap.", createdAt: hoursAgo(5), status: "approved" },
     { id: "c-les-2", postId: "l-eem-1-1", authorId: "u-ayaan", body: "The breakdown of why owned audience assets compound faster than paid ads was super clear.", createdAt: hoursAgo(3), status: "approved" },
+    { id: "c-les-3", postId: "l-eem-1-1", authorId: "u-sofia", body: "The deliverability benchmarks helped us identify 2 inactive domain records immediately.", createdAt: hoursAgo(2), status: "approved" },
+    { id: "c-les-5", postId: "l-eem-1-2", authorId: "u-daniel", body: "Great walkthrough on dedicated IP warmups. Implemented the 14-day schedule.", createdAt: hoursAgo(4), status: "approved" },
+    { id: "c-les-6", postId: "l-eem-1-3", authorId: "u-wei", body: "The automated re-engagement flow template saved us hours of custom copywriting.", createdAt: hoursAgo(6), status: "approved" },
+
+    // Pending Moderation Comments (for Admin / Manager Approval Queue)
     { id: "c-les-4", postId: "l-eem-1-1", authorId: "u-noah", body: "Can we apply these same segmentation principles to B2B eCommerce stores as well?", createdAt: hoursAgo(0.5), status: "pending" },
     { id: "c-pending-1", postId: "p-ecom-welcome", authorId: "u-daniel", body: "Could someone clarify if the cold outreach email templates from Module 1 are also compliant with EU GDPR regulations?", createdAt: hoursAgo(1.5), status: "pending" },
     { id: "c-pending-2", postId: "p-ecom-entrepreneur", authorId: "u-priya", body: "This mindset framework resonates heavily. When scaling to $50k/mo, how did you balance client delivery with building owned audience assets?", createdAt: hoursAgo(0.8), status: "pending" },
@@ -1125,51 +1141,8 @@ export function createSeed(): Database {
     },
   ];
 
+  // Calendar meetings cleared
   const events: CalendarEvent[] = [];
-  const start = new Date(2026, 6, 1);
-  const end = new Date(2027, 2, 31);
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const day = d.getDay();
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    const date = d.getDate();
-    if (day === 1) {
-      events.push({
-        id: `e-live-${y}-${m}-${date}`,
-        title: "PSS Live Strategy Call",
-        start: atDate(y, m, date, 21, 0),
-        end: atDate(y, m, date, 22, 0),
-        type: "live",
-        description: "Weekly live training, hot seats, and Q&A for the whole community.",
-      });
-    }
-    if (day === 4) {
-      events.push({
-        id: `e-prem-${y}-${m}-${date}`,
-        title: "Premium Mastermind",
-        start: atDate(y, m, date, 21, 0),
-        end: atDate(y, m, date, 22, 30),
-        type: "premium",
-        description: "Deep-dive working session for Premium members.",
-      });
-    }
-  }
-  events.push({
-    id: "e-special-19",
-    title: "PSS Live Strategy Call",
-    start: atDate(2026, 9, 19, 12, 0),
-    end: atDate(2026, 9, 19, 13, 0),
-    type: "live",
-    description: "Special weekend session — bring a live page for review.",
-  });
-  events.push({
-    id: "e-prem-18",
-    title: "Premium Mastermind",
-    start: atDate(2026, 9, 18, 22, 30),
-    end: atDate(2026, 9, 18, 23, 30),
-    type: "premium",
-    description: "Extended VIP teardown.",
-  });
 
   const messages: Message[] = [
     { id: "msg1", senderId: "u-ayaan", receiverId: "u-admin", body: "Hi, I specialize in local SEO systems and wanted to introduce myself.", read: false, createdAt: hoursAgo(26) },

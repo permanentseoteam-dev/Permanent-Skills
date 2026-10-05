@@ -156,6 +156,13 @@ function migrate(db: Database) {
     db.comments = createSeed().comments;
     changed = true;
   } else {
+    const seedComments = createSeed().comments;
+    for (const sc of seedComments) {
+      if (!db.comments.some((c) => c.id === sc.id)) {
+        db.comments.push(sc);
+        changed = true;
+      }
+    }
     for (const comment of db.comments) {
       if (!comment.status) {
         comment.status = "approved";
@@ -175,17 +182,10 @@ function migrate(db: Database) {
       }
     }
   }
-  if (!db.events || db.events.length === 0) {
-    db.events = createSeed().events;
+  // Clear all calendar meetings
+  if (db.events && db.events.length > 0) {
+    db.events = [];
     changed = true;
-  } else {
-    const seedEvents = createSeed().events;
-    for (const se of seedEvents) {
-      if (!db.events.some((e) => e.id === se.id)) {
-        db.events.push(se);
-        changed = true;
-      }
-    }
   }
   if (!db.videoResources || db.videoResources.length === 0) {
     db.videoResources = createSeed().videoResources || [];
