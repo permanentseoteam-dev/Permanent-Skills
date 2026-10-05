@@ -5,8 +5,8 @@ import { LeftCommunityRail } from "@/components/LeftCommunityRail";
 import { useApp } from "@/components/AppProvider";
 
 export default function PlatformLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, limited } = useApp();
-  if (loading || !user || limited) {
+  const { user, loading } = useApp();
+  if (loading || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-bg">
         <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />

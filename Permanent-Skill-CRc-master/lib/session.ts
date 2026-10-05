@@ -26,7 +26,6 @@ export function verifyPayload<T>(token: string | undefined | null): T | null {
 }
 
 export function nextPathFor(user: Pick<User, "role" | "status" | "application">) {
-  if (user.role === "admin" || user.role === "manager" || user.status === "approved") return "/community";
-  if (user.application) return "/pending";
-  return "/apply";
+  if (user.role === "admin") return "/admin";
+  return "/community";
 }

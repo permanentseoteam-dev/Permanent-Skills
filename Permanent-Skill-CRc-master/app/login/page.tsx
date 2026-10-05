@@ -17,6 +17,7 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -26,7 +27,7 @@ function LoginForm() {
     setBusy(true);
     setError("");
     try {
-      const result = await login(email, password);
+      const result = await login(email, password, rememberMe);
       if (!result.ok) {
         setError(result.error || "Could not log in.");
         return;
@@ -86,6 +87,19 @@ function LoginForm() {
             required
           />
         </Field>
+
+        <div className="flex items-center justify-between text-xs pt-0.5">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-zinc-700 font-medium">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="h-4 w-4 rounded border-zinc-300 text-primary focus:ring-primary/20 accent-primary cursor-pointer"
+            />
+            <span>Remember me</span>
+          </label>
+        </div>
+
         {error && <p className="text-sm text-red-600">{error}</p>}
         <PrimaryButton type="submit" className="w-full" disabled={busy}>
           {busy ? "Signing in..." : "Log in"}

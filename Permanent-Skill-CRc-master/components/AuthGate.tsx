@@ -4,11 +4,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { useApp } from "./AppProvider";
 
-const OPEN = ["/", "/login", "/register"];
-const LIMITED = ["/apply", "/pending"];
+const OPEN = ["/", "/login", "/register", "/apply", "/pending"];
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
-  const { user, loading, limited } = useApp();
+  const { user, loading } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const publicPath = OPEN.includes(pathname);
@@ -19,28 +18,18 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
-    const isApprovedOrStaff = user && (user.role === "admin" || user.role === "manager" || user.status === "approved");
     if (user && (pathname === "/login" || pathname === "/register")) {
-      if (isApprovedOrStaff) router.replace("/community");
-      else if (!user.application) router.replace("/apply");
-      else router.replace("/pending");
-      return;
-    }
-    if (user && pathname === "/" && isApprovedOrStaff) {
       router.replace("/community");
       return;
     }
-    if (user && limited && !LIMITED.includes(pathname) && pathname !== "/login" && pathname !== "/") {
-      if (!user.application) router.replace("/apply");
-      else router.replace("/pending");
-    }
-    if (user && pathname === "/apply" && user.application && user.status === "pending") {
-      router.replace("/pending");
+    if (user && pathname === "/") {
+      router.replace("/community");
+      return;
     }
     if (user && pathname.startsWith("/admin") && user.role !== "admin") {
       router.replace("/community");
     }
-  }, [user, loading, limited, pathname, publicPath, router]);
+  }, [user, loading, pathname, publicPath, router]);
 
   if (loading && !publicPath) {
     return (

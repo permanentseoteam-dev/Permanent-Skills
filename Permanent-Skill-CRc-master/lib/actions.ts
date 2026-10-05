@@ -27,7 +27,8 @@ import type {
 const COOKIE = "pss_session";
 const PROFILE_COOKIE = "pss_profile";
 const ONLINE_MS = 8 * 60 * 1000;
-const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days for Remember Me
+const SESSION_SHORT_AGE = 60 * 60 * 24; // 24 hours without Remember Me
 
 type SessionPayload = { userId: string };
 
@@ -94,20 +95,21 @@ function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string
   return base;
 }
 
-function cookieOptions(maxAge: number) {
+function cookieOptions(maxAge?: number) {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
     path: "/",
-    maxAge,
+    ...(typeof maxAge === "number" ? { maxAge } : {}),
     secure: process.env.VERCEL === "1",
   };
 }
 
-async function writeAuthCookies(user: User) {
+async function writeAuthCookies(user: User, rememberMe: boolean = true) {
   const jar = await cookies();
-  jar.set(COOKIE, signPayload({ userId: user.id } satisfies SessionPayload), cookieOptions(SESSION_MAX_AGE));
-  jar.set(PROFILE_COOKIE, signPayload(user), cookieOptions(SESSION_MAX_AGE));
+  const maxAge = rememberMe ? SESSION_MAX_AGE : SESSION_SHORT_AGE;
+  jar.set(COOKIE, signPayload({ userId: user.id } satisfies SessionPayload), cookieOptions(maxAge));
+  jar.set(PROFILE_COOKIE, signPayload(user), cookieOptions(maxAge));
 }
 
 async function currentUser(): Promise<User | null> {
@@ -124,11 +126,11 @@ async function currentUser(): Promise<User | null> {
   return upsertUser(profile);
 }
 
-async function setSession(userId: string) {
+async function setSession(userId: string, rememberMe: boolean = true) {
   const db = readDb();
   const user = db.users.find((u) => u.id === userId);
   if (!user) return;
-  await writeAuthCookies(user);
+  await writeAuthCookies(user, rememberMe);
   await updateDb((d) => {
     d.sessions = d.sessions.filter((s) => s.userId !== userId);
     d.sessions.push({ token: `cookie:${userId}`, userId, createdAt: new Date().toISOString() });
@@ -177,18 +179,6 @@ export async function getAppState(): Promise<AppState> {
   const db = readDb();
   const activeUserIds = new Set(db.sessions.map((s) => s.userId));
   const approved = db.users.filter((u) => u.status === "approved" || u.role === "admin" || u.role === "manager");
-  const limited = me.role !== "admin" && me.role !== "manager" && me.status !== "approved";
-
-  if (limited) {
-    return {
-      ...empty,
-      user: publicUser(me, me, activeUserIds),
-      limited: true,
-      communities: db.communities || [],
-      activeCommunityId: db.communities?.[0]?.id || "comm-students",
-    };
-  }
-
   const isStaff = me.role === "admin" || me.role === "manager";
   const visibleUsers = isStaff ? db.users : approved;
   const stats =
@@ -227,7 +217,8 @@ export async function getAppState(): Promise<AppState> {
 
 export async function login(
   email: string,
-  password: string
+  password: string,
+  rememberMe: boolean = true
 ): Promise<ActionResult> {
   try {
     const normalized = email.trim().toLowerCase();
@@ -251,7 +242,7 @@ export async function login(
         u.isPremium = true;
       }
     });
-    await setSession(user.id);
+    await setSession(user.id, rememberMe);
     const nextDestination = user.role === "admin" ? "/admin" : nextPathFor(user);
     return { ok: true, next: nextDestination };
   } catch (error) {
@@ -1316,6 +1307,9 @@ export async function purchaseCourse(courseId: string): Promise<ActionResult> {
     u.purchasedCourseIds = u.purchasedCourseIds || [];
     if (!u.purchasedCourseIds.includes(courseId)) {
       u.purchasedCourseIds.push(courseId);
+    }
+    if (u.status !== "approved") {
+      u.status = "approved";
     }
     d.sales.push({
       id: `sale-${token().slice(0, 8)}`,
