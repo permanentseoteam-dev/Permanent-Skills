@@ -34,6 +34,34 @@ const dir = path.join(process.env.VERCEL ? os.tmpdir() : os.homedir(), ".permane
 const file = path.join(dir, "db.json");
 const DEMO_VIDEO = "https://www.youtube.com/watch?v=aqz-KE-bpKQ";
 
+// Graceful lifecycle and shutdown handler for Node.js process managers (Hostinger, PM2, Vercel)
+if (typeof process !== "undefined" && typeof process.on === "function") {
+  const isBenignShutdown = (err: any) => {
+    const msg = String(err?.message || "");
+    const code = String(err?.code || "");
+    const stack = String(err?.stack || "");
+    return (
+      msg.includes("Server is not running") ||
+      msg.includes("ERR_SERVER_NOT_RUNNING") ||
+      stack.includes("Server is not running") ||
+      code === "ERR_SERVER_NOT_RUNNING" ||
+      code === "ECONNRESET" ||
+      code === "EPIPE" ||
+      code === "UND_ERR_SOCKET"
+    );
+  };
+
+  process.on("uncaughtException", (err: any) => {
+    if (isBenignShutdown(err)) return;
+    console.error("Uncaught server exception:", err);
+  });
+
+  process.on("unhandledRejection", (reason: any) => {
+    if (isBenignShutdown(reason)) return;
+    console.error("Unhandled server rejection:", reason);
+  });
+}
+
 let cache: Database | null = null;
 let isInitialFetchDone = false;
 
