@@ -269,6 +269,27 @@ function isServerActionMismatch(err: unknown): boolean {
   );
 }
 
+const ACTIVE_COMMUNITY_KEY = "pss_active_community_id";
+
+function applyNextState(next: AppState, prev: AppState): AppState {
+  let activeId = prev.activeCommunityId;
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(ACTIVE_COMMUNITY_KEY);
+      if (saved) {
+        activeId = saved;
+      }
+    } catch {}
+  }
+  const finalActiveCommunityId =
+    activeId && activeId !== "comm-pss" ? activeId : next.activeCommunityId || "comm-students";
+
+  return {
+    ...next,
+    activeCommunityId: finalActiveCommunityId,
+  };
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(empty);
   const [loading, setLoading] = useState(true);
@@ -281,11 +302,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (res.ok) {
         const next = (await res.json()) as AppState;
         if (next && typeof next === "object") {
-          setState(next);
+          setState((prev) => applyNextState(next, prev));
         }
       } else {
         const next = await getAppState();
-        setState(next);
+        setState((prev) => applyNextState(next, prev));
       }
     } catch (err) {
       if (isServerActionMismatch(err)) {
@@ -296,7 +317,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         const next = await getAppState();
-        setState(next);
+        setState((prev) => applyNextState(next, prev));
       } catch {
         setState(empty);
       }
@@ -659,17 +680,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     [run, refresh],
   );
+  const switchCommunity = useCallback((communityId: string) => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(ACTIVE_COMMUNITY_KEY, communityId);
+      } catch {}
+    }
+    setState((prev) => ({ ...prev, activeCommunityId: communityId }));
+  }, []);
+
   const createCommunityFn = useCallback(
     (input: { name: string; description: string; isPrivate?: boolean }) =>
       run(async () => {
         const result = await createCommunityAction(input);
         if (result.ok && result.id) {
-          setState((prev) => ({ ...prev, activeCommunityId: result.id! }));
+          switchCommunity(result.id);
         }
         return result;
       }),
-    [run],
+    [run, switchCommunity],
   );
+
   const updateCommunityDescriptionFn = useCallback(
     (input: {
       communityId: string;
@@ -689,6 +720,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     [run, refresh],
   );
+
   const saveVideoResourceFn = useCallback(
     (data: Partial<VideoResource>) =>
       run(async () => {
@@ -698,6 +730,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     [run, refresh],
   );
+
   const deleteVideoResourceFn = useCallback(
     (id: string) =>
       run(async () => {
@@ -707,9 +740,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     [run, refresh],
   );
-  const switchCommunity = useCallback((communityId: string) => {
-    setState((prev) => ({ ...prev, activeCommunityId: communityId }));
-  }, []);
 
   const joinCommunityFn = useCallback(
     (communityId: string) =>
