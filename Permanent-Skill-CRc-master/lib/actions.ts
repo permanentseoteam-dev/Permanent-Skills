@@ -204,13 +204,13 @@ export async function getAppState(): Promise<AppState> {
   });
 
   const visiblePosts = (db.posts || []).filter((p) => {
-    if (p.communityId === "comm-team" && !canSeeTeam) return false;
+    if ((p.communityId === "comm-team" || p.category === "team") && !canSeeTeam) return false;
     return true;
   });
 
   const visibleComments = db.comments.filter((c) => {
     const post = (db.posts || []).find((p) => p.id === c.postId);
-    if (post?.communityId === "comm-team" && !canSeeTeam) return false;
+    if ((post?.communityId === "comm-team" || post?.category === "team") && !canSeeTeam) return false;
     if (!isStaff && c.status !== "approved" && c.status && c.authorId !== me.id) return false;
     return true;
   });

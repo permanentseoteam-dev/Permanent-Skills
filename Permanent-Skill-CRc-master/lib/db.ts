@@ -168,8 +168,21 @@ function migrate(db: Database) {
     }
     db.users = uniqueUsers;
 
-    // Ensure team specialist role for u-ayaan
+    // Transition any legacy mock pending seed users to approved
+    const legacyMockPendingIds = new Set([
+      "u-omar",
+      "u-alex",
+      "u-elena",
+      "u-tariq",
+      "u-lucas",
+      "u-maya",
+      "u-carlos",
+    ]);
     for (const u of db.users) {
+      if (legacyMockPendingIds.has(u.id) && u.status === "pending") {
+        u.status = "approved";
+        changed = true;
+      }
       if (u.id === "u-ayaan" && u.role !== "team_member") {
         u.role = "team_member";
         changed = true;
@@ -323,10 +336,24 @@ export async function refreshFromSupabase(): Promise<Database> {
     persist(remoteDb);
     isInitialFetchDone = true;
 
-    // Sync newly migrated comments to Supabase in background
+    // Sync newly migrated comments and mock users to Supabase in background
     for (const comment of remoteDb.comments) {
       if (!prevCommentIds.has(comment.id)) {
         syncCommentToSupabase(comment).catch(() => {});
+      }
+    }
+    const legacyMockPendingIds = new Set([
+      "u-omar",
+      "u-alex",
+      "u-elena",
+      "u-tariq",
+      "u-lucas",
+      "u-maya",
+      "u-carlos",
+    ]);
+    for (const u of remoteDb.users) {
+      if (legacyMockPendingIds.has(u.id)) {
+        syncUserToSupabase(u).catch(() => {});
       }
     }
 

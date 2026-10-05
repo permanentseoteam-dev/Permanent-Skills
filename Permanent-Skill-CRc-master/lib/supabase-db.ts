@@ -297,42 +297,51 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
 export async function syncUserToSupabase(u: User) {
   try {
     const supabase = getAdminSupabase();
-    const { error } = await supabase.from("users").upsert(
-      {
-        id: u.id,
-        email: u.email,
-        password_hash: u.passwordHash,
-        name: u.name,
-        username: u.username,
-        bio: u.bio || "",
-        role: u.role || "user",
-        status: u.status || "approved",
-        points: u.points || 0,
-        points7d: u.points7d || 0,
-        points30d: u.points30d || 0,
-        avatar_color: u.avatarColor || "#f59e0b",
-        location: u.location || "",
-        lat: u.lat || 0,
-        lng: u.lng || 0,
-        joined_at: u.joinedAt || new Date().toISOString(),
-        last_seen_at: u.lastSeenAt || new Date().toISOString(),
-        login_count: u.loginCount || 1,
-        is_premium: !!u.isPremium,
-        language: u.language || "en",
-        ip_address: u.ipAddress || null,
-        purchased_course_ids: u.purchasedCourseIds || [],
-        phone: u.phone || null,
-        notes: u.notes || null,
-        application: u.application || null,
-        affiliate_code: u.affiliateCode || `PSS-${u.id}`,
-        affiliate_clicks: u.affiliateClicks || 0,
-        affiliate_signups: u.affiliateSignups || 0,
-        affiliate_earnings: u.affiliateEarnings || 0,
-        referred_by: u.referredBy || null,
-      },
-      { onConflict: "id" }
-    );
-    if (error) console.error("Error upserting user to Supabase:", error);
+    const payload = {
+      id: u.id,
+      email: u.email,
+      password_hash: u.passwordHash,
+      name: u.name,
+      username: u.username,
+      bio: u.bio || "",
+      role: u.role || "user",
+      status: u.status || "approved",
+      points: u.points || 0,
+      points7d: u.points7d || 0,
+      points30d: u.points30d || 0,
+      avatar_color: u.avatarColor || "#f59e0b",
+      location: u.location || "",
+      lat: u.lat || 0,
+      lng: u.lng || 0,
+      joined_at: u.joinedAt || new Date().toISOString(),
+      last_seen_at: u.lastSeenAt || new Date().toISOString(),
+      login_count: u.loginCount || 1,
+      is_premium: !!u.isPremium,
+      language: u.language || "en",
+      ip_address: u.ipAddress || null,
+      purchased_course_ids: u.purchasedCourseIds || [],
+      phone: u.phone || null,
+      notes: u.notes || null,
+      application: u.application || null,
+      affiliate_code: u.affiliateCode || `PSS-${u.id}`,
+      affiliate_clicks: u.affiliateClicks || 0,
+      affiliate_signups: u.affiliateSignups || 0,
+      affiliate_earnings: u.affiliateEarnings || 0,
+      referred_by: u.referredBy || null,
+    };
+
+    // 1. Try updating existing user by ID directly
+    const { error: updateErr, data: updated } = await supabase
+      .from("users")
+      .update(payload)
+      .eq("id", u.id)
+      .select("id");
+
+    // 2. If user doesn't exist yet, insert
+    if (updateErr || !updated || updated.length === 0) {
+      const { error: upsertErr } = await supabase.from("users").upsert(payload, { onConflict: "id" });
+      if (upsertErr) console.error("Error upserting user to Supabase:", upsertErr);
+    }
   } catch (err) {
     console.error("Error syncing user to Supabase:", err);
   }
@@ -341,6 +350,18 @@ export async function syncUserToSupabase(u: User) {
 export async function deleteUserFromSupabase(userId: string) {
   try {
     const supabase = getAdminSupabase();
+    // 1. Delete associated dependent child records first to satisfy foreign key constraints
+    await Promise.allSettled([
+      supabase.from("comments").delete().eq("author_id", userId),
+      supabase.from("posts").delete().eq("author_id", userId),
+      supabase.from("reviews").delete().eq("user_id", userId),
+      supabase.from("sales").delete().eq("user_id", userId),
+      supabase.from("sessions").delete().eq("user_id", userId),
+      supabase.from("progress").delete().eq("user_id", userId),
+      supabase.from("notifications").delete().eq("user_id", userId),
+    ]);
+
+    // 2. Delete the user
     const { error } = await supabase.from("users").delete().eq("id", userId);
     if (error) console.error("Error deleting user from Supabase:", error);
   } catch (err) {

@@ -92,7 +92,8 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
     setError(null);
     setSuccess(null);
     try {
-      const res = await createPost(title, body, category, activeCommunity?.id);
+      const targetComm = category === "team" ? "comm-team" : activeCommunity?.id;
+      const res = await createPost(title, body, category, targetComm);
       if (!res.ok) {
         setError(res.error || "Failed to create post. Please try again.");
         return;
@@ -260,22 +261,54 @@ export function Feed({
 
   const list = useMemo(() => {
     const communityId = activeCommunity?.id || "comm-students";
-    const scoped = posts.filter(
-      (p) =>
+    const canSeeTeam = user?.role === "admin" || user?.role === "manager" || user?.role === "team_member";
+
+    const scoped = posts.filter((p) => {
+      const isTeamPost = p.category === "team" || p.communityId === "comm-team";
+
+      // If user cannot see team, strictly exclude all team posts
+      if (isTeamPost && !canSeeTeam) return false;
+
+      // When specifically selecting the "Team" tab: show all team posts
+      if (category === "team") {
+        return isTeamPost;
+      }
+
+      // When inside the "Team Members" community hub ("comm-team"):
+      if (communityId === "comm-team") {
+        return isTeamPost;
+      }
+
+      // For standard communities (AI Architects, Students, etc.):
+      const matchesCommunity =
         !p.communityId ||
         p.communityId === communityId ||
-        (communityId === "comm-students" && (!p.communityId || p.communityId === "comm-pss"))
-    );
+        (communityId === "comm-students" && (!p.communityId || p.communityId === "comm-pss"));
+
+      // On "All" tab: show community posts AND team posts for authorized staff / team members
+      if (category === "all") {
+        return matchesCommunity || (isTeamPost && canSeeTeam);
+      }
+
+      return matchesCommunity;
+    });
+
     // Visibility filter: Approved posts or posts created by the current user or viewed by staff
     const visible = scoped.filter(
       (p) => p.status === "approved" || !p.status || p.authorId === user?.id || isStaff
     );
-    const filtered = visible.filter((p) => category === "all" || p.category === category);
+
+    const filtered = visible.filter((p) => {
+      if (category === "all") return true;
+      if (category === "team") return p.category === "team" || p.communityId === "comm-team";
+      return p.category === category;
+    });
+
     return [...filtered].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return +new Date(b.createdAt) - +new Date(a.createdAt);
     });
-  }, [posts, category, activeCommunity?.id, user?.id, isStaff]);
+  }, [posts, category, activeCommunity?.id, user?.id, isStaff, user?.role]);
 
   if (list.length === 0) {
     return (
@@ -425,6 +458,8 @@ function PostCard({
       ? "Wins"
       : post.category === "recorded"
       ? "Replay"
+      : post.category === "team"
+      ? "Team"
       : "Review";
 
   const isPending = post.status === "pending";
@@ -457,8 +492,15 @@ function PostCard({
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-500 font-normal">
-              {timeAgo(post.createdAt)} · {categoryLabel}
+            <p className="text-xs text-zinc-500 font-normal flex items-center gap-1.5 flex-wrap">
+              <span>{timeAgo(post.createdAt)}</span>
+              <span>·</span>
+              <span className="inline-flex items-center gap-1">
+                {post.category === "team" && (
+                  <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover inline-block shrink-0" />
+                )}
+                <span>{categoryLabel}</span>
+              </span>
             </p>
           </div>
         </div>
