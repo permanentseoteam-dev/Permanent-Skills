@@ -18,14 +18,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
-    if (user && (pathname === "/login" || pathname === "/register")) {
-      router.replace("/community");
-      return;
-    }
-    if (user && pathname === "/") {
-      router.replace("/community");
-      return;
-    }
     if (user && pathname.startsWith("/admin") && user.role !== "admin") {
       router.replace("/community");
     }
