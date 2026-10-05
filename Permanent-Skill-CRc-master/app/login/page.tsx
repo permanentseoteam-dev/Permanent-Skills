@@ -17,7 +17,6 @@ function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [memberType, setMemberType] = useState<"admin" | "team" | "premium">("team");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -27,7 +26,7 @@ function LoginForm() {
     setBusy(true);
     setError("");
     try {
-      const result = await login(email, password, memberType);
+      const result = await login(email, password);
       if (!result.ok) {
         setError(result.error || "Could not log in.");
         return;
@@ -69,17 +68,6 @@ function LoginForm() {
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Member">
-          <select
-            className={inputClass}
-            value={memberType}
-            onChange={(e) => setMemberType(e.target.value as "admin" | "team" | "premium")}
-          >
-            <option value="admin">Admin</option>
-            <option value="team">Team member</option>
-            <option value="premium">Premium member</option>
-          </select>
-        </Field>
         <Field label="Email">
           <input
             className={inputClass}

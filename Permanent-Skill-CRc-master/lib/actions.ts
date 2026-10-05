@@ -227,8 +227,7 @@ export async function getAppState(): Promise<AppState> {
 
 export async function login(
   email: string,
-  password: string,
-  memberType?: "admin" | "team" | "premium"
+  password: string
 ): Promise<ActionResult> {
   try {
     const normalized = email.trim().toLowerCase();
@@ -240,9 +239,6 @@ export async function login(
     if (user.status === "rejected") {
       return { ok: false, error: "This application was not approved. Contact support." };
     }
-    if (memberType === "admin" && user.role !== "admin" && user.role !== "manager") {
-      return { ok: false, error: "This account does not have administrator privileges." };
-    }
 
     const ip = await getClientIp();
     await updateDb((d) => {
@@ -251,16 +247,12 @@ export async function login(
       u.loginCount += 1;
       u.lastSeenAt = new Date().toISOString();
       u.ipAddress = ip;
-      if (memberType === "admin" || user.role === "admin" || user.role === "manager") {
+      if (user.role === "admin" || user.role === "manager") {
         u.isPremium = true;
-      } else if (memberType === "premium") {
-        u.isPremium = true;
-      } else if (memberType === "team") {
-        u.isPremium = false;
       }
     });
     await setSession(user.id);
-    const nextDestination = memberType === "admin" || user.role === "admin" ? "/admin" : nextPathFor(user);
+    const nextDestination = user.role === "admin" ? "/admin" : nextPathFor(user);
     return { ok: true, next: nextDestination };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Could not log in.";

@@ -43,6 +43,7 @@ export default function AllCoursesPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
   const userLevelData = getLevel(user?.points || 0);
   const userLevel = userLevelData.level;
 
@@ -606,30 +607,32 @@ export default function AllCoursesPage() {
       )}
 
       {/* 4. Gamification Roadmap & Points Callout Banner */}
-      <div className="rounded-2xl border border-zinc-200 bg-gradient-to-r from-zinc-900 via-zinc-950 to-primary/30 p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-5">
-        <div className="space-y-1 text-center md:text-left">
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/30 px-3 py-1 text-xs font-bold text-primary-light ring-1 ring-primary/40">
-            <Flame size={14} className="text-amber-400" /> Unlock Courses by Leveling Up
+      {!isAdminOrManager && (
+        <div className="rounded-2xl border border-zinc-200 bg-gradient-to-r from-zinc-900 via-zinc-950 to-primary/30 p-6 text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-5">
+          <div className="space-y-1 text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/30 px-3 py-1 text-xs font-bold text-primary-light ring-1 ring-primary/40">
+              <Flame size={14} className="text-amber-400" /> Unlock Courses by Leveling Up
+            </div>
+            <h2 className="text-lg font-black tracking-tight">Want to unlock all courses without purchasing?</h2>
+            <p className="text-xs text-zinc-300 max-w-xl">
+              Post your business wins, answer peer questions, and climb the Leaderboard. Each level you reach unlocks exclusive new course modules and resources automatically!
+            </p>
           </div>
-          <h2 className="text-lg font-black tracking-tight">Want to unlock all courses without purchasing?</h2>
-          <p className="text-xs text-zinc-300 max-w-xl">
-            Post your business wins, answer peer questions, and climb the Leaderboard. Each level you reach unlocks exclusive new course modules and resources automatically!
-          </p>
-        </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <Link href="/leaderboards">
-            <PrimaryButton className="inline-flex items-center gap-1.5 text-xs">
-              <Trophy size={14} /> View Leaderboard
-            </PrimaryButton>
-          </Link>
-          <Link href="/community">
-            <button className="rounded-lg bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition cursor-pointer border border-white/20">
-              Go to Community
-            </button>
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            <Link href="/leaderboards">
+              <PrimaryButton className="inline-flex items-center gap-1.5 text-xs">
+                <Trophy size={14} /> View Leaderboard
+              </PrimaryButton>
+            </Link>
+            <Link href="/community">
+              <button className="rounded-lg bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20 transition cursor-pointer border border-white/20">
+                Go to Community
+              </button>
+            </Link>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 5. Course Curriculum & Syllabus Preview Modal */}
       {previewCourse && (
