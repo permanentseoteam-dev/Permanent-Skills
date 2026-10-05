@@ -78,6 +78,7 @@ export function Header() {
   const bellRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
   const userLevel = getLevel(user?.points || 0).level;
   const myPurchasedCourses = useMemo(() => {
     if (!courses || courses.length === 0) return [];

@@ -424,7 +424,7 @@ export function createSeed(): Database {
       name: "Ayaan Malik",
       username: "ayaan-malik",
       bio: "Operations specialist and retention consultant helping brands scale.",
-      role: "member",
+      role: "team_member",
       status: "approved",
       points: 168,
       points7d: 19,

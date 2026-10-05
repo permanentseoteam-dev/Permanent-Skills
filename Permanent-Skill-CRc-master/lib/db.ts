@@ -165,9 +165,13 @@ function migrate(db: Database) {
     }
     db.users = uniqueUsers;
 
-    // Demote legacy seed users if they still have hardcoded manager role
+    // Ensure team specialist role for u-ayaan
     for (const u of db.users) {
-      if ((u.id === "u-manager" || u.id === "u-ayaan") && u.role === "manager") {
+      if (u.id === "u-ayaan" && u.role !== "team_member") {
+        u.role = "team_member";
+        changed = true;
+      }
+      if (u.id === "u-manager" && u.role === "manager") {
         u.role = "member";
         changed = true;
       }

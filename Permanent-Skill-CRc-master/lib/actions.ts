@@ -1536,6 +1536,9 @@ export async function createCommunity(input: {
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in first." };
+  if (me.role !== "admin" && me.role !== "manager") {
+    return { ok: false, error: "Only admins and managers are permitted to create new communities." };
+  }
   const name = input.name.trim();
   if (name.length < 3) return { ok: false, error: "Community name must be at least 3 characters." };
   const slug = slugify(name);

@@ -6,7 +6,8 @@ import { useApp } from "./AppProvider";
 import type { Community } from "@/lib/types";
 
 export function LeftCommunityRail() {
-  const { communities, activeCommunity, switchCommunity } = useApp();
+  const { communities, activeCommunity, switchCommunity, user } = useApp();
+  const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
 
   // Inactive communities that are currently not active
   const inactiveCommunities = communities.filter(
@@ -84,17 +85,19 @@ export function LeftCommunityRail() {
         </button>
       ))}
 
-      {/* 3. Create Community Quick Action */}
-      <Link
-        href="/create-community"
-        className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50/90 to-indigo-50/90 hover:from-[#5051F9] hover:to-[#3d3ee6] border border-dashed border-[#5051F9]/40 text-[#5051F9] hover:text-white transition-all duration-200 shadow-2xs hover:scale-110 hover:shadow-[0_4px_14px_rgba(80,81,249,0.35)] mt-0.5"
-        title="Create a new community"
-      >
-        <Plus size={16} />
-        <span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 rounded-lg bg-gradient-to-r from-zinc-900 to-[#1e1b4b] border border-[#5051F9]/30 px-2.5 py-1 text-xs font-bold text-white shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
-          Create a community
-        </span>
-      </Link>
+      {/* 3. Create Community Quick Action (Admin & Manager only) */}
+      {isAdminOrManager && (
+        <Link
+          href="/create-community"
+          className="group relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-50/90 to-indigo-50/90 hover:from-[#5051F9] hover:to-[#3d3ee6] border border-dashed border-[#5051F9]/40 text-[#5051F9] hover:text-white transition-all duration-200 shadow-2xs hover:scale-110 hover:shadow-[0_4px_14px_rgba(80,81,249,0.35)] mt-0.5"
+          title="Create a new community"
+        >
+          <Plus size={16} />
+          <span className="pointer-events-none absolute left-full ml-3 top-1/2 -translate-y-1/2 rounded-lg bg-gradient-to-r from-zinc-900 to-[#1e1b4b] border border-[#5051F9]/30 px-2.5 py-1 text-xs font-bold text-white shadow-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-50">
+            Create a community
+          </span>
+        </Link>
+      )}
     </aside>
   );
 }

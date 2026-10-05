@@ -73,7 +73,7 @@ function PillButton({
 export default function MembersPage() {
   const { users, user, inviteMember } = useApp();
   const [q, setQ] = useState("");
-  const [tab, setTab] = useState<"all" | "admins" | "managers" | "online" | "premium">("all");
+  const [tab, setTab] = useState<"all" | "admins" | "managers" | "team" | "online" | "premium">("all");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
 
   // Invite modal state
@@ -101,6 +101,10 @@ export default function MembersPage() {
     () => approvedUsers.filter((u) => u.role === "manager").length,
     [approvedUsers]
   );
+  const teamCount = useMemo(
+    () => approvedUsers.filter((u) => u.role === "team_member").length,
+    [approvedUsers]
+  );
   const onlineCount = useMemo(
     () => approvedUsers.filter((u) => u.isOnline).length,
     [approvedUsers]
@@ -116,6 +120,7 @@ export default function MembersPage() {
       .filter((u) => {
         if (tab === "admins") return u.role === "admin";
         if (tab === "managers") return u.role === "manager";
+        if (tab === "team") return u.role === "team_member";
         if (tab === "online") return u.isOnline;
         if (tab === "premium") return Boolean(u.isPremium && u.role !== "admin" && u.role !== "manager");
         return true;
@@ -192,6 +197,14 @@ export default function MembersPage() {
               badgeColor="bg-blue-100 text-blue-900"
             />
             <PillButton
+              label="Team"
+              count={teamCount}
+              active={tab === "team"}
+              onClick={() => setTab("team")}
+              icon={<span className="text-xs">👥</span>}
+              badgeColor="bg-purple-100 text-purple-900"
+            />
+            <PillButton
               label="VIP Members"
               count={premiumCount}
               active={tab === "premium"}
@@ -248,9 +261,11 @@ export default function MembersPage() {
                   ? "Filtered: Staff Admins"
                   : tab === "managers"
                     ? "Filtered: Community Managers"
-                    : tab === "premium"
-                      ? "Filtered: VIP Members"
-                      : "All Community Members"}
+                    : tab === "team"
+                      ? "Filtered: Team Members"
+                      : tab === "premium"
+                        ? "Filtered: VIP Members"
+                        : "All Community Members"}
             </span>
           </div>
 
