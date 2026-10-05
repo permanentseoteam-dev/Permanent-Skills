@@ -1186,6 +1186,24 @@ export function createSeed(): Database {
     { id: "sale6", userId: "u-daniel", amount: 99, plan: "Business Clarity Course ($99)", createdAt: "2026-02-14T11:15:00.000Z" },
   ];
 
+  const defaultAboutFeatures = [
+    "Step-by-step training, beginner to advanced",
+    "A proven system for skills and SEO that compound",
+    "Offer, cluster, and proof templates",
+    "SOPs, KPIs, and weekly operating cadence",
+    "Ads & organic page reviews",
+    "Weekly live training calls",
+    "Daily community Q&A",
+    "Built for coaches, agencies, local businesses, and operators",
+  ];
+
+  const defaultPainPoints = [
+    "Tactics that expire with every algorithm update",
+    "Testing blindly with no blueprint",
+    "Wasting ad budget on vanity noise",
+    "Operating with no repeatable framework",
+  ];
+
   const communities: Community[] = [
     {
       id: "comm-ai-architects",
@@ -1198,6 +1216,14 @@ export function createSeed(): Database {
       onlineCount: 8,
       adminCount: 1,
       type: "students",
+      price: 9,
+      priceNote: "$9/month",
+      headline: "Join today for $9/month after approval. Applications are reviewed so the room stays useful and highly compounding.",
+      aboutHeadline: "Join today for $9/month after approval. Applications are reviewed so the room stays useful and highly compounding.",
+      aboutDescription: "Think durable skills take years and $10k courses? Think again. The Permanent Skill framework teaches systems that generate compounding authority and revenue.",
+      aboutFeatures: defaultAboutFeatures,
+      aboutPainPoints: defaultPainPoints,
+      aboutClosingText: "If any of those sound familiar, AI Architects is built for you.",
       createdAt: "2025-01-12T08:00:00.000Z",
       createdBy: "u-admin",
     },
@@ -1212,6 +1238,14 @@ export function createSeed(): Database {
       onlineCount: 5,
       adminCount: 1,
       type: "students",
+      price: 9,
+      priceNote: "$9/month",
+      headline: "Join today for $9/month after approval. Applications are reviewed so the room stays useful and highly compounding.",
+      aboutHeadline: "Join today for $9/month after approval. Applications are reviewed so the room stays useful and highly compounding.",
+      aboutDescription: "Master durable skills, AI automations, systems architecture, and compounded growth playbooks with ongoing mentorship and daily support.",
+      aboutFeatures: defaultAboutFeatures,
+      aboutPainPoints: defaultPainPoints,
+      aboutClosingText: "If any of those sound familiar, Students Community is built for you.",
       createdAt: "2025-01-12T08:00:00.000Z",
       createdBy: "u-admin",
     },
@@ -1226,6 +1260,22 @@ export function createSeed(): Database {
       onlineCount: 3,
       adminCount: 1,
       type: "team",
+      price: 0,
+      priceNote: "Staff Only",
+      headline: "Private internal hub for team specialists and staff members.",
+      aboutHeadline: "Private internal workspace for verified team members, admins, and managers.",
+      aboutDescription: "Access team-only training modules, review internal SOPs, sync on daily operations, and coordinate project roadmaps.",
+      aboutFeatures: [
+        "Internal team SOPs and operational runbooks",
+        "Direct admin and manager alignment channel",
+        "Confidential sprint reviews and meeting notes",
+        "Private workflow automation blueprints",
+      ],
+      aboutPainPoints: [
+        "Siloed communication across disjointed channels",
+        "Unclear operational handoffs and undocumented processes",
+      ],
+      aboutClosingText: "Exclusively accessible to verified staff members.",
       createdAt: "2026-02-10T10:00:00.000Z",
       createdBy: "u-admin",
     },

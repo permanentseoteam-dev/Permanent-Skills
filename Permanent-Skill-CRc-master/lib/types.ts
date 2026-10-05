@@ -236,6 +236,13 @@ export interface Community {
   adminCount?: number;
   type?: "students" | "team" | "general";
   price?: number;
+  priceNote?: string;
+  headline?: string;
+  aboutHeadline?: string;
+  aboutDescription?: string;
+  aboutFeatures?: string[];
+  aboutPainPoints?: string[];
+  aboutClosingText?: string;
   createdAt: string;
   createdBy: string;
 }

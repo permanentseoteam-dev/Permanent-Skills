@@ -18,11 +18,14 @@ import {
   syncMessageToSupabase,
   syncNotificationToSupabase,
   syncReviewToSupabase,
+  deleteReviewFromSupabase,
   syncSaleToSupabase,
   syncSessionToSupabase,
   deleteSessionFromSupabase,
   syncVideoResourceToSupabase,
   deleteVideoResourceFromSupabase,
+  syncCommunityToSupabase,
+  deleteCommunityFromSupabase,
 } from "./supabase-db";
 import type { Database, Lesson, User } from "./types";
 
@@ -357,7 +360,9 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
   const prevComments = new Map(db.comments.map((c) => [c.id, c]));
   const prevCourses = new Map(db.courses.map((c) => [c.id, c]));
   const prevProjects = new Map(db.projects.map((p) => [p.id, p]));
+  const prevReviews = new Map((db.reviews || []).map((r) => [r.id, r]));
   const prevVideoResources = new Map((db.videoResources || []).map((v) => [v.id, v]));
+  const prevCommunities = new Map((db.communities || []).map((c) => [c.id, c]));
 
   const result = mutator(db);
   persist(db);
@@ -445,8 +450,17 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
     }
 
     // 7. Reviews
-    for (const rev of db.reviews) {
-      promises.push(syncReviewToSupabase(rev));
+    const currentReviewIds = new Set((db.reviews || []).map((r) => r.id));
+    for (const rev of db.reviews || []) {
+      const prev = prevReviews.get(rev.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(rev)) {
+        promises.push(syncReviewToSupabase(rev));
+      }
+    }
+    for (const [prevId] of prevReviews) {
+      if (!currentReviewIds.has(prevId)) {
+        promises.push(deleteReviewFromSupabase(prevId));
+      }
     }
 
     // 8. Video Resources

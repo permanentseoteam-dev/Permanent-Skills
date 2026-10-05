@@ -105,6 +105,26 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       onlineCount: Number(c.online_count || 0),
       adminCount: Number(c.admin_count || 1),
       type: c.type || "general",
+      price: c.price ? Number(c.price) : undefined,
+      priceNote: c.price_note || undefined,
+      headline: c.headline || undefined,
+      aboutHeadline: c.about_headline || undefined,
+      aboutDescription: c.about_description || undefined,
+      aboutFeatures: Array.isArray(c.about_features)
+        ? c.about_features
+        : c.about_features
+        ? typeof c.about_features === "string"
+          ? JSON.parse(c.about_features)
+          : c.about_features
+        : undefined,
+      aboutPainPoints: Array.isArray(c.about_pain_points)
+        ? c.about_pain_points
+        : c.about_pain_points
+        ? typeof c.about_pain_points === "string"
+          ? JSON.parse(c.about_pain_points)
+          : c.about_pain_points
+        : undefined,
+      aboutClosingText: c.about_closing_text || undefined,
       createdAt: c.created_at,
       createdBy: c.created_by || "u-admin",
     }));
@@ -609,6 +629,15 @@ export async function syncReviewToSupabase(r: Review) {
   }
 }
 
+export async function deleteReviewFromSupabase(reviewId: string) {
+  try {
+    const supabase = getAdminSupabase();
+    await supabase.from("reviews").delete().eq("id", reviewId);
+  } catch (err) {
+    console.error("Error deleting review from Supabase:", err);
+  }
+}
+
 export async function syncSaleToSupabase(s: Sale) {
   try {
     const supabase = getAdminSupabase();
@@ -690,5 +719,48 @@ export async function deleteVideoResourceFromSupabase(id: string) {
     await supabase.from("video_resources").delete().eq("id", id);
   } catch (err) {
     console.error("Error deleting video resource from Supabase:", err);
+  }
+}
+
+export async function syncCommunityToSupabase(c: Community) {
+  try {
+    const supabase = getAdminSupabase();
+    await supabase.from("communities").upsert(
+      {
+        id: c.id,
+        name: c.name,
+        description: c.description,
+        slug: c.slug,
+        icon: c.icon || null,
+        banner: c.banner || null,
+        is_private: Boolean(c.isPrivate),
+        member_count: c.memberCount || 0,
+        online_count: c.onlineCount || 0,
+        admin_count: c.adminCount || 1,
+        type: c.type || "general",
+        price: c.price || null,
+        price_note: c.priceNote || null,
+        headline: c.headline || null,
+        about_headline: c.aboutHeadline || c.headline || null,
+        about_description: c.aboutDescription || c.description || null,
+        about_features: c.aboutFeatures ? JSON.stringify(c.aboutFeatures) : null,
+        about_pain_points: c.aboutPainPoints ? JSON.stringify(c.aboutPainPoints) : null,
+        about_closing_text: c.aboutClosingText || null,
+        created_at: c.createdAt,
+        created_by: c.createdBy || "u-admin",
+      },
+      { onConflict: "id" }
+    );
+  } catch (err) {
+    console.error("Error syncing community to Supabase:", err);
+  }
+}
+
+export async function deleteCommunityFromSupabase(id: string) {
+  try {
+    const supabase = getAdminSupabase();
+    await supabase.from("communities").delete().eq("id", id);
+  } catch (err) {
+    console.error("Error deleting community from Supabase:", err);
   }
 }

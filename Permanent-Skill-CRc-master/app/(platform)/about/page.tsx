@@ -7,6 +7,7 @@ import {
   Pencil,
   Play,
   Star,
+  Trash2,
   Video,
   X,
 } from "lucide-react";
@@ -47,7 +48,7 @@ const defaultVideoConfig: VideoConfig = {
 };
 
 export default function AboutPage() {
-  const { reviews, users, user, userById, addReview, activeCommunity, videoResources, saveVideoResource } = useApp();
+  const { reviews, users, user, userById, addReview, deleteReview, activeCommunity, videoResources, saveVideoResource } = useApp();
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -163,6 +164,12 @@ export default function AboutPage() {
     return reviews.length
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : 5;
+  }, [reviews]);
+
+  const sortedReviews = useMemo(() => {
+    return [...reviews].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   }, [reviews]);
 
   const communityTitle = activeCommunity?.name || "AI Architects";
@@ -481,15 +488,16 @@ export default function AboutPage() {
 
           {/* Reviews List */}
           <div className="mt-5 divide-y divide-zinc-100">
-            {reviews.length === 0 ? (
+            {sortedReviews.length === 0 ? (
               <p className="text-xs text-zinc-400 py-6 text-center italic">
                 No reviews yet. Be the first to share your experience!
               </p>
             ) : (
-              reviews.map((r) => {
+              sortedReviews.map((r) => {
                 const author = userById(r.userId);
+                const canDelete = isAdminOrManager || (user && user.id === r.userId);
                 return (
-                  <div key={r.id} className="flex items-start gap-3.5 py-4">
+                  <div key={r.id} className="flex items-start gap-3.5 py-4 group">
                     <Avatar user={author} size={40} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -499,9 +507,25 @@ export default function AboutPage() {
                           </span>
                           <UserRoleBadge role={author?.role} isPremium={author?.isPremium} size="xs" />
                         </div>
-                        <span className="text-[11px] text-zinc-400 font-mono">
-                          {timeAgo(r.createdAt)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] text-zinc-400 font-mono">
+                            {timeAgo(r.createdAt)}
+                          </span>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (confirm("Are you sure you want to delete this review?")) {
+                                  await deleteReview(r.id);
+                                }
+                              }}
+                              className="text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-0.5 rounded cursor-pointer"
+                              title="Delete review"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="mt-1 flex items-center gap-1 text-amber-400">

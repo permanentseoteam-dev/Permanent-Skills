@@ -1369,6 +1369,22 @@ export async function addReview(rating: number, body: string): Promise<ActionRes
   return { ok: true };
 }
 
+export async function deleteReview(reviewId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  const db = readDb();
+  const target = db.reviews.find((r) => r.id === reviewId);
+  if (!target) return { ok: false, error: "Review not found." };
+  const isPrivileged = me.role === "admin" || me.role === "manager";
+  if (!isPrivileged && target.userId !== me.id) {
+    return { ok: false, error: "You can only delete your own reviews." };
+  }
+  await updateDb((d) => {
+    d.reviews = d.reviews.filter((r) => r.id !== reviewId);
+  });
+  return { ok: true };
+}
+
 
 export async function updateProfile(input: {
   name?: string;
