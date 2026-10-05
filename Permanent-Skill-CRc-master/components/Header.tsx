@@ -872,7 +872,7 @@ export function Header() {
               );
             })}
 
-            {user?.role === "admin" && (
+            {(user?.role === "admin" || user?.role === "manager") && (
               <Link
                 href="/admin"
                 ref={pathname.startsWith("/admin") ? activeLinkRef : undefined}
@@ -881,7 +881,7 @@ export function Header() {
                 }`}
               >
                 <Shield size={14} className={`shrink-0 ${pathname.startsWith("/admin") ? "text-primary stroke-[2.2]" : "text-zinc-400 stroke-[1.8]"}`} />
-                <span>Admin</span>
+                <span>{user?.role === "admin" ? "Admin" : "Manager"}</span>
               </Link>
             )}
 

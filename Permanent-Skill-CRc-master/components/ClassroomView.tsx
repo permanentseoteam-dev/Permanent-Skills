@@ -207,12 +207,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   const embed = activeLesson ? toEmbed(activeLesson.videoUrl) : null;
 
   function handleSelectLesson(id: string) {
+    if (locked) return;
     setActiveLessonId(id);
     setPlaying(false);
   }
 
   function handleToggleComplete() {
-    if (!activeCourse || !activeLesson) return;
+    if (locked || !activeCourse || !activeLesson) return;
     completeLesson(activeCourse.id, activeLesson.id);
   }
 
@@ -220,7 +221,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     if (e) {
       e.stopPropagation();
     }
-    if (!activeCourse) return;
+    if (locked || !activeCourse) return;
     completeLesson(activeCourse.id, lessonId);
   }
 
@@ -228,7 +229,11 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   function renderCourseBanner(course: Course) {
     const isAccessible = isCourseAccessible(course, user);
     const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
-    const isPremiumOnly = Boolean(course.isPremiumOnly || course.badge?.toUpperCase() === "VIP");
+    const isPremiumOnly = Boolean(
+      course.isPremiumOnly ||
+      course.badge?.toUpperCase() === "VIP" ||
+      course.badge?.toUpperCase() === "PREMIUM"
+    );
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 
@@ -511,11 +516,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-10 text-center">
           <Lock className="mx-auto mb-3 text-primary" />
           <h2 className="text-lg sm:text-xl font-bold text-zinc-900">
-            Unlock at Level {activeCourse.unlockLevel} or upgrade to VIP
+            {activeCourse.isPremiumOnly || activeCourse.badge?.toUpperCase() === "VIP" || activeCourse.badge?.toUpperCase() === "PREMIUM"
+              ? "👑 VIP Mastermind Access Required"
+              : `Unlock at Level ${activeCourse.unlockLevel} or upgrade to VIP`}
           </h2>
           <p className="mt-1 text-xs text-zinc-500">
-            {activeCourse.isPremiumOnly
-              ? "Requires active VIP subscription ($9/mo)"
+            {activeCourse.isPremiumOnly || activeCourse.badge?.toUpperCase() === "VIP" || activeCourse.badge?.toUpperCase() === "PREMIUM"
+              ? "This mastermind is reserved exclusively for active VIP subscribers."
               : `Course Price: ${formatMoney(activeCourse.price || 49)} or Level ${activeCourse.unlockLevel}`}
           </p>
           <div className="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-2.5">

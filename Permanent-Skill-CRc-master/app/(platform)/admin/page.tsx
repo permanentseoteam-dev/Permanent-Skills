@@ -178,8 +178,17 @@ export default function AdminPage() {
     return () => clearTimeout(timer);
   }, [managerFeedback]);
 
-  // STRICT ACCESS CONTROL: Admin role only!
+  // STRICT ACCESS CONTROL: Admin & Manager roles
   const isAdmin = user?.role === "admin";
+  const isManager = user?.role === "manager";
+  const isStaff = isAdmin || isManager;
+
+  // Protect Admin-only tabs (Sales & Revenue, Manager Setup) from non-admins
+  useEffect(() => {
+    if (!isAdmin && (tab === "sales" || tab === "manager")) {
+      setTab("pending");
+    }
+  }, [isAdmin, tab]);
 
   // Data pools
   const approvedUsers = useMemo(() => users.filter((u) => u.status === "approved" || u.role === "admin" || u.role === "manager"), [users]);
@@ -287,16 +296,16 @@ export default function AdminPage() {
     });
   }, [approvedComments, commentsSearch, users, posts]);
 
-  // Access check: only admin role allowed
-  if (!isAdmin) {
+  // Access check: only Admin & Manager roles allowed
+  if (!isStaff) {
     return (
       <div className="mx-auto max-w-xl text-center p-12 bg-white rounded-3xl border border-zinc-200 shadow-sm mt-8 space-y-4">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-50 border border-amber-200">
           <ShieldAlert size={34} className="text-amber-600" />
         </div>
-        <h2 className="text-xl font-black text-zinc-950">Administrator Access Required</h2>
+        <h2 className="text-xl font-black text-zinc-950">Staff Access Required</h2>
         <p className="text-xs text-zinc-500 leading-relaxed max-w-md mx-auto">
-          This operations hub is strictly accessible to verified Community Administrators. Managers, specialists, and members do not have access to these controls.
+          This operations hub is strictly accessible to verified Administrators and Managers. Team members and general members do not have access to these controls.
         </p>
         <div className="pt-2">
           <Link
@@ -563,16 +572,30 @@ export default function AdminPage() {
           </Card>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setTab("sales")}
-          className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
-        >
-          <Card className="p-3.5 sm:p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs h-full flex flex-col justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Sales</span>
-            <p className="mt-1 text-lg sm:text-xl font-black text-emerald-600 truncate">{formatMoney(totalSalesRevenue)}</p>
-          </Card>
-        </button>
+        {/* Total Sales: Strictly visible to Super Administrator only */}
+        {isAdmin ? (
+          <button
+            type="button"
+            onClick={() => setTab("sales")}
+            className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
+          >
+            <Card className="p-3.5 sm:p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs h-full flex flex-col justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total Sales</span>
+              <p className="mt-1 text-lg sm:text-xl font-black text-emerald-600 truncate">{formatMoney(totalSalesRevenue)}</p>
+            </Card>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setTab("classroom")}
+            className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
+          >
+            <Card className="p-3.5 sm:p-4 border-zinc-200 hover:border-zinc-300 shadow-2xs h-full flex flex-col justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Courses</span>
+              <p className="mt-1 text-lg sm:text-xl font-black text-primary truncate">{courses.length}</p>
+            </Card>
+          </button>
+        )}
 
         <button
           type="button"
@@ -677,17 +700,19 @@ export default function AdminPage() {
             count={users.filter((u) => u.role !== "admin").length}
             icon={Users}
           />
-          <TabButton
-            active={tab === "manager"}
-            onClick={(e) => {
-              setTab("manager");
-              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-            }}
-            label="Manager Setup"
-            count={managerUsers.length}
-            icon={Key}
-            badgeVariant="blue"
-          />
+          {isAdmin && (
+            <TabButton
+              active={tab === "manager"}
+              onClick={(e) => {
+                setTab("manager");
+                e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+              }}
+              label="Manager Setup"
+              count={managerUsers.length}
+              icon={Key}
+              badgeVariant="blue"
+            />
+          )}
           <TabButton
             active={tab === "posts"}
             onClick={(e) => {
@@ -710,16 +735,19 @@ export default function AdminPage() {
             icon={MessageCircle}
             badgeVariant="amber"
           />
-          <TabButton
-            active={tab === "sales"}
-            onClick={(e) => {
-              setTab("sales");
-              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
-            }}
-            label="Sales & Revenue"
-            count={sales.length}
-            icon={DollarSign}
-          />
+          {/* Sales & Revenue: Admin Role ONLY */}
+          {isAdmin && (
+            <TabButton
+              active={tab === "sales"}
+              onClick={(e) => {
+                setTab("sales");
+                e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+              }}
+              label="Sales & Revenue"
+              count={sales.length}
+              icon={DollarSign}
+            />
+          )}
           <TabButton
             active={tab === "classroom"}
             onClick={(e) => {
@@ -1053,8 +1081,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* SECTION 5: SUBTAB 3 - MANAGER SETUP & DELEGATED ROLES */}
-      {tab === "manager" && (
+      {/* SECTION 5: SUBTAB 3 - MANAGER SETUP & DELEGATED ROLES (Admin Only) */}
+      {isAdmin && tab === "manager" && (
         <div className="space-y-6">
           <Card className="p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-100 pb-3">
@@ -1529,8 +1557,8 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* SECTION 7: SUBTAB 5 - SALES & REVENUE */}
-      {tab === "sales" && (
+      {/* SECTION 7: SUBTAB 5 - SALES & REVENUE (Admin Only) */}
+      {isAdmin && tab === "sales" && (
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <Card className="p-4 border-zinc-200">

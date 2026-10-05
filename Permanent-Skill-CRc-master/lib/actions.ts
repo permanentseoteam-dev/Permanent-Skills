@@ -9,6 +9,7 @@ import { nextPathFor, signPayload, verifyPayload } from "./session";
 import { slugify, formatDateTime } from "./format";
 import { checkMeetingStatus, parseMeetingStartTime } from "./calendar-utils";
 import { getLevel } from "./levels";
+import { isCourseAccessible } from "./course-security";
 import type {
   ActionResult,
   AppState,
@@ -1285,11 +1286,7 @@ export async function completeLesson(courseId: string, lessonId: string): Promis
     if (!course) return;
     const user = db.users.find((u) => u.id === me.id);
     if (!user) return;
-    if (course.unlockLevel > 1) {
-      const level = getLevel(user.points).level;
-      const isPurchased = user.purchasedCourseIds?.includes(courseId);
-      if (level < course.unlockLevel && !user.isPremium && user.role !== "admin" && !isPurchased) return;
-    }
+    if (!isCourseAccessible(course, user)) return;
     let row = db.progress.find((p) => p.userId === me.id && p.courseId === courseId);
     if (!row) {
       row = { userId: me.id, courseId, completedLessonIds: [] };

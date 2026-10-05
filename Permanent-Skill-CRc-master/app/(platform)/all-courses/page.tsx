@@ -217,7 +217,11 @@ export default function AllCoursesPage() {
   function renderCourseBanner(course: Course) {
     const isAccessible = isCourseAccessible(course, user);
     const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
-    const isPremiumOnly = Boolean(course.isPremiumOnly || course.badge?.toUpperCase() === "VIP");
+    const isPremiumOnly = Boolean(
+      course.isPremiumOnly ||
+      course.badge?.toUpperCase() === "VIP" ||
+      course.badge?.toUpperCase() === "PREMIUM"
+    );
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 

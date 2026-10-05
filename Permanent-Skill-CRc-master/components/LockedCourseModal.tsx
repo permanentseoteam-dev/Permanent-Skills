@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { Award, BookOpen, Crown, Flame, Lock, Trophy, X } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { getLevel } from "@/lib/levels";
+import { LEVELS, getLevel } from "@/lib/levels";
 import { formatMoney } from "@/lib/format";
 import type { Course } from "@/lib/types";
 
@@ -28,8 +28,14 @@ export function LockedCourseModal({
   const userPoints = user?.points || 0;
   const userLevel = getLevel(userPoints).level;
   const targetLevel = course.unlockLevel || 1;
-  const pointsForTarget = (targetLevel - 1) * 20;
+  const targetLevelObj = LEVELS.find((l) => l.level === targetLevel);
+  const pointsForTarget = targetLevelObj ? targetLevelObj.min : 0;
   const pointsNeeded = Math.max(0, pointsForTarget - userPoints);
+  const isVipCourse = Boolean(
+    course.isPremiumOnly ||
+    course.badge?.toUpperCase() === "VIP" ||
+    course.badge?.toUpperCase() === "PREMIUM"
+  );
 
   const glow = course.glowColor || "yellow";
   const watermark = course.watermark || `> ${course.slug}_`;
@@ -108,7 +114,7 @@ export function LockedCourseModal({
                 {course.title}
               </h2>
               <span className="mt-1 text-xs sm:text-sm font-extrabold text-white/90 drop-shadow">
-                {course.isPremiumOnly
+                {isVipCourse
                   ? "👑 Unlock with VIP Membership"
                   : `Unlock at Level ${course.unlockLevel || 1}`}
               </span>
@@ -145,7 +151,7 @@ export function LockedCourseModal({
                 {course.title}
               </h2>
               <span className="mt-1 text-xs sm:text-sm font-extrabold text-white/90 drop-shadow">
-                {course.isPremiumOnly
+                {isVipCourse
                   ? "👑 Unlock with VIP Membership"
                   : `Unlock at Level ${course.unlockLevel || 1}`}
               </span>
@@ -173,7 +179,7 @@ export function LockedCourseModal({
                 </span>
               </div>
             </div>
-            {!course.isPremiumOnly && pointsNeeded > 0 && (
+            {!isVipCourse && pointsNeeded > 0 && (
               <span className="font-extrabold text-amber-700 bg-amber-100/70 px-2 py-0.5 rounded-md text-[11px]">
                 {pointsNeeded} pts needed
               </span>
@@ -202,7 +208,7 @@ export function LockedCourseModal({
             </button>
 
             {/* VIP Upgrade Button if VIP Course or Standalone Price */}
-            {course.isPremiumOnly ? (
+            {isVipCourse ? (
               <button
                 type="button"
                 onClick={() => {
