@@ -396,6 +396,10 @@ export async function syncPostToSupabase(p: Post) {
 export async function deletePostFromSupabase(postId: string) {
   try {
     const supabase = getAdminSupabase();
+    // 1. Delete all comments associated with this post to satisfy foreign key constraints
+    await supabase.from("comments").delete().eq("post_id", postId);
+
+    // 2. Delete the post
     const { error } = await supabase.from("posts").delete().eq("id", postId);
     if (error) console.error("Error deleting post from Supabase:", error);
   } catch (err) {

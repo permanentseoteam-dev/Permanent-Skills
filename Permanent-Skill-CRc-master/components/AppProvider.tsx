@@ -450,6 +450,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => ({
       ...prev,
       posts: prev.posts.filter((p) => p.id !== postId),
+      comments: prev.comments.filter((c) => c.postId !== postId),
     }));
     return run(() => deletePostAction(postId));
   }, [run]);
