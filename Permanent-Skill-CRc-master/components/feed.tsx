@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -68,6 +68,36 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const composerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePointerDown(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (composerRef.current && !composerRef.current.contains(target)) {
+        if (!busy) {
+          setOpen(false);
+        }
+      }
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown, { passive: true });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, busy]);
 
   useEffect(() => {
     if (defaultCategory) {
@@ -151,7 +181,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
     : ["chat", "wins", "recorded", "reviews"];
 
   return (
-    <Card className="p-3.5 sm:p-5">
+    <Card ref={composerRef} className="p-3.5 sm:p-5">
       {error && (
         <div className="mb-3 rounded-xl bg-red-50 p-2.5 text-xs font-semibold text-red-700 border border-red-200">
           {error}
@@ -335,6 +365,7 @@ export function Feed({
           isHighlighted={highlightedId === post.id}
           commentsOpen={!!openComments[post.id]}
           onToggleComments={() => setOpenComments((s) => ({ ...s, [post.id]: !s[post.id] }))}
+          onCloseComments={() => setOpenComments((s) => ({ ...s, [post.id]: false }))}
           draft={drafts[post.id] || ""}
           setDraft={(v) => setDrafts((s) => ({ ...s, [post.id]: v }))}
           feedback={feedback[post.id]?.text || ""}
@@ -404,6 +435,7 @@ function PostCard({
   comments,
   commentsOpen,
   onToggleComments,
+  onCloseComments,
   draft,
   setDraft,
   feedback,
@@ -428,6 +460,7 @@ function PostCard({
   comments: Comment[];
   commentsOpen: boolean;
   onToggleComments: () => void;
+  onCloseComments?: () => void;
   draft: string;
   setDraft: (v: string) => void;
   feedback?: string;
@@ -447,6 +480,35 @@ function PostCard({
   userById: ReturnType<typeof useApp>["userById"];
   isHighlighted?: boolean;
 }) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!commentsOpen) return;
+
+    function handlePointerDown(e: MouseEvent | TouchEvent) {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (cardRef.current && !cardRef.current.contains(target)) {
+        onCloseComments?.();
+      }
+    }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onCloseComments?.();
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown, { passive: true });
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [commentsOpen, onCloseComments]);
+
   const visibleComments = comments.filter(
     (c) => c.status === "approved" || !c.status || c.authorId === currentUserId || isStaff
   );
@@ -468,6 +530,7 @@ function PostCard({
 
   return (
     <Card
+      ref={cardRef}
       id={`post-${post.id}`}
       className={`p-3.5 sm:p-5 transition-all duration-500 ${
         isHighlighted

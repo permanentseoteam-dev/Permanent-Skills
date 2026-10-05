@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { initials } from "@/lib/format";
 import { Check, Copy, Eye, EyeOff, X } from "lucide-react";
 import type { PublicUser } from "@/lib/types";
@@ -203,22 +203,20 @@ export function PasswordInput({
   );
 }
 
-export function Card({
-  children,
-  className = "",
-  id,
-  ...props
-}: {
-  children: React.ReactNode;
-  className?: string;
-  id?: string;
-} & React.HTMLAttributes<HTMLDivElement>) {
+export const Card = forwardRef<
+  HTMLDivElement,
+  {
+    children: React.ReactNode;
+    className?: string;
+    id?: string;
+  } & React.HTMLAttributes<HTMLDivElement>
+>(function Card({ children, className = "", id, ...props }, ref) {
   return (
-    <div id={id} {...props} className={`rounded-2xl border border-zinc-200/80 bg-white shadow-sm ${className}`}>
+    <div ref={ref} id={id} {...props} className={`rounded-2xl border border-zinc-200/80 bg-white shadow-sm ${className}`}>
       {children}
     </div>
   );
-}
+});
 
 export function ProgressBar({
   value,
