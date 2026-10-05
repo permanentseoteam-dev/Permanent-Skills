@@ -278,14 +278,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refresh();
+
+    // 1. Fast polling every 3.5 seconds when the window is visible/active
+    const fastPoll = setInterval(() => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        refresh();
+      }
+    }, 3500);
+
+    // 2. Heartbeat every 45 seconds for presence and automated 5-minute pre-meeting notifications
     const beat = setInterval(() => {
       heartbeat().catch((err) => {
         if (isServerActionMismatch(err) && typeof window !== "undefined") {
           window.location.reload();
         }
       });
-    }, 60000);
-    return () => clearInterval(beat);
+    }, 45000);
+
+    // 3. Immediate sync on window focus or tab visibility change
+    const onVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        refresh();
+      }
+    };
+    const onWindowFocus = () => {
+      refresh();
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("visibilitychange", onVisibilityChange);
+      window.addEventListener("focus", onWindowFocus);
+    }
+
+    return () => {
+      clearInterval(fastPoll);
+      clearInterval(beat);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("visibilitychange", onVisibilityChange);
+        window.removeEventListener("focus", onWindowFocus);
+      }
+    };
   }, [refresh]);
 
   const run = useCallback(

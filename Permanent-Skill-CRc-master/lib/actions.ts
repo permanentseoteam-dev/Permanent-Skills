@@ -206,8 +206,12 @@ export async function getAppState(): Promise<AppState> {
     progress: db.progress.filter((p) => p.userId === me.id || isStaff),
     events: db.events,
     projects: db.projects || [],
-    messages: db.messages.filter((m) => m.senderId === me.id || m.receiverId === me.id),
-    notifications: db.notifications.filter((n) => n.userId === me.id),
+    messages: (db.messages || [])
+      .filter((m) => m.senderId === me.id || m.receiverId === me.id)
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
+    notifications: (db.notifications || [])
+      .filter((n) => n.userId === me.id)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     reviews: db.reviews,
     stats,
     sales: me.role === "admin" ? db.sales : [],

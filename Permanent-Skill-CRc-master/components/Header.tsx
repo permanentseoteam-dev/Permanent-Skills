@@ -136,6 +136,10 @@ export function Header() {
     messages.filter((m) => m.receiverId === user?.id && !m.read).map((m) => m.senderId),
   ).size;
 
+  const sortedNotifications = useMemo(() => {
+    return [...(notifications || [])].sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
+  }, [notifications]);
+
   const threads = useMemo(() => {
     if (!user) return [];
     const map = new Map<string, (typeof messages)[number]>();
@@ -539,13 +543,13 @@ export function Header() {
                     )}
                   </div>
                   <div className="max-h-[420px] overflow-y-auto divide-y divide-zinc-50">
-                    {notifications.length === 0 && (
+                    {sortedNotifications.length === 0 && (
                       <div className="px-4 py-10 text-center text-sm text-zinc-500">
                         <Bell size={28} className="mx-auto mb-2 text-zinc-300" />
                         You are all caught up
                       </div>
                     )}
-                    {notifications.map((n) => {
+                    {sortedNotifications.map((n) => {
                       const isMeetingNotif =
                         Boolean(n.link?.includes("/calendar")) ||
                         n.title.toLowerCase().includes("meet") ||
