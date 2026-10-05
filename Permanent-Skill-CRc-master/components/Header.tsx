@@ -922,27 +922,13 @@ function UserMenu({
   onClose: () => void;
   onLogout: () => Promise<void>;
 }) {
-  const { user, updateProfile, quickSwitchRole } = useApp();
+  const { user, updateProfile } = useApp();
   const router = useRouter();
   const [langOpen, setLangOpen] = useState(false);
-  const [switching, setSwitching] = useState<string | null>(null);
 
   async function go(href: string) {
     onClose();
     router.push(href);
-  }
-
-  async function handleQuickSwitch(role: "admin" | "manager" | "member" | "team_member") {
-    setSwitching(role);
-    try {
-      const res = await quickSwitchRole(role);
-      onClose();
-      if (res.ok) {
-        router.push(res.next || (role === "admin" ? "/admin" : "/community"));
-      }
-    } finally {
-      setSwitching(null);
-    }
   }
 
   return (
@@ -955,75 +941,6 @@ function UserMenu({
           <span className="text-[10px] text-zinc-400">
             {user?.points || 0} pts
           </span>
-        </div>
-      </div>
-
-      {/* Quick Role Switcher */}
-      <div className="border-b border-zinc-100 px-3 py-2 bg-zinc-50/60">
-        <div className="flex items-center justify-between mb-1.5 px-0.5">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1">
-            <RefreshCw size={10} /> Switch Role
-          </span>
-          {switching && (
-            <span className="text-[9px] font-bold text-primary animate-pulse">Switching...</span>
-          )}
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <button
-            type="button"
-            disabled={!!switching}
-            onClick={() => handleQuickSwitch("admin")}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
-              user?.role === "admin"
-                ? "bg-zinc-900 text-white shadow-2xs"
-                : "bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200/80"
-            }`}
-          >
-            <Shield size={12} className={user?.role === "admin" ? "text-amber-400" : "text-zinc-600"} />
-            <span>Admin</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!!switching}
-            onClick={() => handleQuickSwitch("manager")}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
-              user?.role === "manager"
-                ? "bg-blue-600 text-white shadow-2xs"
-                : "bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200/80"
-            }`}
-          >
-            <Star size={12} className={user?.role === "manager" ? "text-white" : "text-blue-500"} />
-            <span>Manager</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!!switching}
-            onClick={() => handleQuickSwitch("member")}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
-              user?.role === "member"
-                ? "bg-primary text-white shadow-2xs"
-                : "bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200/80"
-            }`}
-          >
-            <UserRound size={12} className={user?.role === "member" ? "text-white" : "text-primary"} />
-            <span>Student</span>
-          </button>
-
-          <button
-            type="button"
-            disabled={!!switching}
-            onClick={() => handleQuickSwitch("team_member")}
-            className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-semibold transition text-left cursor-pointer ${
-              user?.role === "team_member"
-                ? "bg-emerald-600 text-white shadow-2xs"
-                : "bg-white hover:bg-zinc-100 text-zinc-700 border border-zinc-200/80"
-            }`}
-          >
-            <Users size={12} className={user?.role === "team_member" ? "text-white" : "text-emerald-500"} />
-            <span>Team</span>
-          </button>
         </div>
       </div>
 
