@@ -17,11 +17,13 @@ import {
   ShieldCheck,
   Sparkles,
   Target,
+  UserRound,
   Users,
   Workflow,
   X,
 } from "lucide-react";
 import { Field, PrimaryButton, inputClass } from "@/components/ui";
+import { useApp } from "@/components/AppProvider";
 
 const COURSES = [
   {
@@ -64,6 +66,7 @@ const MENU = [
 ];
 
 export default function LandingPage() {
+  const { user } = useApp();
   const [menuOpen, setMenuOpen] = useState(false);
   const [contactSent, setContactSent] = useState(false);
 
@@ -73,6 +76,29 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#f6f6f3] text-zinc-900">
+      {/* Top Banner when Signed In */}
+      {user && (
+        <div className="bg-gradient-to-r from-primary/10 via-indigo-50/70 to-primary/10 border-b border-primary/20 px-4 py-2 text-center text-xs font-medium text-zinc-800 flex items-center justify-center gap-3 flex-wrap">
+          <span>
+            Signed in as <strong>{user.name}</strong> ({user.role})
+          </span>
+          <Link
+            href={user.role === "admin" ? "/admin" : "/community"}
+            className="font-bold text-primary hover:underline inline-flex items-center gap-1"
+          >
+            <span>Open Platform</span>
+            <ArrowRight size={12} />
+          </Link>
+          <span className="text-zinc-300">|</span>
+          <Link
+            href="/login"
+            className="text-zinc-600 hover:text-zinc-900 underline"
+          >
+            Switch Account / Role
+          </Link>
+        </div>
+      )}
+
       <header className="sticky top-0 z-30 border-b border-zinc-200/70 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4 md:px-6">
           <Link href="/" aria-label="Permanent Skill Strategy home">
@@ -86,12 +112,31 @@ export default function LandingPage() {
             ))}
           </nav>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="hidden text-sm font-semibold text-zinc-700 hover:text-primary sm:inline">
-              Log in
-            </Link>
-            <Link href="/register" className="hidden sm:inline">
-              <PrimaryButton>Apply to join</PrimaryButton>
-            </Link>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <Link href={user.role === "admin" ? "/admin" : "/community"}>
+                  <PrimaryButton className="text-xs py-2 px-3.5 inline-flex items-center gap-1.5">
+                    <span>Go to Platform</span>
+                    <ArrowRight size={13} />
+                  </PrimaryButton>
+                </Link>
+                <Link
+                  href="/login"
+                  className="hidden sm:inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition shadow-2xs"
+                >
+                  Switch Role
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Link href="/login" className="hidden text-sm font-semibold text-zinc-700 hover:text-primary sm:inline">
+                  Log in
+                </Link>
+                <Link href="/register" className="hidden sm:inline">
+                  <PrimaryButton>Apply to join</PrimaryButton>
+                </Link>
+              </>
+            )}
             <button
               type="button"
               className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-200 text-zinc-700 lg:hidden"

@@ -97,6 +97,7 @@ export interface Post {
   createdAt: string;
   thumbnail?: string;
   communityId?: string;
+  status?: Status;
 }
 
 export interface Comment {

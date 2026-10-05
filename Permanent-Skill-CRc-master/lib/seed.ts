@@ -370,7 +370,7 @@ export function createSeed(): Database {
       name: "Sarah Jenkins",
       username: "sarah-manager",
       bio: "Community & Student Success Specialist.",
-      role: "member",
+      role: "manager",
       status: "approved",
       points: 340,
       points7d: 28,
@@ -1123,15 +1123,15 @@ export function createSeed(): Database {
     { id: "c-les-5", postId: "l-eem-1-2", authorId: "u-daniel", body: "Great walkthrough on dedicated IP warmups. Implemented the 14-day schedule.", createdAt: hoursAgo(4), status: "approved" },
     { id: "c-les-6", postId: "l-eem-1-3", authorId: "u-wei", body: "The automated re-engagement flow template saved us hours of custom copywriting.", createdAt: hoursAgo(6), status: "approved" },
 
-    // Pending Moderation Comments (for Admin / Manager Approval Queue)
-    { id: "c-vercel-user-pending", postId: "p-welcome", authorId: "u-daniel", body: "this is a testing comment from vercel user (pending review)", createdAt: hoursAgo(0.05), status: "pending" },
-    { id: "c-les-4", postId: "l-eem-1-1", authorId: "u-noah", body: "Can we apply these same segmentation principles to B2B eCommerce stores as well?", createdAt: hoursAgo(0.5), status: "pending" },
-    { id: "c-pending-1", postId: "p-ecom-welcome", authorId: "u-daniel", body: "Could someone clarify if the cold outreach email templates from Module 1 are also compliant with EU GDPR regulations?", createdAt: hoursAgo(1.5), status: "pending" },
-    { id: "c-pending-2", postId: "p-ecom-entrepreneur", authorId: "u-priya", body: "This mindset framework resonates heavily. When scaling to $50k/mo, how did you balance client delivery with building owned audience assets?", createdAt: hoursAgo(0.8), status: "pending" },
-    { id: "c-pending-3", postId: "p-win", authorId: "u-sofia", body: "Massive milestone James! Did you use automated internal link scoring before publishing the cluster?", createdAt: hoursAgo(0.4), status: "pending" },
-    { id: "c-pending-4", postId: "p-replay", authorId: "u-wei", body: "Are the replays going to cover Klaviyo to Postmark webhook syncs in next week's session?", createdAt: hoursAgo(0.3), status: "pending" },
-    { id: "c-pending-5", postId: "p-welcome", authorId: "u-lisa", body: "Just submitted my intake goals. Excited to build repeatable assets instead of chasing social algorithms.", createdAt: hoursAgo(0.2), status: "pending" },
-    { id: "c-pending-6", postId: "l-eem-1-1", authorId: "u-marco", body: "What is the recommended warmup schedule for a secondary inbox domain sending 500 emails/day?", createdAt: hoursAgo(0.1), status: "pending" },
+    // Pre-approved community & lesson discussions
+    { id: "c-vercel-user-pending", postId: "p-welcome", authorId: "u-daniel", body: "Glad to be here! Looking forward to implementing the permanent skill system.", createdAt: hoursAgo(0.05), status: "approved" },
+    { id: "c-les-4", postId: "l-eem-1-1", authorId: "u-noah", body: "Can we apply these same segmentation principles to B2B eCommerce stores as well?", createdAt: hoursAgo(0.5), status: "approved" },
+    { id: "c-pending-1", postId: "p-ecom-welcome", authorId: "u-daniel", body: "Could someone clarify if the cold outreach email templates from Module 1 are also compliant with EU GDPR regulations?", createdAt: hoursAgo(1.5), status: "approved" },
+    { id: "c-pending-2", postId: "p-ecom-entrepreneur", authorId: "u-priya", body: "This mindset framework resonates heavily. When scaling to $50k/mo, how did you balance client delivery with building owned audience assets?", createdAt: hoursAgo(0.8), status: "approved" },
+    { id: "c-pending-3", postId: "p-win", authorId: "u-sofia", body: "Massive milestone James! Did you use automated internal link scoring before publishing the cluster?", createdAt: hoursAgo(0.4), status: "approved" },
+    { id: "c-pending-4", postId: "p-replay", authorId: "u-wei", body: "Are the replays going to cover Klaviyo to Postmark webhook syncs in next week's session?", createdAt: hoursAgo(0.3), status: "approved" },
+    { id: "c-pending-5", postId: "p-welcome", authorId: "u-lisa", body: "Just submitted my intake goals. Excited to build repeatable assets instead of chasing social algorithms.", createdAt: hoursAgo(0.2), status: "approved" },
+    { id: "c-pending-6", postId: "l-eem-1-1", authorId: "u-marco", body: "What is the recommended warmup schedule for a secondary inbox domain sending 500 emails/day?", createdAt: hoursAgo(0.1), status: "approved" },
   ];
 
   const courses: Course[] = createClassroomCourses();

@@ -22,6 +22,8 @@ import {
   purchaseCommunity as purchaseCommunityAction,
   createMember as createMemberAction,
   createPost as createPostAction,
+  approvePost as approvePostAction,
+  rejectPost as rejectPostAction,
   deletePost as deletePostAction,
   deleteCourse as deleteCourseAction,
   deleteLesson as deleteLessonAction,
@@ -35,6 +37,7 @@ import {
   rejectUser as rejectUserAction,
   deleteMember as deleteMemberAction,
   releaseMemberLogin as releaseMemberLoginAction,
+  quickSwitchRole as quickSwitchRoleAction,
   saveCourse as saveCourseAction,
   saveLesson as saveLessonAction,
   saveProject as saveProjectAction,
@@ -126,10 +129,13 @@ type AppContextValue = AppState & {
   loading: boolean;
   refresh: () => Promise<void>;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<ActionResult>;
+  quickSwitchRole: (role: Role) => Promise<ActionResult>;
   register: (name: string, email: string, password: string, phone: string, notes: string, ref?: string) => Promise<ActionResult>;
   logout: () => Promise<void>;
   apply: (form: Application) => Promise<ActionResult>;
-  createPost: (title: string, body: string, category: PostCategory, communityId?: string) => Promise<ActionResult>;
+  createPost: (title: string, body: string, category: PostCategory, communityId?: string) => Promise<ActionResult & { pendingApproval?: boolean; message?: string }>;
+  approvePost: (postId: string) => Promise<ActionResult>;
+  rejectPost: (postId: string) => Promise<ActionResult>;
   deletePost: (postId: string) => Promise<ActionResult>;
   toggleLike: (postId: string) => Promise<ActionResult>;
   addComment: (postId: string, body: string) => Promise<ActionResult>;
@@ -280,6 +286,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     },
     [refresh],
   );
+  const quickSwitchRoleFn = useCallback(
+    (role: Role) => run(() => quickSwitchRoleAction(role)),
+    [run]
+  );
   const register = useCallback(
     async (name: string, email: string, password: string, phone: string, notes: string, ref?: string) => {
       const result = await postAuth("/api/auth/register", { name, email, password, phone, notes, ref });
@@ -299,12 +309,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       run(() => createPostAction({ title, body, category, communityId: communityId || state.activeCommunityId })),
     [run, state.activeCommunityId],
   );
-  const deletePostFn = useCallback((postId: string) => run(() => deletePostAction(postId)), [run]);
+  const approvePostFn = useCallback((postId: string) => {
+    setState((prev) => ({
+      ...prev,
+      posts: prev.posts.map((p) => (p.id === postId ? { ...p, status: "approved" } : p)),
+    }));
+    return run(() => approvePostAction(postId));
+  }, [run]);
+
+  const rejectPostFn = useCallback((postId: string) => {
+    setState((prev) => ({
+      ...prev,
+      posts: prev.posts.map((p) => (p.id === postId ? { ...p, status: "rejected" } : p)),
+    }));
+    return run(() => rejectPostAction(postId));
+  }, [run]);
+
+  const deletePostFn = useCallback((postId: string) => {
+    setState((prev) => ({
+      ...prev,
+      posts: prev.posts.filter((p) => p.id !== postId),
+    }));
+    return run(() => deletePostAction(postId));
+  }, [run]);
+
   const toggleLikeFn = useCallback((postId: string) => run(() => toggleLikeAction(postId)), [run]);
   const addCommentFn = useCallback((postId: string, body: string) => run(() => addCommentAction(postId, body)), [run]);
-  const approveCommentFn = useCallback((commentId: string) => run(() => approveCommentAction(commentId)), [run]);
-  const rejectCommentFn = useCallback((commentId: string) => run(() => rejectCommentAction(commentId)), [run]);
-  const deleteCommentFn = useCallback((commentId: string) => run(() => deleteCommentAction(commentId)), [run]);
+
+  const approveCommentFn = useCallback((commentId: string) => {
+    setState((prev) => ({
+      ...prev,
+      comments: prev.comments.map((c) => (c.id === commentId ? { ...c, status: "approved" } : c)),
+    }));
+    return run(() => approveCommentAction(commentId));
+  }, [run]);
+
+  const rejectCommentFn = useCallback((commentId: string) => {
+    setState((prev) => ({
+      ...prev,
+      comments: prev.comments.map((c) => (c.id === commentId ? { ...c, status: "rejected" } : c)),
+    }));
+    return run(() => rejectCommentAction(commentId));
+  }, [run]);
+
+  const deleteCommentFn = useCallback((commentId: string) => {
+    setState((prev) => ({
+      ...prev,
+      comments: prev.comments.filter((c) => c.id !== commentId),
+    }));
+    return run(() => deleteCommentAction(commentId));
+  }, [run]);
   const togglePinFn = useCallback((postId: string) => run(() => togglePinAction(postId)), [run]);
   const completeLessonFn = useCallback(
     (courseId: string, lessonId: string) => run(() => completeLessonAction(courseId, lessonId)),
@@ -558,10 +612,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loading,
       refresh,
       login,
+      quickSwitchRole: quickSwitchRoleFn,
       register,
       logout,
       apply,
       createPost: createPostFn,
+      approvePost: approvePostFn,
+      rejectPost: rejectPostFn,
       deletePost: deletePostFn,
       toggleLike: toggleLikeFn,
       addComment: addCommentFn,
@@ -614,10 +671,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loading,
       refresh,
       login,
+      quickSwitchRoleFn,
       register,
       logout,
       apply,
       createPostFn,
+      approvePostFn,
+      rejectPostFn,
       deletePostFn,
       toggleLikeFn,
       addCommentFn,

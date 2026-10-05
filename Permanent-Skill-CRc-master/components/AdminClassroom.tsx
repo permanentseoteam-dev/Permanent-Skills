@@ -90,6 +90,14 @@ export function AdminClassroom() {
     }
   }, [courses, courseId]);
 
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => {
+      setMessage(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [message]);
+
   function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }

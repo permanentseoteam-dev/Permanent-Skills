@@ -100,7 +100,7 @@ const LANGUAGES = [
   "Other",
 ];
 
-type AdminTab = "pending" | "members" | "manager" | "comments" | "sales" | "classroom";
+type AdminTab = "pending" | "members" | "manager" | "posts" | "comments" | "sales" | "classroom";
 
 export default function AdminPage() {
   const {
@@ -111,12 +111,16 @@ export default function AdminPage() {
     stats,
     sales,
     courses,
+    communities,
     approveUser,
     rejectUser,
     deleteMember,
     createMember,
     updateMember,
     releaseMemberLogin,
+    approvePost,
+    rejectPost,
+    deletePost,
     approveComment,
     rejectComment,
     deleteComment,
@@ -136,6 +140,7 @@ export default function AdminPage() {
   const [memberRoleFilter, setMemberRoleFilter] = useState<string>("all");
   const [memberStatusFilter, setMemberStatusFilter] = useState<string>("all");
   const [memberViewMode, setMemberViewMode] = useState<"table" | "cards">("table");
+  const [postsSearch, setPostsSearch] = useState("");
   const [commentsSearch, setCommentsSearch] = useState("");
 
   // Dedicated Manager Setup form state
@@ -176,6 +181,8 @@ export default function AdminPage() {
   // Data pools
   const approvedUsers = useMemo(() => users.filter((u) => u.status === "approved" || u.role === "admin" || u.role === "manager"), [users]);
   const pending = useMemo(() => users.filter((u) => u.status === "pending"), [users]);
+  const pendingPosts = useMemo(() => posts.filter((p) => p.status === "pending"), [posts]);
+  const approvedPosts = useMemo(() => posts.filter((p) => p.status === "approved" || !p.status), [posts]);
   const pendingComments = useMemo(() => comments.filter((c) => c.status === "pending"), [comments]);
   const approvedComments = useMemo(() => comments.filter((c) => c.status === "approved" || !c.status), [comments]);
   const managerUsers = useMemo(() => users.filter((u) => u.role === "manager"), [users]);
@@ -236,6 +243,20 @@ export default function AdminPage() {
         return timeB - timeA;
       });
   }, [users, memberRoleFilter, memberStatusFilter, memberSearch]);
+
+  // Filtered Approved Posts
+  const filteredApprovedPosts = useMemo(() => {
+    if (!postsSearch.trim()) return approvedPosts;
+    const q = postsSearch.trim().toLowerCase();
+    return approvedPosts.filter((p) => {
+      const author = users.find((u) => u.id === p.authorId);
+      return (
+        p.title.toLowerCase().includes(q) ||
+        p.body.toLowerCase().includes(q) ||
+        author?.name.toLowerCase().includes(q)
+      );
+    });
+  }, [approvedPosts, postsSearch, users]);
 
   // Filtered Approved Comments
   const filteredApprovedComments = useMemo(() => {
@@ -491,7 +512,7 @@ export default function AdminPage() {
       </div>
 
       {/* KPI Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <button
           type="button"
           onClick={() => setTab("members")}
@@ -524,6 +545,20 @@ export default function AdminPage() {
             <p className="mt-1 text-xl font-black text-amber-700 flex items-center gap-1.5">
               {pending.length}
               {pending.length > 0 && <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
+            </p>
+          </Card>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setTab("posts")}
+          className="text-left cursor-pointer transition hover:scale-[1.02] active:scale-98"
+        >
+          <Card className={`p-4 shadow-2xs ${pendingPosts.length > 0 ? "border-amber-300 bg-amber-50/40" : "border-zinc-200"}`}>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Pending Posts</span>
+            <p className="mt-1 text-xl font-black text-amber-700 flex items-center gap-1.5">
+              {pendingPosts.length}
+              {pendingPosts.length > 0 && <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />}
             </p>
           </Card>
         </button>
@@ -580,6 +615,12 @@ export default function AdminPage() {
           onClick={() => setTab("manager")}
           label={`★ Manager Setup (${managerUsers.length})`}
           badgeColor="bg-blue-600 text-white"
+        />
+        <TabButton
+          active={tab === "posts"}
+          onClick={() => setTab("posts")}
+          label={`Posts Moderation (${pendingPosts.length})`}
+          badgeColor={pendingPosts.length > 0 ? "bg-amber-500 text-zinc-950 font-bold" : undefined}
         />
         <TabButton
           active={tab === "comments"}
@@ -1062,6 +1103,189 @@ export default function AdminPage() {
                 ))}
               </div>
             )}
+          </Card>
+        </div>
+      )}
+
+      {/* SECTION 5.5: SUBTAB - POSTS MODERATION */}
+      {tab === "posts" && (
+        <div className="space-y-6">
+          {/* Pending Posts Queue */}
+          <Card className="p-6 border border-zinc-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
+                  <Clock size={16} className="text-amber-500" /> Pending Posts Queue ({pendingPosts.length})
+                </h3>
+                <p className="text-xs text-zinc-500 mt-0.5">
+                  Posts created by students/members are queued here for administrative review and approval before becoming visible to the entire community.
+                </p>
+              </div>
+            </div>
+
+            {pendingPosts.length === 0 ? (
+              <div className="p-8 text-center text-zinc-400 border border-dashed border-zinc-200 rounded-2xl">
+                <Check size={28} className="mx-auto text-emerald-500 mb-1" />
+                <p className="text-sm font-bold text-zinc-700">Post Moderation Queue Clear</p>
+                <p className="text-xs text-zinc-400">All submitted posts have been reviewed.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingPosts.map((p) => {
+                  const author = users.find((u) => u.id === p.authorId);
+                  const comm = communities.find((c) => c.id === p.communityId);
+                  const categoryLabel =
+                    p.category === "chat"
+                      ? "General discussion"
+                      : p.category === "wins"
+                      ? "Wins"
+                      : p.category === "recorded"
+                      ? "Replays"
+                      : p.category === "team"
+                      ? "Team"
+                      : "Reviews";
+
+                  return (
+                    <div key={p.id} className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <Avatar user={author} size={30} />
+                          <span className="font-bold text-xs text-zinc-900">{author?.name}</span>
+                          <span className="text-[11px] text-zinc-400">({author?.email})</span>
+                          <UserRoleBadge role={author?.role || "member"} size="xs" />
+                          <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-800">
+                            {categoryLabel}
+                          </span>
+                          {comm && (
+                            <span className="text-[11px] text-zinc-500 font-medium">
+                              • in <strong>{comm.name}</strong>
+                            </span>
+                          )}
+                          <span className="text-[11px] text-zinc-400">• {timeAgo(p.createdAt)}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                          <button
+                            onClick={async () => {
+                              const res = await approvePost(p.id);
+                              if (res.ok) setMessage({ type: "success", text: `✓ Approved post "${p.title}" (+5 pts to author).` });
+                              else setMessage({ type: "error", text: res.error || "Failed to approve post." });
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer"
+                          >
+                            <Check size={12} /> Approve (+5 pts)
+                          </button>
+                          <button
+                            onClick={async () => {
+                              const res = await rejectPost(p.id);
+                              if (res.ok) setMessage({ type: "success", text: `✓ Rejected post "${p.title}".` });
+                              else setMessage({ type: "error", text: res.error || "Failed to reject post." });
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-200 transition cursor-pointer"
+                          >
+                            <X size={12} /> Reject
+                          </button>
+                          <button
+                            onClick={async () => {
+                              if (confirm("Delete this pending post?")) {
+                                const res = await deletePost(p.id);
+                                if (res.ok) setMessage({ type: "success", text: "✓ Post deleted." });
+                                else setMessage({ type: "error", text: res.error || "Failed to delete post." });
+                              }
+                            }}
+                            className="p-1.5 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-zinc-100 transition cursor-pointer"
+                            title="Delete Post"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-amber-100/80 bg-white p-3.5 space-y-1">
+                        <h4 className="font-bold text-sm text-zinc-950">{p.title}</h4>
+                        <p className="text-xs text-zinc-700 whitespace-pre-wrap leading-relaxed">
+                          {p.body}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          {/* Published Posts History */}
+          <Card className="p-6 border border-zinc-200 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
+              <div>
+                <h3 className="text-base font-black text-zinc-900">Published Posts History</h3>
+                <p className="text-xs text-zinc-500">Live community posts currently visible in the active feeds.</p>
+              </div>
+
+              <div className="relative w-full sm:w-64">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input
+                  className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-zinc-900"
+                  placeholder="Filter published posts..."
+                  value={postsSearch}
+                  onChange={(e) => setPostsSearch(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="divide-y divide-zinc-100 max-h-[420px] overflow-y-auto pr-1 space-y-2">
+              {filteredApprovedPosts.map((p) => {
+                const author = users.find((u) => u.id === p.authorId);
+                const comm = communities.find((c) => c.id === p.communityId);
+                return (
+                  <div key={p.id} className="pt-3 flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      <Avatar user={author} size={30} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs font-bold text-zinc-900">{author?.name}</span>
+                          <span className="text-[11px] text-zinc-400">{timeAgo(p.createdAt)}</span>
+                          <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.2 text-[10px] font-semibold bg-zinc-100 text-zinc-700 capitalize">
+                            {p.category}
+                          </span>
+                          {comm && (
+                            <span className="text-[11px] text-zinc-500 font-medium truncate max-w-xs">
+                              • {comm.name}
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 bg-zinc-50 p-2.5 rounded-lg space-y-0.5">
+                          <p className="text-xs font-bold text-zinc-900">{p.title}</p>
+                          <p className="text-xs text-zinc-600 line-clamp-2">{p.body}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0 pt-1">
+                      <Link
+                        href={`/community?post=${p.id}`}
+                        className="p-1.5 text-zinc-400 hover:text-primary rounded-lg hover:bg-zinc-100 transition cursor-pointer"
+                        title="View post in Community Feed"
+                      >
+                        <ExternalLink size={13} />
+                      </Link>
+                      <button
+                        onClick={async () => {
+                          if (confirm("Delete this post permanently?")) {
+                            await deletePost(p.id);
+                            setMessage({ type: "success", text: "✓ Post deleted." });
+                          }
+                        }}
+                        className="p-1.5 text-zinc-400 hover:text-red-600 rounded-lg hover:bg-zinc-100 transition cursor-pointer"
+                        title="Delete Post"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </Card>
         </div>
       )}

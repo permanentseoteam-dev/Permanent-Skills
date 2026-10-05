@@ -253,6 +253,47 @@ export async function login(
   }
 }
 
+export async function quickSwitchRole(role: Role): Promise<ActionResult> {
+  try {
+    const db = readDb();
+    let targetUser: User | undefined;
+    if (role === "admin") {
+      targetUser = db.users.find((u) => u.role === "admin" || u.id === "u-admin");
+    } else if (role === "manager") {
+      targetUser = db.users.find((u) => u.role === "manager" || u.id === "u-manager" || u.email === "manager@permanentseo.com");
+    } else if (role === "team_member") {
+      targetUser = db.users.find((u) => u.role === "team_member" || u.id === "u-wei");
+    } else {
+      targetUser = db.users.find((u) => u.role === "member" && u.status === "approved" && u.id !== "u-admin" && u.id !== "u-manager");
+    }
+
+    if (!targetUser) {
+      targetUser = db.users.find((u) => u.status === "approved");
+    }
+    if (!targetUser) return { ok: false, error: "No user found for this role." };
+
+    const ip = await getClientIp();
+    await updateDb((d) => {
+      const u = d.users.find((x) => x.id === targetUser!.id);
+      if (u) {
+        u.loginCount += 1;
+        u.lastSeenAt = new Date().toISOString();
+        u.ipAddress = ip;
+        if (targetUser!.role === "admin" || targetUser!.role === "manager") {
+          u.isPremium = true;
+        }
+      }
+    });
+
+    await setSession(targetUser.id, true);
+    const nextDestination = targetUser.role === "admin" ? "/admin" : nextPathFor(targetUser);
+    return { ok: true, next: nextDestination };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not switch role.";
+    return { ok: false, error: message };
+  }
+}
+
 export async function register(input: {
   name: string;
   email: string;
@@ -736,10 +777,10 @@ export async function createPost(input: {
   body: string;
   category: PostCategory;
   communityId?: string;
-}): Promise<ActionResult> {
+}): Promise<ActionResult & { pendingApproval?: boolean; message?: string }> {
   const me = await currentUser();
-  if (!me || (me.status !== "approved" && me.role !== "admin" && me.role !== "manager")) {
-    return { ok: false, error: "You need approval before posting." };
+  if (!me) {
+    return { ok: false, error: "Please log in first before posting." };
   }
   if (!input.body.trim()) return { ok: false, error: "Write something first." };
 
@@ -756,23 +797,32 @@ export async function createPost(input: {
     };
   }
 
+  const isStaff = me.role === "admin" || me.role === "manager";
+  const postStatus: Status = isStaff ? "approved" : "pending";
   const id = `p-${token().slice(0, 8)}`;
   const now = new Date().toISOString();
+  const postTitle = input.title.trim() || input.body.trim().slice(0, 72);
+
   await updateDb((d) => {
-    const user = d.users.find((u) => u.id === me.id);
-    if (user) award(user, 5);
+    if (postStatus === "approved") {
+      const user = d.users.find((u) => u.id === me.id);
+      if (user) award(user, 5);
+    }
+
     d.posts.unshift({
       id,
       authorId: me.id,
       category: input.category,
-      title: input.title.trim() || input.body.trim().slice(0, 72),
+      title: postTitle,
       body: input.body.trim(),
       pinned: false,
       likes: [],
       createdAt: now,
       communityId: targetCommId,
+      status: postStatus,
     });
-    if (input.category === "reviews") {
+
+    if (input.category === "reviews" && postStatus === "approved") {
       d.reviews.unshift({
         id: `r-${token().slice(0, 8)}`,
         userId: me.id,
@@ -781,8 +831,114 @@ export async function createPost(input: {
         createdAt: now,
       });
     }
+
+    // If pending approval, broadcast notification to administrators
+    if (postStatus === "pending") {
+      const admins = d.users.filter((u) => u.role === "admin" || u.role === "manager");
+      for (const admin of admins) {
+        if (admin.id === me.id) continue;
+        d.notifications.unshift({
+          id: `n-${token().slice(0, 8)}`,
+          userId: admin.id,
+          actorId: me.id,
+          title: "📝 New Post Pending Approval",
+          body: `${me.name} submitted a post: "${postTitle}" for review`,
+          link: "/admin",
+          read: false,
+          createdAt: now,
+        });
+      }
+    }
   });
-  return { ok: true, id };
+
+  if (postStatus === "pending") {
+    return {
+      ok: true,
+      id,
+      pendingApproval: true,
+      message: "Your post is sent to admin for approval.",
+    };
+  }
+
+  return { ok: true, id, message: "✓ Post published successfully." };
+}
+
+export async function approvePost(postId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (me?.role !== "admin" && me?.role !== "manager") {
+    return { ok: false, error: "Only admins and managers can approve posts." };
+  }
+
+  const now = new Date().toISOString();
+  await updateDb((db) => {
+    const post = (db.posts || []).find((p) => p.id === postId);
+    if (!post) return;
+    post.status = "approved";
+
+    // Award points to author
+    const author = db.users.find((u) => u.id === post.authorId);
+    if (author) {
+      award(author, 5);
+      // Notify author
+      db.notifications.unshift({
+        id: `n-${token().slice(0, 8)}`,
+        userId: author.id,
+        actorId: me.id,
+        title: "✓ Post Approved",
+        body: `Your post "${post.title}" has been approved by admin and is now live.`,
+        link: "/community",
+        read: false,
+        createdAt: now,
+      });
+    }
+
+    // If it was a review, sync to reviews
+    if (post.category === "reviews") {
+      db.reviews = db.reviews || [];
+      const alreadyReviewed = db.reviews.some((r) => r.userId === post.authorId && r.body === post.body);
+      if (!alreadyReviewed) {
+        db.reviews.unshift({
+          id: `r-${token().slice(0, 8)}`,
+          userId: post.authorId,
+          rating: 5,
+          body: post.body,
+          createdAt: now,
+        });
+      }
+    }
+  });
+
+  return { ok: true };
+}
+
+export async function rejectPost(postId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (me?.role !== "admin" && me?.role !== "manager") {
+    return { ok: false, error: "Only admins and managers can reject posts." };
+  }
+
+  const now = new Date().toISOString();
+  await updateDb((db) => {
+    const post = (db.posts || []).find((p) => p.id === postId);
+    if (!post) return;
+    post.status = "rejected";
+
+    const author = db.users.find((u) => u.id === post.authorId);
+    if (author) {
+      db.notifications.unshift({
+        id: `n-${token().slice(0, 8)}`,
+        userId: author.id,
+        actorId: me.id,
+        title: "Post Not Approved",
+        body: `Your post "${post.title}" did not meet community guidelines and was not approved.`,
+        link: "/community",
+        read: false,
+        createdAt: now,
+      });
+    }
+  });
+
+  return { ok: true };
 }
 
 export async function deletePost(postId: string): Promise<ActionResult> {
@@ -792,7 +948,7 @@ export async function deletePost(postId: string): Promise<ActionResult> {
   await updateDb((db) => {
     const post = db.posts.find((p) => p.id === postId);
     if (!post) return;
-    if (post.authorId !== me.id && me.role !== "admin") return;
+    if (post.authorId !== me.id && me.role !== "admin" && me.role !== "manager") return;
     found = true;
     db.posts = db.posts.filter((p) => p.id !== postId);
     db.comments = db.comments.filter((c) => c.postId !== postId);

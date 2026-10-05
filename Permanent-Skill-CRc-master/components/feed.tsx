@@ -67,6 +67,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     if (defaultCategory) {
@@ -81,6 +82,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
   function handleOpen() {
     if (isTeamMemberRestricted) return;
     setError(null);
+    setSuccess(null);
     setOpen(true);
   }
 
@@ -88,6 +90,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
     if (!body.trim()) return;
     setBusy(true);
     setError(null);
+    setSuccess(null);
     try {
       const res = await createPost(title, body, category, activeCommunity?.id);
       if (!res.ok) {
@@ -96,7 +99,15 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
       }
       setTitle("");
       setBody("");
-      setOpen(false);
+      if (res.pendingApproval || res.message) {
+        setSuccess(res.message || "Your post is sent to admin for approval.");
+        setTimeout(() => {
+          setSuccess(null);
+          setOpen(false);
+        }, 3000);
+      } else {
+        setOpen(false);
+      }
     } finally {
       setBusy(false);
     }
@@ -143,6 +154,12 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
       {error && (
         <div className="mb-3 rounded-xl bg-red-50 p-2.5 text-xs font-semibold text-red-700 border border-red-200">
           {error}
+        </div>
+      )}
+      {success && (
+        <div className="mb-3 rounded-xl bg-emerald-50 p-2.5 text-xs font-semibold text-emerald-800 border border-emerald-200 flex items-center gap-1.5">
+          <Check size={14} className="text-emerald-600" />
+          <span>{success}</span>
         </div>
       )}
       <div className="mb-3 flex gap-2 flex-wrap">
@@ -204,6 +221,8 @@ export function Feed({
     addComment,
     togglePin,
     deletePost,
+    approvePost,
+    rejectPost,
     approveComment,
     rejectComment,
     deleteComment,
@@ -237,6 +256,8 @@ export function Feed({
     }
   }, [targetPostId]);
 
+  const isStaff = user?.role === "admin" || user?.role === "manager";
+
   const list = useMemo(() => {
     const communityId = activeCommunity?.id || "comm-students";
     const scoped = posts.filter(
@@ -245,14 +266,16 @@ export function Feed({
         p.communityId === communityId ||
         (communityId === "comm-students" && (!p.communityId || p.communityId === "comm-pss"))
     );
-    const filtered = scoped.filter((p) => category === "all" || p.category === category);
+    // Visibility filter: Approved posts or posts created by the current user or viewed by staff
+    const visible = scoped.filter(
+      (p) => p.status === "approved" || !p.status || p.authorId === user?.id || isStaff
+    );
+    const filtered = visible.filter((p) => category === "all" || p.category === category);
     return [...filtered].sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return +new Date(b.createdAt) - +new Date(a.createdAt);
     });
-  }, [posts, category, activeCommunity?.id]);
-
-  const isStaff = user?.role === "admin" || user?.role === "manager";
+  }, [posts, category, activeCommunity?.id, user?.id, isStaff]);
 
   if (list.length === 0) {
     return (
@@ -285,6 +308,8 @@ export function Feed({
             toggleLike(post.id);
           }}
           onPin={() => togglePin(post.id)}
+          onApprovePost={() => approvePost(post.id)}
+          onRejectPost={() => rejectPost(post.id)}
           onDeletePost={() => {
             if (confirm("Are you sure you want to delete this post?")) {
               deletePost(post.id);
@@ -350,6 +375,8 @@ function PostCard({
   feedbackIsError,
   onLike,
   onPin,
+  onApprovePost,
+  onRejectPost,
   onDeletePost,
   onComment,
   onApproveComment,
@@ -372,6 +399,8 @@ function PostCard({
   feedbackIsError?: boolean;
   onLike: () => void;
   onPin: () => void;
+  onApprovePost?: () => void;
+  onRejectPost?: () => void;
   onDeletePost?: () => void;
   onComment: () => void;
   onApproveComment: (id: string) => void;
@@ -398,12 +427,16 @@ function PostCard({
       ? "Replay"
       : "Review";
 
+  const isPending = post.status === "pending";
+
   return (
     <Card
       id={`post-${post.id}`}
       className={`p-5 transition-all duration-500 ${
         isHighlighted
           ? "ring-2 ring-[#5051F9] ring-offset-2 shadow-lg bg-indigo-50/15"
+          : isPending
+          ? "border-amber-300/80 bg-amber-50/15"
           : ""
       }`}
     >
@@ -418,6 +451,11 @@ function PostCard({
                 {author?.name || "Vex Media Group Admin"}
               </Link>
               <StaffRoleFavicon role={author?.role} size="xs" />
+              {isPending && (
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800 border border-amber-300">
+                  <Clock size={11} /> ⏳ Pending Admin Approval
+                </span>
+              )}
             </div>
             <p className="text-xs text-zinc-500 font-normal">
               {timeAgo(post.createdAt)} · {categoryLabel}
@@ -425,6 +463,24 @@ function PostCard({
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isStaff && isPending && (
+            <div className="flex items-center gap-1.5 mr-1">
+              <button
+                onClick={onApprovePost}
+                className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition"
+                title="Approve post"
+              >
+                <Check size={12} /> Approve
+              </button>
+              <button
+                onClick={onRejectPost}
+                className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700 hover:bg-red-200 transition"
+                title="Reject post"
+              >
+                <X size={12} /> Reject
+              </button>
+            </div>
+          )}
           {post.pinned && (
             <span className="inline-flex items-center gap-1 text-xs font-bold text-zinc-700 bg-transparent px-1 py-0.5">
               <Pin size={12} className="fill-zinc-700" /> Pinned

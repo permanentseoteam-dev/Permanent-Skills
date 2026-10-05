@@ -34,12 +34,18 @@ import {
   checkMeetingStatus,
   createGoogleCalendarUrl,
   downloadIcsCalendarFile,
+  parseMeetingStartTime,
 } from "@/lib/calendar-utils";
 import type { CalendarEvent, EventType, Project, ProjectTask, PublicUser } from "@/lib/types";
 
 function toLocalDatetimeInputString(dateStrOrDate?: string | Date): string {
   if (!dateStrOrDate) return "";
-  const d = new Date(dateStrOrDate);
+  let d = new Date(dateStrOrDate);
+  if (isNaN(d.getTime())) {
+    if (typeof dateStrOrDate === "string") {
+      d = parseMeetingStartTime(undefined, dateStrOrDate);
+    }
+  }
   if (isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
   const YYYY = d.getFullYear();
@@ -1464,79 +1470,125 @@ export default function MeetPage() {
               </select>
             </Field>
 
-            <div className="sm:col-span-2">
-              <Field label="Meet Sync Status (Linked Meeting or Project)">
-                {events.length > 0 || projects.length > 0 ? (
-                  <select
+            {/* Zoom-Style Custom Meeting Date & Time Adjuster */}
+            <div className="sm:col-span-2 rounded-2xl border border-indigo-100/90 bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/30 p-4 space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-indigo-100/70 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#5051F9] text-white shadow-2xs">
+                    <Video size={14} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-900">Meeting Schedule & Room Settings</h4>
+                    <p className="text-[11px] text-zinc-500">Manually adjust meeting date, start time, room name, and video URL</p>
+                  </div>
+                </div>
+                <span className="rounded-md bg-indigo-100/80 text-indigo-800 px-2 py-0.5 text-[10px] font-mono font-bold">
+                  {userTz}
+                </span>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {/* 1. Custom Date & Time Picker */}
+                <Field label="Meeting Date & Start Time *">
+                  <input
+                    type="datetime-local"
                     className={inputClass}
-                    value={form.meetSyncTime}
+                    value={toLocalDatetimeInputString(form.meetSyncTime)}
                     onChange={(e) => {
                       const val = e.target.value;
-                      const matchedEvent = events.find(
-                        (ev) =>
-                          `${ev.title} (${formatDateTime(ev.start)})` === val ||
-                          ev.id === val ||
-                          ev.title === val
-                      );
-                      let nextRoom = form.meetRoom || "Nexus Meet #room-general";
-                      let nextUrl = form.meetUrl || "https://meet.google.com/new";
-                      if (matchedEvent) {
-                        nextRoom = matchedEvent.type === "live" ? "Live Stream Room" : "VIP Mastermind Room";
-                      }
+                      if (!val) return;
+                      const dateObj = new Date(val);
+                      const formatted = formatDateTime(dateObj.toISOString());
                       setForm((f) => ({
                         ...f,
-                        meetSyncTime: val,
-                        meetRoom: nextRoom,
-                        meetUrl: nextUrl,
+                        meetSyncTime: formatted,
                       }));
                     }}
-                  >
-                    <option value={form.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}>
-                      {form.meetSyncTime || "Select upcoming meeting or project..."}
-                    </option>
+                  />
+                </Field>
 
-                    {events.length > 0 && (
-                      <optgroup label="Upcoming Calendar Meetings">
-                        {events.map((ev) => (
-                          <option key={ev.id} value={`${ev.title} (${formatDateTime(ev.start)})`}>
-                            📅 {ev.title} • {formatDateTime(ev.start)}
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
+                {/* 2. Custom Time of Meeting Label */}
+                <Field label="Meeting Schedule Label / Time">
+                  <input
+                    type="text"
+                    className={inputClass}
+                    placeholder="e.g. Today, 3:00 PM or Oct 6, 2026, 4:00 PM"
+                    value={form.meetSyncTime}
+                    onChange={(e) => setForm((f) => ({ ...f, meetSyncTime: e.target.value }))}
+                  />
+                </Field>
 
-                    {projects.length > 0 && (
-                      <optgroup label="Projects">
-                        {projects.map((p) => (
-                          <option key={p.id} value={`Sync with ${p.title}`}>
-                            🚀 {p.title} ({p.version || "v1.0"})
-                          </option>
-                        ))}
-                      </optgroup>
-                    )}
+                {/* 3. Meeting Room / Topic */}
+                <Field label="Meeting Room / Channel Name">
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. Nexus Meet #room-general"
+                    value={form.meetRoom}
+                    onChange={(e) => setForm((f) => ({ ...f, meetRoom: e.target.value }))}
+                  />
+                </Field>
 
-                    <optgroup label="Custom Sprint Syncs">
-                      <option value="Sprint Sync: Today, 3:00 PM">Sprint Sync: Today, 3:00 PM</option>
-                      <option value="Weekly Strategy: Tomorrow, 4:00 PM">Weekly Strategy: Tomorrow, 4:00 PM</option>
-                      <option value="Deliverable Review: Friday, 2:00 PM">Deliverable Review: Friday, 2:00 PM</option>
-                    </optgroup>
-                  </select>
-                ) : (
-                  <div className="flex items-center justify-between p-2.5 rounded-lg bg-zinc-50 border border-zinc-200">
-                    <span className="text-xs text-zinc-500">No upcoming meetings or projects</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setProjectModalOpen(false);
-                        openCreateProject();
-                      }}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline cursor-pointer"
-                    >
-                      <Plus size={12} /> Add Project
-                    </button>
-                  </div>
-                )}
-              </Field>
+                {/* 4. Google Meet / Zoom URL */}
+                <Field label="Video Meeting URL (Google Meet / Zoom)">
+                  <input
+                    className={inputClass}
+                    placeholder="e.g. https://meet.google.com/new or Zoom link"
+                    value={form.meetUrl}
+                    onChange={(e) => setForm((f) => ({ ...f, meetUrl: e.target.value }))}
+                  />
+                </Field>
+              </div>
+
+              {/* Quick Date/Time Shortcuts */}
+              <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-indigo-100/60 text-xs">
+                <span className="text-[11px] font-semibold text-zinc-500 mr-1">Quick Presets:</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setHours(15, 0, 0, 0);
+                    setForm((f) => ({ ...f, meetSyncTime: "Today, 3:00 PM" }));
+                  }}
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                >
+                  Today, 3:00 PM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + 1);
+                    d.setHours(16, 0, 0, 0);
+                    setForm((f) => ({ ...f, meetSyncTime: "Tomorrow, 4:00 PM" }));
+                  }}
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                >
+                  Tomorrow, 4:00 PM
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setHours(d.getHours() + 1, 0, 0, 0);
+                    setForm((f) => ({ ...f, meetSyncTime: formatDateTime(d.toISOString()) }));
+                  }}
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                >
+                  +1 Hour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + ((5 - d.getDay() + 7) % 7 || 7));
+                    d.setHours(14, 0, 0, 0);
+                    setForm((f) => ({ ...f, meetSyncTime: "Friday, 2:00 PM" }));
+                  }}
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                >
+                  Friday, 2:00 PM
+                </button>
+              </div>
             </div>
           </div>
 

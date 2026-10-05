@@ -90,6 +90,11 @@ export function parseMeetingStartTime(startStr?: string, meetSyncTimeStr?: strin
     if (!isNaN(d.getTime())) return d;
   }
   if (meetSyncTimeStr) {
+    // 1. Try direct date parsing first (handles ISO strings and standard date formats)
+    const directDate = new Date(meetSyncTimeStr);
+    if (!isNaN(directDate.getTime())) return directDate;
+
+    // 2. Parse relative time strings like "Sprint Sync: Today, 3:00 PM" or "Tomorrow, 4:00 PM"
     const timeMatch = meetSyncTimeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
     if (timeMatch) {
       let hours = parseInt(timeMatch[1], 10);
@@ -105,8 +110,6 @@ export function parseMeetingStartTime(startStr?: string, meetSyncTimeStr?: strin
       d.setHours(hours, minutes, 0, 0);
       return d;
     }
-    const d = new Date(meetSyncTimeStr);
-    if (!isNaN(d.getTime())) return d;
   }
   // Default fallback: 1 hour in future
   return new Date(Date.now() + 60 * 60 * 1000);

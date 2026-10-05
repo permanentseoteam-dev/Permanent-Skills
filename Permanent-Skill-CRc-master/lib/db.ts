@@ -87,6 +87,11 @@ function migrate(db: Database) {
     adminUser.username = "pss-admin";
     changed = true;
   }
+  const managerUser = db.users.find((u) => u.id === "u-manager" || u.email === "manager@permanentseo.com");
+  if (managerUser && managerUser.role !== "manager") {
+    managerUser.role = "manager";
+    changed = true;
+  }
   const catalogIds = COURSE_CATALOG_IDS as readonly string[];
   const hasOld = db.courses.some((course) => OLD_COURSE_IDS.includes(course.id));
   const missingNew = catalogIds.some((id) => !db.courses.some((course) => course.id === id));
@@ -182,6 +187,22 @@ function migrate(db: Database) {
         comment.status = "approved";
         changed = true;
       }
+      // If legacy seeded mock comments are still marked pending, transition them to approved
+      if (
+        (comment.id.startsWith("c-pending-") ||
+          comment.id === "c-vercel-user-pending" ||
+          comment.id === "c-les-4") &&
+        comment.status === "pending"
+      ) {
+        comment.status = "approved";
+        changed = true;
+      }
+    }
+  }
+  for (const post of db.posts || []) {
+    if (!post.status) {
+      post.status = "approved";
+      changed = true;
     }
   }
   if (!db.projects || db.projects.length === 0) {
