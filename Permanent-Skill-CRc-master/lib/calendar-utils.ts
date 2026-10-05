@@ -5,10 +5,20 @@ export function createGoogleCalendarUrl(event: {
   end?: string | Date;
   location?: string;
 }): string {
-  const startDate = new Date(event.start);
-  const endDate = event.end && !isNaN(new Date(event.end).getTime())
+  const currentYear = new Date().getFullYear();
+  let startDate = new Date(event.start);
+  if (isNaN(startDate.getTime())) {
+    startDate = parseMeetingStartTime(undefined, typeof event.start === "string" ? event.start : undefined);
+  } else if (startDate.getFullYear() < 2020) {
+    startDate.setFullYear(currentYear);
+  }
+
+  let endDate = event.end && !isNaN(new Date(event.end).getTime())
     ? new Date(event.end)
     : new Date(startDate.getTime() + 60 * 60 * 1000);
+  if (endDate.getFullYear() < 2020) {
+    endDate.setFullYear(currentYear);
+  }
 
   const formatGCal = (d: Date) => {
     return d.toISOString().replace(/-|:|\.\d+/g, "");
@@ -34,10 +44,21 @@ export function generateIcsFileContent(event: {
   location?: string;
   url?: string;
 }): string {
-  const startDate = new Date(event.start);
-  const endDate = event.end && !isNaN(new Date(event.end).getTime())
+  const currentYear = new Date().getFullYear();
+  let startDate = new Date(event.start);
+  if (isNaN(startDate.getTime())) {
+    startDate = parseMeetingStartTime(undefined, typeof event.start === "string" ? event.start : undefined);
+  } else if (startDate.getFullYear() < 2020) {
+    startDate.setFullYear(currentYear);
+  }
+
+  let endDate = event.end && !isNaN(new Date(event.end).getTime())
     ? new Date(event.end)
     : new Date(startDate.getTime() + 60 * 60 * 1000);
+  if (endDate.getFullYear() < 2020) {
+    endDate.setFullYear(currentYear);
+  }
+
   const formatIcs = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 
   return [

@@ -180,7 +180,18 @@ export default function AdminPage() {
 
   // Data pools
   const approvedUsers = useMemo(() => users.filter((u) => u.status === "approved" || u.role === "admin" || u.role === "manager"), [users]);
-  const pending = useMemo(() => users.filter((u) => u.status === "pending"), [users]);
+  const pending = useMemo(() => {
+    const seen = new Set<string>();
+    return users.filter((u) => {
+      if (u.status !== "pending") return false;
+      const idKey = u.id;
+      const emailKey = u.email?.toLowerCase().trim();
+      if (seen.has(idKey) || (emailKey && seen.has(emailKey))) return false;
+      seen.add(idKey);
+      if (emailKey) seen.add(emailKey);
+      return true;
+    });
+  }, [users]);
   const pendingPosts = useMemo(() => posts.filter((p) => p.status === "pending"), [posts]);
   const approvedPosts = useMemo(() => posts.filter((p) => p.status === "approved" || !p.status), [posts]);
   const pendingComments = useMemo(() => comments.filter((c) => c.status === "pending"), [comments]);

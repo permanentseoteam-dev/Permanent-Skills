@@ -438,15 +438,28 @@ export async function submitApplication(form: Application): Promise<ActionResult
 export async function approveUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  const db = readDb();
+  const target = db.users.find((u) => u.id === userId);
+  if (!target) return { ok: false, error: "User not found." };
+  const targetEmail = target.email?.trim().toLowerCase();
+
   const now = new Date().toISOString();
   await updateDb((db) => {
-    const user = db.users.find((u) => u.id === userId);
-    if (!user) return;
-    user.status = "approved";
+    const matchingUsers = db.users.filter((u) => u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail));
+    if (matchingUsers.length === 0) return;
+
+    for (const user of matchingUsers) {
+      user.status = "approved";
+      if (!user.joinedCommunityIds || user.joinedCommunityIds.length === 0) {
+        user.joinedCommunityIds = ["comm-ai-architects"];
+      }
+    }
+
+    const user = matchingUsers[0];
 
     // Ensure member has a sales record upon approval matched to course/membership pricing
     if (!db.sales) db.sales = [];
-    const hasExistingSale = db.sales.some((s) => s.userId === user.id);
+    const hasExistingSale = db.sales.some((s) => s.userId === user.id || (targetEmail && db.users.some(u => u.id === s.userId && u.email?.trim().toLowerCase() === targetEmail)));
     if (!hasExistingSale) {
       let amount = 99; // Business Clarity default
       let plan = "Business Clarity Course ($99)";
@@ -513,14 +526,17 @@ export async function rejectUser(userId: string): Promise<ActionResult> {
   if (!target) return { ok: false, error: "User not found." };
   if (target.role === "admin" && me.role !== "admin") return { ok: false, error: "Cannot reject an admin." };
   if (target.id === me.id) return { ok: false, error: "Cannot reject yourself." };
+  const targetEmail = target.email?.trim().toLowerCase();
 
   await updateDb((d) => {
-    const user = d.users.find((u) => u.id === userId);
-    if (!user) return;
-    user.status = "rejected";
-    d.sessions = d.sessions.filter((s) => s.userId !== userId);
+    const matchingUsers = d.users.filter((u) => u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail));
+    for (const user of matchingUsers) {
+      user.status = "rejected";
+    }
+    const matchingIds = new Set(matchingUsers.map((u) => u.id));
+    d.sessions = d.sessions.filter((s) => !matchingIds.has(s.userId));
     if (d.sales) {
-      d.sales = d.sales.filter((s) => s.userId !== userId);
+      d.sales = d.sales.filter((s) => !matchingIds.has(s.userId));
     }
   });
   return { ok: true };
@@ -534,15 +550,19 @@ export async function deleteMember(userId: string): Promise<ActionResult> {
   if (!target) return { ok: false, error: "User not found." };
   if (target.role === "admin") return { ok: false, error: "Cannot delete an administrator account." };
   if (target.id === me.id) return { ok: false, error: "Cannot delete your own account." };
+  const targetEmail = target.email?.trim().toLowerCase();
 
   await updateDb((d) => {
-    d.users = d.users.filter((u) => u.id !== userId);
-    d.sessions = d.sessions.filter((s) => s.userId !== userId);
-    d.comments = d.comments.filter((c) => c.authorId !== userId);
-    d.posts = d.posts.filter((p) => p.authorId !== userId);
-    d.progress = d.progress.filter((p) => p.userId !== userId);
-    d.sales = d.sales.filter((s) => s.userId !== userId);
-    d.reviews = d.reviews.filter((r) => r.userId !== userId);
+    const matchingUsers = d.users.filter((u) => u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail));
+    const matchingIds = new Set(matchingUsers.map((u) => u.id));
+
+    d.users = d.users.filter((u) => !matchingIds.has(u.id));
+    d.sessions = d.sessions.filter((s) => !matchingIds.has(s.userId));
+    d.comments = d.comments.filter((c) => !matchingIds.has(c.authorId));
+    d.posts = d.posts.filter((p) => !matchingIds.has(p.authorId));
+    d.progress = d.progress.filter((p) => !matchingIds.has(p.userId));
+    d.sales = (d.sales || []).filter((s) => !matchingIds.has(s.userId));
+    d.reviews = (d.reviews || []).filter((r) => !matchingIds.has(r.userId));
   });
   return { ok: true };
 }

@@ -520,9 +520,58 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (current: string, next: string) => run(() => changePasswordAction(current, next)),
     [run],
   );
-  const approveUserFn = useCallback((userId: string) => run(() => approveUserAction(userId)), [run]);
-  const rejectUserFn = useCallback((userId: string) => run(() => rejectUserAction(userId)), [run]);
-  const deleteMemberFn = useCallback((userId: string) => run(() => deleteMemberAction(userId)), [run]);
+  const approveUserFn = useCallback(
+    (userId: string) => {
+      setState((prev) => {
+        const target = prev.users.find((u) => u.id === userId);
+        const targetEmail = target?.email?.trim().toLowerCase();
+        return {
+          ...prev,
+          users: prev.users.map((u) =>
+            u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail)
+              ? { ...u, status: "approved" }
+              : u
+          ),
+        };
+      });
+      return run(() => approveUserAction(userId));
+    },
+    [run]
+  );
+  const rejectUserFn = useCallback(
+    (userId: string) => {
+      setState((prev) => {
+        const target = prev.users.find((u) => u.id === userId);
+        const targetEmail = target?.email?.trim().toLowerCase();
+        return {
+          ...prev,
+          users: prev.users.map((u) =>
+            u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail)
+              ? { ...u, status: "rejected" }
+              : u
+          ),
+        };
+      });
+      return run(() => rejectUserAction(userId));
+    },
+    [run]
+  );
+  const deleteMemberFn = useCallback(
+    (userId: string) => {
+      setState((prev) => {
+        const target = prev.users.find((u) => u.id === userId);
+        const targetEmail = target?.email?.trim().toLowerCase();
+        return {
+          ...prev,
+          users: prev.users.filter(
+            (u) => u.id !== userId && (!targetEmail || u.email?.trim().toLowerCase() !== targetEmail)
+          ),
+        };
+      });
+      return run(() => deleteMemberAction(userId));
+    },
+    [run]
+  );
   const createMemberFn = useCallback((input: MemberInput) => run(() => createMemberAction(input)), [run]);
   const updateMemberFn = useCallback((input: MemberUpdateInput) => run(() => updateMemberAction(input)), [run]);
   const releaseMemberLoginFn = useCallback(

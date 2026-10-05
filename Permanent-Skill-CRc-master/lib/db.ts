@@ -149,6 +149,22 @@ function migrate(db: Database) {
       db.users.unshift(rootAdmin);
       changed = true;
     }
+    // Deduplicate users by ID and email (preserving approved status and most complete profiles)
+    const seenUserIds = new Set<string>();
+    const seenUserEmails = new Set<string>();
+    const uniqueUsers: User[] = [];
+    for (const u of db.users) {
+      const emailKey = u.email?.trim().toLowerCase();
+      if (seenUserIds.has(u.id) || (emailKey && seenUserEmails.has(emailKey))) {
+        changed = true;
+        continue;
+      }
+      seenUserIds.add(u.id);
+      if (emailKey) seenUserEmails.add(emailKey);
+      uniqueUsers.push(u);
+    }
+    db.users = uniqueUsers;
+
     // Demote legacy seed users if they still have hardcoded manager role
     for (const u of db.users) {
       if ((u.id === "u-manager" || u.id === "u-ayaan") && u.role === "manager") {
