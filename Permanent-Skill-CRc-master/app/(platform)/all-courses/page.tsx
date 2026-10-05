@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
   BookOpen,
@@ -31,6 +32,7 @@ type FilterTab = "all" | "in_progress" | "completed" | "unlocked" | "vip" | "tea
 type SortOption = "default" | "progress_desc" | "lessons_desc" | "level_asc" | "level_desc" | "title_asc";
 
 export default function AllCoursesPage() {
+  const router = useRouter();
   const { courses, progress, user, purchaseCourse } = useApp();
   
   // State
@@ -184,8 +186,9 @@ export default function AllCoursesPage() {
 
   // Helper to render classroom-style lock banner matching ClassroomView
   function renderCourseBanner(course: Course) {
+    const isAdmin = user?.role === "admin";
     const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
-    const isPremiumOnly = !!course.isPremiumOnly;
+    const isPremiumOnly = !course.isPremiumOnly;
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 
@@ -210,7 +213,7 @@ export default function AllCoursesPage() {
               <Lock size={20} className="stroke-[2.5]" />
             </div>
             <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
-              Unlock at Level 1
+              {isAdmin ? "Unlocked for Admin" : "Unlock at Level 1"}
             </span>
           </div>
         </div>
@@ -259,12 +262,14 @@ export default function AllCoursesPage() {
           </div>
 
           <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
-            {isPremiumOnly
+            {isAdmin
+              ? "Unlocked for Admin"
+              : isPremiumOnly
               ? "👑 Unlock with VIP"
               : `Unlock at Level ${course.unlockLevel}`}
           </span>
 
-          {!isPremiumOnly && (
+          {!isAdmin && !isPremiumOnly && (
             <span className="text-[10.5px] text-zinc-400 font-medium">
               or Upgrade to VIP
             </span>
@@ -524,8 +529,49 @@ export default function AllCoursesPage() {
             const isPurchased = user?.purchasedCourseIds?.includes(course.id);
             const isLevelUnlocked = !course.isPremiumOnly && (course.unlockLevel <= 1 || userLevel >= course.unlockLevel);
             const isAccessible = user?.role === "admin" || user?.role === "manager" || user?.isPremium || isPurchased || isLevelUnlocked;
+            const isAdmin = user?.role === "admin";
             const price = course.price || 49;
             const duration = getCourseDuration(course);
+
+            if (isAdmin) {
+              return (
+                <Link
+                  key={course.id}
+                  href={`/classroom/${course.slug}`}
+                  className="group flex flex-col overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-xs transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:border-zinc-400 cursor-pointer"
+                >
+                  {/* Course Banner */}
+                  {renderCourseBanner(course)}
+
+                  {/* Card Body */}
+                  <div className="flex flex-1 flex-col justify-between p-4 sm:p-5">
+                    <div>
+                      <h3 className="text-[15px] sm:text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1">
+                        {course.title}
+                      </h3>
+                      <p className="mt-1 text-xs sm:text-[13px] text-zinc-600 line-clamp-2 leading-relaxed min-h-[36px]">
+                        {course.description}
+                      </p>
+                    </div>
+
+                    {/* Clean Pill Progress Bar */}
+                    <div className="mt-4">
+                      <div className="relative h-5 w-full overflow-hidden rounded-full bg-[#e5e7eb] flex items-center shadow-inner">
+                        {pct > 0 && (
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-primary via-[#6366f1] to-[#7c83ff] transition-all duration-500"
+                            style={{ width: `${pct}%` }}
+                          />
+                        )}
+                        <span className="absolute left-3 text-[11px] font-bold text-zinc-700">
+                          {pct}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              );
+            }
 
             return (
               <Card
@@ -560,7 +606,7 @@ export default function AllCoursesPage() {
                         {course.badge || "MODULE"}
                       </span>
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/95 backdrop-blur-xs px-2.5 py-0.5 text-xs font-bold text-white shadow-xs">
-                        <ShieldCheck size={13} /> {user?.role === "admin" ? "⚡ Unlocked for Admin" : "Unlocked"}
+                        <ShieldCheck size={13} /> Unlocked
                       </span>
                     </div>
 

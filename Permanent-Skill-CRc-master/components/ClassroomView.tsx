@@ -158,8 +158,9 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
   // Helper to render course banner matching original design
   function renderCourseBanner(course: Course) {
+    const isAdmin = user?.role === "admin";
     const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
-    const isPremiumOnly = !!course.isPremiumOnly;
+    const isPremiumOnly = !course.isPremiumOnly;
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 
@@ -184,7 +185,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
               <Lock size={20} className="stroke-[2.5]" />
             </div>
             <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
-              Unlock at Level 1
+              {isAdmin ? "Unlocked for Admin" : "Unlock at Level 1"}
             </span>
           </div>
         </div>
@@ -233,12 +234,14 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           </div>
 
           <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
-            {isPremiumOnly
+            {isAdmin
+              ? "Unlocked for Admin"
+              : isPremiumOnly
               ? "👑 Unlock with VIP"
               : `Unlock at Level ${course.unlockLevel}`}
           </span>
 
-          {!isPremiumOnly && (
+          {!isAdmin && !isPremiumOnly && (
             <span className="text-[10.5px] text-zinc-400 font-medium">
               or Upgrade to VIP
             </span>

@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ChevronUp,
   Clock,
+  Download,
   Layers,
   ListTodo,
   Minus,
@@ -29,6 +30,11 @@ import {
 import { useApp } from "@/components/AppProvider";
 import { Avatar, Card, Field, Modal, PrimaryButton, ProgressBar, inputClass } from "@/components/ui";
 import { eventTimeLabel, formatDateTime } from "@/lib/format";
+import {
+  checkMeetingStatus,
+  createGoogleCalendarUrl,
+  downloadIcsCalendarFile,
+} from "@/lib/calendar-utils";
 import type { CalendarEvent, EventType, Project, ProjectTask, PublicUser } from "@/lib/types";
 
 function toLocalDatetimeInputString(dateStrOrDate?: string | Date): string {
@@ -126,6 +132,7 @@ export default function MeetPage() {
     updateProjectProgress,
     toggleProjectTask,
     addProjectTask,
+    selectMeetProject,
   } = useApp();
 
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
@@ -579,6 +586,8 @@ export default function MeetPage() {
       const found = projects.find((p) => p.id === selectedProjectId);
       if (found) return found;
     }
+    const meetActive = projects.find((p) => p.isMeetActive);
+    if (meetActive) return meetActive;
     return currentProjects[0] || projects[0] || null;
   }, [selectedProjectId, projects, currentProjects]);
 
@@ -624,6 +633,56 @@ export default function MeetPage() {
           const teamMembers = (activeProject.memberIds || [])
             .map((id) => users.find((u) => u.id === id))
             .filter(Boolean) as PublicUser[];
+
+          const matchedEvent = events.find(
+            (ev) =>
+              `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
+              ev.title === activeProject.meetSyncTime ||
+              ev.id === activeProject.meetSyncTime ||
+              ev.title.toLowerCase().includes(activeProject.title.toLowerCase())
+          );
+
+          const timing = checkMeetingStatus(
+            matchedEvent?.start,
+            matchedEvent?.end,
+            activeProject.meetSyncTime
+          );
+
+          const isProjMeetEnded = timing.status === "ended";
+          const isWaiting = timing.status === "waiting";
+          const canJoinLive = timing.status === "can_join";
+
+          const endedUrl = `/meeting-ended?title=${encodeURIComponent(
+            matchedEvent?.title || activeProject.title
+          )}&start=${encodeURIComponent(
+            matchedEvent?.start || timing.startDate.toISOString()
+          )}&end=${encodeURIComponent(
+            matchedEvent?.end || timing.endDate.toISOString()
+          )}&type=${matchedEvent?.type || "live"}&desc=${encodeURIComponent(
+            matchedEvent?.description || activeProject.description
+          )}`;
+
+          const waitingUrl = `/meeting-waiting?title=${encodeURIComponent(
+            matchedEvent?.title || activeProject.title
+          )}&start=${encodeURIComponent(
+            matchedEvent?.start || timing.startDate.toISOString()
+          )}&end=${encodeURIComponent(
+            matchedEvent?.end || timing.endDate.toISOString()
+          )}&url=${encodeURIComponent(
+            activeProject.meetUrl || "https://meet.google.com/new"
+          )}&host=${encodeURIComponent(
+            activeProject.leadName || lead?.name || "Permanent Skills Admin"
+          )}&room=${encodeURIComponent(
+            activeProject.meetRoom || "Nexus Meet #room-general"
+          )}&type=${matchedEvent?.type || "live"}&desc=${encodeURIComponent(
+            matchedEvent?.description || activeProject.description
+          )}`;
+
+          const targetUrl = isProjMeetEnded
+            ? endedUrl
+            : isWaiting
+              ? waitingUrl
+              : activeProject.meetUrl || "https://meet.google.com/new";
 
           return (
             <Card
@@ -722,34 +781,37 @@ export default function MeetPage() {
                     <div className="w-full lg:w-[280px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-2.5">
                       <div className="flex items-center justify-between">
                         <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/80 font-mono">
-                          Join now
+                          Select Project for Meeting
                         </span>
                       </div>
 
-                      {/* Single Dropdown showing current projects */}
+                      {/* Single Dropdown showing current projects - synced for all users when changed by admin */}
                       <div className="relative">
                         <select
                           value={activeProject.id}
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const val = e.target.value;
                             if (val === "__CREATE_NEW_PROJECT__") {
                               openCreateProject();
                               return;
                             }
                             setSelectedProjectId(val);
+                            if (isAdminOrManager) {
+                              await selectMeetProject(val);
+                            }
                           }}
                           className="w-full cursor-pointer appearance-none rounded-lg border border-[#5051F9]/20 bg-white px-2.5 py-1.5 pr-7 text-xs font-semibold text-zinc-800 shadow-2xs outline-none hover:border-[#5051F9]/40 focus:border-[#5051F9] transition"
                         >
                           {currentProjects.length > 0 ? (
                             currentProjects.map((p) => (
                               <option key={p.id} value={p.id}>
-                                {p.title}
+                                {p.title} {p.isMeetActive ? "★ (Active)" : ""}
                               </option>
                             ))
                           ) : (
                             projects.map((p) => (
                               <option key={p.id} value={p.id}>
-                                {p.title}
+                                {p.title} {p.isMeetActive ? "★ (Active)" : ""}
                               </option>
                             ))
                           )}
@@ -772,34 +834,35 @@ export default function MeetPage() {
 
                     {/* Project actions (Join Meet, Edit, Delete) */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {activeProject.meetUrl && (() => {
-                        const matchedEvent = events.find(
-                          (ev) =>
-                            `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
-                            ev.title === activeProject.meetSyncTime ||
-                            ev.id === activeProject.meetSyncTime
-                        );
-                        const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
-                        const targetUrl = isProjMeetOlder && matchedEvent
-                          ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
-                          : activeProject.meetUrl;
-
-                        return (
-                          <a
-                            href={targetUrl}
-                            target={isProjMeetOlder ? "_self" : "_blank"}
-                            rel="noopener noreferrer"
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer ${
-                              isProjMeetOlder
-                                ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                      {activeProject.meetUrl && (
+                        <a
+                          href={targetUrl}
+                          target={canJoinLive ? "_blank" : "_self"}
+                          rel="noopener noreferrer"
+                          className={`inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold shadow-xs transition cursor-pointer ${
+                            isProjMeetEnded
+                              ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                              : canJoinLive
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md animate-pulse"
                                 : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
-                            }`}
-                          >
-                            {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
-                            <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
-                          </a>
-                        );
-                      })()}
+                          }`}
+                        >
+                          {isProjMeetEnded ? (
+                            <VideoOff size={13} />
+                          ) : isWaiting ? (
+                            <Clock size={13} />
+                          ) : (
+                            <Video size={13} />
+                          )}
+                          <span>
+                            {isProjMeetEnded
+                              ? "Meet Ended"
+                              : canJoinLive
+                                ? "Join Meet (Live Now)"
+                                : "Join Meet"}
+                          </span>
+                        </a>
+                      )}
 
                       <button
                         onClick={() => openEditProject(activeProject)}
@@ -819,7 +882,7 @@ export default function MeetPage() {
                   </div>
                 </div>
               ) : (
-                /* Regular User View: Only title, profile icons, host along name, dropdown block with Join now button and time in red below it */
+                /* Regular User View: Dynamically reflects active project selected by admin, with 5-minute rule */
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                   {/* Left: Title, Profile Icons, Host Name */}
                   <div className="min-w-0 flex-1 space-y-3">
@@ -851,36 +914,37 @@ export default function MeetPage() {
                     </div>
                   </div>
 
-                  {/* Right: Only Join now button and below it Time of Meeting in red */}
+                  {/* Right: Join now button and below it Time of Meeting in red */}
                   <div className="flex flex-col items-start sm:items-end gap-1.5 border-t sm:border-t-0 sm:border-l border-zinc-100 pt-3 sm:pt-0 sm:pl-6 shrink-0 w-full sm:w-auto">
-                    {activeProject.meetUrl && (() => {
-                      const matchedEvent = events.find(
-                        (ev) =>
-                          `${ev.title} (${formatDateTime(ev.start)})` === activeProject.meetSyncTime ||
-                          ev.title === activeProject.meetSyncTime ||
-                          ev.id === activeProject.meetSyncTime
-                      );
-                      const isProjMeetOlder = matchedEvent ? isMeetingOlder(matchedEvent) : false;
-                      const targetUrl = isProjMeetOlder && matchedEvent
-                        ? `/meeting-ended?title=${encodeURIComponent(matchedEvent.title)}&start=${encodeURIComponent(matchedEvent.start)}&end=${encodeURIComponent(matchedEvent.end)}&type=${matchedEvent.type}&desc=${encodeURIComponent(matchedEvent.description)}`
-                        : activeProject.meetUrl;
-
-                      return (
-                        <a
-                          href={targetUrl}
-                          target={isProjMeetOlder ? "_self" : "_blank"}
-                          rel="noopener noreferrer"
-                          className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold shadow-xs transition cursor-pointer w-full sm:w-auto ${
-                            isProjMeetOlder
-                              ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                    {activeProject.meetUrl && (
+                      <a
+                        href={targetUrl}
+                        target={canJoinLive ? "_blank" : "_self"}
+                        rel="noopener noreferrer"
+                        className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-2 text-xs font-semibold shadow-xs transition cursor-pointer w-full sm:w-auto ${
+                          isProjMeetEnded
+                            ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-700"
+                            : canJoinLive
+                              ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-md animate-pulse"
                               : "bg-[#5051F9] hover:bg-[#4041d8] text-white"
-                          }`}
-                        >
-                          {isProjMeetOlder ? <VideoOff size={13} /> : <Video size={13} />}
-                          <span>{isProjMeetOlder ? "Meet Ended" : "Join Meet"}</span>
-                        </a>
-                      );
-                    })()}
+                        }`}
+                      >
+                        {isProjMeetEnded ? (
+                          <VideoOff size={13} />
+                        ) : isWaiting ? (
+                          <Clock size={13} />
+                        ) : (
+                          <Video size={13} />
+                        )}
+                        <span>
+                          {isProjMeetEnded
+                            ? "Meet Ended"
+                            : canJoinLive
+                              ? "Join Meet (Live Now)"
+                              : "Join Meet"}
+                        </span>
+                      </a>
+                    )}
 
                     {/* Time of the meeting in red colored below the button */}
                     <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
@@ -1034,13 +1098,45 @@ export default function MeetPage() {
         wide={eventModalMode !== "view"}
       >
         {eventModalMode === "view" && selectedEvent && (() => {
-          const isEventOver = isMeetingOlder(selectedEvent);
+          const timing = checkMeetingStatus(selectedEvent.start, selectedEvent.end);
+          const isEventOver = timing.status === "ended";
+          const isWaiting = timing.status === "waiting";
+          const canJoinLive = timing.status === "can_join";
           const isRsvpd = rsvpEventIds.includes(selectedEvent.id);
           const isPrem =
             selectedEvent.type === "premium" ||
             selectedEvent.title.toLowerCase().includes("premium") ||
             selectedEvent.title.toLowerCase().includes("vip");
-          const endedUrl = `/meeting-ended?title=${encodeURIComponent(selectedEvent.title)}&start=${encodeURIComponent(selectedEvent.start)}&end=${encodeURIComponent(selectedEvent.end)}&type=${selectedEvent.type}&desc=${encodeURIComponent(selectedEvent.description)}`;
+
+          const endedUrl = `/meeting-ended?title=${encodeURIComponent(
+            selectedEvent.title
+          )}&start=${encodeURIComponent(
+            selectedEvent.start
+          )}&end=${encodeURIComponent(
+            selectedEvent.end
+          )}&type=${selectedEvent.type}&desc=${encodeURIComponent(
+            selectedEvent.description
+          )}`;
+
+          const waitingUrl = `/meeting-waiting?title=${encodeURIComponent(
+            selectedEvent.title
+          )}&start=${encodeURIComponent(
+            selectedEvent.start
+          )}&end=${encodeURIComponent(
+            selectedEvent.end
+          )}&url=${encodeURIComponent(
+            "https://meet.google.com/new"
+          )}&type=${selectedEvent.type}&desc=${encodeURIComponent(
+            selectedEvent.description
+          )}`;
+
+          const gcalUrl = createGoogleCalendarUrl({
+            title: selectedEvent.title,
+            start: selectedEvent.start,
+            end: selectedEvent.end,
+            description: selectedEvent.description,
+            location: "https://meet.google.com/new",
+          });
 
           return (
             <div className="space-y-4 pt-1">
@@ -1059,10 +1155,14 @@ export default function MeetPage() {
 
                   <span
                     className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-                      isEventOver ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800"
+                      isEventOver
+                        ? "bg-amber-100 text-amber-800"
+                        : canJoinLive
+                          ? "bg-emerald-100 text-emerald-800 animate-pulse"
+                          : "bg-blue-100 text-blue-800"
                     }`}
                   >
-                    {isEventOver ? "Concluded Session" : "Upcoming Session"}
+                    {isEventOver ? "Concluded Session" : canJoinLive ? "🟢 Live Now" : "Upcoming Session"}
                   </span>
                 </div>
 
@@ -1085,8 +1185,8 @@ export default function MeetPage() {
                 </div>
               </div>
 
-              {/* RSVP & Primary Action Button */}
-              <div className="space-y-2 pt-1">
+              {/* Primary Action Button */}
+              <div className="space-y-2.5 pt-1">
                 {isEventOver ? (
                   <a
                     href={endedUrl}
@@ -1099,32 +1199,70 @@ export default function MeetPage() {
                     <VideoOff size={16} className="text-amber-400" />
                     <span>Meeting Ended — View Session Recap</span>
                   </a>
+                ) : canJoinLive ? (
+                  <a
+                    href="https://meet.google.com/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-3 font-bold text-white shadow-lg transition text-sm cursor-pointer"
+                  >
+                    <Video size={16} />
+                    <span>Join Video Room (Live Now)</span>
+                  </a>
                 ) : (
-                  <div className="space-y-2">
-                    <a
-                      href="https://meet.google.com/new"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
-                    >
-                      <Video size={16} />
-                      <span>Join Video Room</span>
-                    </a>
-
-                    <button
-                      type="button"
-                      onClick={() => toggleRsvp(selectedEvent.id)}
-                      className={`flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
-                        isRsvpd
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                          : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700"
-                      }`}
-                    >
-                      {isRsvpd ? <CheckCircle2 size={14} /> : <CalendarIcon size={14} />}
-                      <span>{isRsvpd ? "Added to My Schedule (RSVP'd)" : "Add to My Schedule / RSVP"}</span>
-                    </button>
-                  </div>
+                  <a
+                    href={waitingUrl}
+                    onClick={() => {
+                      setEventModalOpen(false);
+                      setSelectedEvent(null);
+                    }}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
+                  >
+                    <Clock size={16} />
+                    <span>Join Meet (Opens in Waiting Room)</span>
+                  </a>
                 )}
+
+                {/* Add to Calendar Options Row */}
+                <div className="grid grid-cols-2 gap-2 pt-0.5">
+                  <a
+                    href={gcalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
+                  >
+                    <CalendarIcon size={14} className="text-blue-600" />
+                    <span>Google Calendar</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      downloadIcsCalendarFile({
+                        title: selectedEvent.title,
+                        description: selectedEvent.description,
+                        start: selectedEvent.start,
+                        end: selectedEvent.end,
+                      })
+                    }
+                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
+                  >
+                    <Download size={14} className="text-zinc-600" />
+                    <span>Download .ICS</span>
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => toggleRsvp(selectedEvent.id)}
+                  className={`flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
+                    isRsvpd
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                      : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700"
+                  }`}
+                >
+                  {isRsvpd ? <CheckCircle2 size={14} /> : <CalendarIcon size={14} />}
+                  <span>{isRsvpd ? "Added to My Schedule (RSVP'd)" : "Add to My Schedule / RSVP"}</span>
+                </button>
               </div>
 
               {/* Modal Footer with "← Back" and Admin/Manager CRUD actions */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   BookOpen,
@@ -152,6 +152,23 @@ export default function AdminPage() {
   const [managerBusy, setManagerBusy] = useState(false);
   const [managerFeedback, setManagerFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showManagerPassword, setShowManagerPassword] = useState(false);
+
+  // Auto-dismiss alert notification banner after 3 seconds
+  useEffect(() => {
+    if (!message) return;
+    const timer = setTimeout(() => {
+      setMessage(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [message]);
+
+  useEffect(() => {
+    if (!managerFeedback) return;
+    const timer = setTimeout(() => {
+      setManagerFeedback(null);
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [managerFeedback]);
 
   // STRICT ACCESS CONTROL: Admin role only!
   const isAdmin = user?.role === "admin";
