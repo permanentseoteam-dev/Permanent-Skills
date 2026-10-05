@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   CalendarDays,
   Check,
+  ChevronDown,
   Clock,
   MessageCircle,
   Pin,
@@ -258,16 +259,17 @@ export function Feed({
     rejectComment,
     deleteComment,
   } = useApp();
-  const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
+
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(targetPostId || null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, { text: string; isError?: boolean }>>({});
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
 
-  // Auto-scroll and highlight target post from notification deep link
+  // Auto-open modal or highlight target post from notification deep link
   useEffect(() => {
     if (targetPostId) {
+      setSelectedPostId(targetPostId);
       setHighlightedId(targetPostId);
-      setOpenComments((s) => ({ ...s, [targetPostId]: true }));
 
       const timer = setTimeout(() => {
         const el = document.getElementById(`post-${targetPostId}`);
@@ -342,6 +344,31 @@ export function Feed({
     });
   }, [posts, category, activeCommunity?.id, user?.id, isStaff, user?.role]);
 
+  function handleOpenPost(postId: string) {
+    setSelectedPostId(postId);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("post", postId);
+      window.history.pushState({}, "", url.toString());
+    } catch {
+      // Ignore
+    }
+  }
+
+  function handleClosePost() {
+    setSelectedPostId(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("post");
+      url.searchParams.delete("postId");
+      window.history.replaceState({}, "", url.toString());
+    } catch {
+      // Ignore
+    }
+  }
+
+  const selectedPost = selectedPostId ? posts.find((p) => p.id === selectedPostId) : null;
+
   if (list.length === 0) {
     return (
       <div className="rounded-2xl border border-zinc-200 bg-white p-12 text-center shadow-xs">
@@ -357,55 +384,77 @@ export function Feed({
   }
 
   return (
-    <div className="space-y-4">
-      {list.map((post) => (
-        <PostCard
-          key={post.id}
-          post={post}
-          isHighlighted={highlightedId === post.id}
-          commentsOpen={!!openComments[post.id]}
-          onToggleComments={() => setOpenComments((s) => ({ ...s, [post.id]: !s[post.id] }))}
-          onCloseComments={() => setOpenComments((s) => ({ ...s, [post.id]: false }))}
-          draft={drafts[post.id] || ""}
-          setDraft={(v) => setDrafts((s) => ({ ...s, [post.id]: v }))}
-          feedback={feedback[post.id]?.text || ""}
-          feedbackIsError={feedback[post.id]?.isError}
-          onLike={() => {
-            toggleLike(post.id);
-          }}
-          onPin={() => togglePin(post.id)}
-          onApprovePost={() => approvePost(post.id)}
-          onRejectPost={() => rejectPost(post.id)}
+    <>
+      <div className="space-y-4">
+        {list.map((post) => (
+          <PostCard
+            key={post.id}
+            post={post}
+            isHighlighted={highlightedId === post.id}
+            onOpen={() => handleOpenPost(post.id)}
+            onLike={() => toggleLike(post.id)}
+            onPin={() => togglePin(post.id)}
+            onApprovePost={() => approvePost(post.id)}
+            onRejectPost={() => rejectPost(post.id)}
+            onDeletePost={() => {
+              if (confirm("Are you sure you want to delete this post?")) {
+                deletePost(post.id);
+              }
+            }}
+            comments={comments.filter((c) => c.postId === post.id)}
+            author={userById(post.authorId)}
+            isStaff={isStaff}
+            currentUserId={user?.id}
+            liked={!!user && post.likes.includes(user.id)}
+            userById={userById}
+          />
+        ))}
+      </div>
+
+      {selectedPost && (
+        <PostModal
+          post={selectedPost}
+          author={userById(selectedPost.authorId)}
+          comments={comments.filter((c) => c.postId === selectedPost.id)}
+          onClose={handleClosePost}
+          onLike={() => toggleLike(selectedPost.id)}
+          onPin={() => togglePin(selectedPost.id)}
+          onApprovePost={() => approvePost(selectedPost.id)}
+          onRejectPost={() => rejectPost(selectedPost.id)}
           onDeletePost={() => {
             if (confirm("Are you sure you want to delete this post?")) {
-              deletePost(post.id);
+              deletePost(selectedPost.id);
+              handleClosePost();
             }
           }}
-          onComment={async () => {
-            const text = drafts[post.id];
+          draft={drafts[selectedPost.id] || ""}
+          setDraft={(v) => setDrafts((s) => ({ ...s, [selectedPost.id]: v }))}
+          feedback={feedback[selectedPost.id]?.text || ""}
+          feedbackIsError={feedback[selectedPost.id]?.isError}
+          onComment={async (textToSubmit?: string) => {
+            const text = textToSubmit || drafts[selectedPost.id];
             if (!text?.trim()) return;
-            const res = await addComment(post.id, text);
-            setDrafts((s) => ({ ...s, [post.id]: "" }));
+            const res = await addComment(selectedPost.id, text);
+            setDrafts((s) => ({ ...s, [selectedPost.id]: "" }));
             if (res.message) {
-              setFeedback((s) => ({ ...s, [post.id]: { text: res.message!, isError: false } }));
-              setTimeout(() => setFeedback((s) => ({ ...s, [post.id]: { text: "" } })), 4000);
+              setFeedback((s) => ({ ...s, [selectedPost.id]: { text: res.message!, isError: false } }));
+              setTimeout(() => setFeedback((s) => ({ ...s, [selectedPost.id]: { text: "" } })), 4000);
             } else if (res.error) {
-              setFeedback((s) => ({ ...s, [post.id]: { text: res.error!, isError: true } }));
-              setTimeout(() => setFeedback((s) => ({ ...s, [post.id]: { text: "" } })), 4000);
+              setFeedback((s) => ({ ...s, [selectedPost.id]: { text: res.error!, isError: true } }));
+              setTimeout(() => setFeedback((s) => ({ ...s, [selectedPost.id]: { text: "" } })), 4000);
             }
           }}
           onApproveComment={(id) => approveComment(id)}
           onRejectComment={(id) => rejectComment(id)}
           onDeleteComment={(id) => deleteComment(id)}
-          comments={comments.filter((c) => c.postId === post.id)}
-          author={userById(post.authorId)}
           isStaff={isStaff}
           currentUserId={user?.id}
-          liked={!!user && post.likes.includes(user.id)}
+          currentUser={user}
+          liked={!!user && selectedPost.likes.includes(user.id)}
           userById={userById}
         />
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
@@ -433,22 +482,12 @@ function PostCard({
   post,
   author,
   comments,
-  commentsOpen,
-  onToggleComments,
-  onCloseComments,
-  draft,
-  setDraft,
-  feedback,
-  feedbackIsError,
+  onOpen,
   onLike,
   onPin,
   onApprovePost,
   onRejectPost,
   onDeletePost,
-  onComment,
-  onApproveComment,
-  onRejectComment,
-  onDeleteComment,
   isStaff,
   currentUserId,
   liked,
@@ -458,57 +497,18 @@ function PostCard({
   post: Post;
   author: ReturnType<ReturnType<typeof useApp>["userById"]>;
   comments: Comment[];
-  commentsOpen: boolean;
-  onToggleComments: () => void;
-  onCloseComments?: () => void;
-  draft: string;
-  setDraft: (v: string) => void;
-  feedback?: string;
-  feedbackIsError?: boolean;
+  onOpen: () => void;
   onLike: () => void;
   onPin: () => void;
   onApprovePost?: () => void;
   onRejectPost?: () => void;
   onDeletePost?: () => void;
-  onComment: () => void;
-  onApproveComment: (id: string) => void;
-  onRejectComment: (id: string) => void;
-  onDeleteComment: (id: string) => void;
   isStaff: boolean;
   currentUserId?: string;
   liked: boolean;
   userById: ReturnType<typeof useApp>["userById"];
   isHighlighted?: boolean;
 }) {
-  const cardRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!commentsOpen) return;
-
-    function handlePointerDown(e: MouseEvent | TouchEvent) {
-      const target = e.target as Node | null;
-      if (!target) return;
-      if (cardRef.current && !cardRef.current.contains(target)) {
-        onCloseComments?.();
-      }
-    }
-
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        onCloseComments?.();
-      }
-    }
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("touchstart", handlePointerDown, { passive: true });
-    window.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("touchstart", handlePointerDown);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [commentsOpen, onCloseComments]);
-
   const visibleComments = comments.filter(
     (c) => c.status === "approved" || !c.status || c.authorId === currentUserId || isStaff
   );
@@ -530,9 +530,9 @@ function PostCard({
 
   return (
     <Card
-      ref={cardRef}
       id={`post-${post.id}`}
-      className={`p-3.5 sm:p-5 transition-all duration-500 ${
+      onClick={onOpen}
+      className={`p-3.5 sm:p-5 transition-all duration-200 cursor-pointer hover:border-zinc-300 hover:shadow-md active:scale-[0.998] ${
         isHighlighted
           ? "ring-2 ring-[#5051F9] ring-offset-2 shadow-lg bg-indigo-50/15"
           : isPending
@@ -542,12 +542,20 @@ function PostCard({
     >
       <div className="flex items-start justify-between gap-2.5 sm:gap-3">
         <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
-          <Link href={`/profile/${author?.id || ""}`} className="shrink-0">
+          <Link
+            href={`/profile/${author?.id || ""}`}
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 transition hover:opacity-90"
+          >
             <AvatarWithLevel user={author} size={38} />
           </Link>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <Link href={`/profile/${author?.id || ""}`} className="font-bold text-xs sm:text-sm text-zinc-950 hover:underline truncate">
+              <Link
+                href={`/profile/${author?.id || ""}`}
+                onClick={(e) => e.stopPropagation()}
+                className="font-bold text-xs sm:text-sm text-zinc-950 hover:underline truncate"
+              >
                 {author?.name || "Vex Media Group Admin"}
               </Link>
               <StaffRoleFavicon role={author?.role} size="xs" />
@@ -573,14 +581,20 @@ function PostCard({
           {isStaff && isPending && (
             <div className="flex items-center gap-1 mr-0.5">
               <button
-                onClick={onApprovePost}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onApprovePost?.();
+                }}
                 className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer active:scale-95"
                 title="Approve post"
               >
                 <Check size={12} /> <span className="hidden sm:inline">Approve</span>
               </button>
               <button
-                onClick={onRejectPost}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRejectPost?.();
+                }}
                 className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-2 sm:px-2.5 py-1 text-[11px] sm:text-xs font-bold text-red-700 hover:bg-red-200 transition cursor-pointer active:scale-95"
                 title="Reject post"
               >
@@ -594,13 +608,22 @@ function PostCard({
             </span>
           )}
           {isStaff && (
-            <button onClick={onPin} className="text-xs font-medium text-zinc-400 hover:text-zinc-800 transition cursor-pointer px-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onPin();
+              }}
+              className="text-xs font-medium text-zinc-400 hover:text-zinc-800 transition cursor-pointer px-1"
+            >
               {post.pinned ? "Unpin" : "Pin"}
             </button>
           )}
           {(isStaff || post.authorId === currentUserId) && onDeletePost && (
             <button
-              onClick={onDeletePost}
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeletePost();
+              }}
               className="text-xs text-zinc-400 hover:text-red-500 transition p-1 rounded cursor-pointer"
               title="Delete post"
             >
@@ -612,50 +635,66 @@ function PostCard({
 
       <div className="mt-3 sm:mt-3.5 flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm sm:text-base font-bold text-zinc-950 flex items-center gap-2 break-words">
+          <h3 className="text-sm sm:text-base font-bold text-zinc-950 flex items-center gap-2 break-words group-hover:text-primary transition-colors">
             {post.title.includes("Entrepreneurship") && !post.title.includes("🔵") ? (
               <span className="inline-block h-2 w-2 rounded-full bg-blue-500 shrink-0" />
             ) : null}
             <span>{post.title}</span>
           </h3>
-          <p className="mt-1.5 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-zinc-700 break-words">{post.body}</p>
+          <p className="mt-1.5 whitespace-pre-wrap text-xs sm:text-sm leading-relaxed text-zinc-600 line-clamp-3 break-words">
+            {post.body}
+          </p>
         </div>
 
         {post.thumbnail === "ecom-mail" && <EcomMailGraphic />}
       </div>
 
       {post.thumbnail === "replay" && (
-        <Link
-          href="/calendar"
-          className="group block mt-3.5 sm:mt-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-5 sm:p-8 text-white hover:shadow-md transition"
-        >
-          <p className="text-[11px] sm:text-xs uppercase tracking-[0.25em] text-white/70">Replay Session</p>
-          <p className="mt-1.5 sm:mt-2 text-xl sm:text-2xl font-black group-hover:underline break-words">{post.title.replace("Replay: ", "")}</p>
-          <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-white/80">Watch the recording inside Classroom & Meet →</p>
-        </Link>
+        <div className="group block mt-3.5 sm:mt-4 overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-4 sm:p-6 text-white transition">
+          <p className="text-[10px] sm:text-xs uppercase tracking-[0.25em] text-white/70">Replay Session</p>
+          <p className="mt-1 sm:mt-1.5 text-lg sm:text-xl font-black break-words">{post.title.replace("Replay: ", "")}</p>
+          <p className="mt-1 text-xs text-white/80">Watch full recording & discussion →</p>
+        </div>
       )}
 
-      {/* Reaction & comments bar matching Skool format */}
+      {/* Skool Segmented Reaction Bar */}
       <div className="mt-3.5 sm:mt-4 pt-2.5 flex items-center justify-between gap-3 text-xs text-zinc-500 border-t border-zinc-100/80">
-        <div className="flex items-center gap-3.5 sm:gap-4">
+        <div className="flex items-center gap-3">
+          {/* Segmented Like Button */}
+          <div className="inline-flex items-center rounded-lg border border-zinc-200 overflow-hidden font-semibold shadow-2xs">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onLike();
+              }}
+              className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 transition cursor-pointer active:scale-95 ${
+                liked
+                  ? "bg-[#5051F9]/10 text-primary font-bold"
+                  : "bg-white text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              <ThumbsUp size={13} fill={liked ? "currentColor" : "none"} />
+              <span className="text-[11px] sm:text-xs">Like</span>
+            </button>
+            <span className="bg-zinc-50 px-2 sm:px-2.5 py-1 sm:py-1.5 text-zinc-500 border-l border-zinc-200 font-bold min-w-[24px] text-center text-[11px] sm:text-xs">
+              {post.likes.length || 0}
+            </span>
+          </div>
+
           <button
-            onClick={onLike}
-            className={`inline-flex items-center gap-1.5 font-medium transition cursor-pointer active:scale-95 ${
-              liked ? "text-primary font-bold" : "text-zinc-600 hover:text-zinc-900"
-            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpen();
+            }}
+            className="inline-flex items-center gap-1.5 font-medium text-zinc-600 hover:text-zinc-900 transition cursor-pointer"
           >
-            <ThumbsUp size={15} fill={liked ? "currentColor" : "none"} /> {post.likes.length || 0}
-          </button>
-          <button
-            onClick={onToggleComments}
-            className="inline-flex items-center gap-1.5 font-medium text-zinc-600 hover:text-zinc-900 transition cursor-pointer active:scale-95"
-          >
-            <MessageCircle size={15} /> {visibleComments.length || 0}
+            <MessageCircle size={15} />
+            <span>{visibleComments.length} {visibleComments.length === 1 ? "comment" : "comments"}</span>
           </button>
 
           {/* Commenters avatars stack */}
           {visibleComments.length > 0 && (
-            <div className="flex items-center -space-x-1.5 pl-0.5">
+            <div className="hidden sm:flex items-center -space-x-1.5 pl-0.5">
               {visibleComments.slice(0, 4).map((c) => (
                 <Avatar key={c.id} user={userById(c.authorId)} size={20} className="border border-white shadow-xs" />
               ))}
@@ -664,87 +703,404 @@ function PostCard({
         </div>
 
         {lastComment && (
-          <span className="text-[10px] sm:text-[11px] text-zinc-400">
+          <span className="text-[10px] sm:text-[11px] text-zinc-400 truncate">
             Last comment {timeAgo(lastComment.createdAt)}
           </span>
         )}
       </div>
+    </Card>
+  );
+}
 
-      {commentsOpen && (
-        <div className="mt-3.5 sm:mt-4 space-y-2.5 sm:space-y-3 border-t border-zinc-100 pt-3 sm:pt-4">
-          {visibleComments.map((c) => {
-            const isPending = c.status === "pending";
-            const commentAuthor = userById(c.authorId);
-            const isCommentStaff = commentAuthor?.role === "admin" || commentAuthor?.role === "manager";
-            const canDelete = isStaff || c.authorId === currentUserId;
-            return (
-              <div
-                key={c.id}
-                className={`flex items-start justify-between gap-2 rounded-xl p-1.5 sm:p-2 transition ${
-                  isCommentStaff
-                    ? commentAuthor?.role === "admin"
-                      ? "border border-amber-200/80 bg-amber-50/30"
-                      : "border border-blue-200/80 bg-blue-50/30"
-                    : "hover:bg-zinc-50/70"
-                }`}
-              >
-                <div className="flex gap-2 sm:gap-2.5 min-w-0 flex-1">
-                  <AvatarWithLevel user={commentAuthor} size={28} />
-                  <div className={`rounded-xl px-2.5 sm:px-3 py-1.5 sm:py-2 flex-1 min-w-0 border ${isCommentStaff ? "bg-white border-zinc-200/80 shadow-2xs" : "bg-zinc-50 border-zinc-100"}`}>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <p className="text-xs font-bold text-zinc-900 truncate">{commentAuthor?.name}</p>
-                      <StaffRoleFavicon role={commentAuthor?.role} size="xs" />
-                      <span className="text-[10px] sm:text-[11px] text-zinc-400">{timeAgo(c.createdAt)}</span>
-                      {isPending && (
-                        <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
-                          <Clock size={10} /> Pending Approval
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs sm:text-sm mt-0.5 text-zinc-800 break-words">{c.body}</p>
-                  </div>
-                </div>
+function PostModal({
+  post,
+  author,
+  comments,
+  onClose,
+  onLike,
+  onPin,
+  onApprovePost,
+  onRejectPost,
+  onDeletePost,
+  draft,
+  setDraft,
+  feedback,
+  feedbackIsError,
+  onComment,
+  onApproveComment,
+  onRejectComment,
+  onDeleteComment,
+  isStaff,
+  currentUserId,
+  currentUser,
+  liked,
+  userById,
+}: {
+  post: Post;
+  author: ReturnType<ReturnType<typeof useApp>["userById"]>;
+  comments: Comment[];
+  onClose: () => void;
+  onLike: () => void;
+  onPin: () => void;
+  onApprovePost?: () => void;
+  onRejectPost?: () => void;
+  onDeletePost?: () => void;
+  draft: string;
+  setDraft: (v: string) => void;
+  feedback?: string;
+  feedbackIsError?: boolean;
+  onComment: (textToSubmit?: string) => Promise<void>;
+  onApproveComment: (id: string) => void;
+  onRejectComment: (id: string) => void;
+  onDeleteComment: (id: string) => void;
+  isStaff: boolean;
+  currentUserId?: string;
+  currentUser?: PublicUser | null;
+  liked: boolean;
+  userById: ReturnType<typeof useApp>["userById"];
+}) {
+  const modalContentRef = useRef<HTMLDivElement>(null);
+  const commentInputRef = useRef<HTMLInputElement>(null);
+  const commentsEndRef = useRef<HTMLDivElement>(null);
 
-                <div className="flex items-center gap-1 shrink-0 pt-1">
-                  {isStaff && isPending && (
-                    <>
-                      <button
-                        onClick={() => onApproveComment(c.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-2 py-1 text-[10px] sm:text-[11px] font-semibold text-white hover:bg-emerald-700 shadow-xs cursor-pointer active:scale-95"
-                        title="Approve Comment"
-                      >
-                        <Check size={11} /> <span className="hidden sm:inline">Approve</span>
-                      </button>
-                      <button
-                        onClick={() => onRejectComment(c.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-red-100 px-2 py-1 text-[10px] sm:text-[11px] font-semibold text-red-700 hover:bg-red-200 cursor-pointer active:scale-95"
-                        title="Reject Comment"
-                      >
-                        <X size={11} /> <span className="hidden sm:inline">Reject</span>
-                      </button>
-                    </>
-                  )}
-                  {canDelete && (
-                    <button
-                      onClick={() => {
-                        if (confirm("Are you sure you want to delete this comment?")) {
-                          onDeleteComment(c.id);
-                        }
-                      }}
-                      className="p-1 text-zinc-400 hover:text-red-500 rounded transition cursor-pointer"
-                      title="Delete Comment"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
-                </div>
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  // Handle Escape key to close
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  function scrollToBottom() {
+    commentsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function handleReply(authorName?: string) {
+    if (!authorName) return;
+    setDraft(`@${authorName} `);
+    setTimeout(() => {
+      commentInputRef.current?.focus();
+    }, 100);
+  }
+
+  const visibleComments = comments.filter(
+    (c) => c.status === "approved" || !c.status || c.authorId === currentUserId || isStaff
+  );
+
+  const categoryLabel =
+    post.category === "chat"
+      ? "General discussion"
+      : post.category === "wins"
+      ? "Wins"
+      : post.category === "recorded"
+      ? "Replay"
+      : post.category === "team"
+      ? "Team"
+      : "Review";
+
+  const isPending = post.status === "pending";
+
+  return (
+    <div
+      className="fixed inset-0 z-[90] flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-y-auto bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      {/* Screen Close Button (Skool top-left round close button) */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed top-3 left-3 sm:top-5 sm:left-5 z-[100] flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-zinc-900/85 hover:bg-zinc-900 text-white shadow-2xl transition cursor-pointer backdrop-blur-md active:scale-95 border border-white/10"
+        title="Close (Esc)"
+        aria-label="Close"
+      >
+        <X size={18} />
+      </button>
+
+      {/* Main Post Modal Card */}
+      <div
+        ref={modalContentRef}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-[680px] max-h-[92vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-zinc-200/90 flex flex-col my-auto overflow-hidden animate-in zoom-in-95 duration-200"
+      >
+        {/* Modal Header */}
+        <div className="flex items-center justify-between gap-3 p-4 sm:p-6 pb-3 border-b border-zinc-100 shrink-0">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <Link href={`/profile/${author?.id || ""}`} onClick={onClose} className="shrink-0">
+              <AvatarWithLevel user={author} size={42} />
+            </Link>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <Link
+                  href={`/profile/${author?.id || ""}`}
+                  onClick={onClose}
+                  className="font-bold text-sm sm:text-base text-zinc-950 hover:underline truncate"
+                >
+                  {author?.name || "Vex Media Group Admin"}
+                </Link>
+                <StaffRoleFavicon role={author?.role} size="xs" />
+                {isPending && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-amber-100 px-2 py-0.5 text-[10px] sm:text-[11px] font-bold text-amber-800 border border-amber-300">
+                    <Clock size={10} /> ⏳ Pending Approval
+                  </span>
+                )}
               </div>
-            );
-          })}
+              <p className="text-xs text-zinc-500 font-normal flex items-center gap-1 sm:gap-1.5 flex-wrap mt-0.5">
+                <span>{timeAgo(post.createdAt)}</span>
+                <span>·</span>
+                <span className="inline-flex items-center gap-1">
+                  {post.category === "team" && (
+                    <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover inline-block shrink-0" />
+                  )}
+                  <span>{categoryLabel}</span>
+                </span>
+              </p>
+            </div>
+          </div>
 
+          <div className="flex items-center gap-1.5 shrink-0">
+            {isStaff && isPending && (
+              <div className="flex items-center gap-1 mr-1">
+                <button
+                  onClick={onApprovePost}
+                  className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer active:scale-95"
+                >
+                  <Check size={12} /> <span className="hidden sm:inline">Approve</span>
+                </button>
+                <button
+                  onClick={onRejectPost}
+                  className="inline-flex items-center gap-1 rounded-lg bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700 hover:bg-red-200 transition cursor-pointer active:scale-95"
+                >
+                  <X size={12} /> <span className="hidden sm:inline">Reject</span>
+                </button>
+              </div>
+            )}
+            {post.pinned && (
+              <span className="inline-flex items-center gap-1 text-xs font-bold text-zinc-700 bg-zinc-100 rounded-lg px-2 py-1">
+                <Pin size={12} className="fill-zinc-700" /> <span className="hidden sm:inline">Pinned</span>
+              </span>
+            )}
+            {isStaff && (
+              <button
+                onClick={onPin}
+                className="text-xs font-semibold text-zinc-500 hover:text-zinc-900 rounded-lg px-2 py-1 hover:bg-zinc-100 transition cursor-pointer"
+              >
+                {post.pinned ? "Unpin" : "Pin"}
+              </button>
+            )}
+            {(isStaff || post.authorId === currentUserId) && onDeletePost && (
+              <button
+                onClick={onDeletePost}
+                className="text-xs text-zinc-400 hover:text-red-500 transition p-1.5 rounded-lg hover:bg-red-50 cursor-pointer"
+                title="Delete post"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+            <button
+              onClick={onClose}
+              className="p-1.5 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 rounded-lg transition cursor-pointer ml-1"
+              title="Close modal"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          {/* Post Title */}
+          <h2 className="text-lg sm:text-2xl font-black text-zinc-950 tracking-tight leading-snug break-words">
+            {post.title.includes("Entrepreneurship") && !post.title.includes("🔵") ? (
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500 mr-2 shrink-0" />
+            ) : null}
+            <span>{post.title}</span>
+          </h2>
+
+          {/* Post Body */}
+          <div className="text-sm sm:text-base text-zinc-800 leading-relaxed whitespace-pre-wrap break-words">
+            {post.body}
+          </div>
+
+          {post.thumbnail === "ecom-mail" && (
+            <div className="pt-2">
+              <EcomMailGraphic />
+            </div>
+          )}
+
+          {post.thumbnail === "replay" && (
+            <Link
+              href="/calendar"
+              onClick={onClose}
+              className="group block overflow-hidden rounded-xl bg-gradient-to-br from-[#0b1b4a] to-[#5051F9] p-5 sm:p-7 text-white hover:shadow-md transition mt-3"
+            >
+              <p className="text-xs uppercase tracking-[0.25em] text-white/70">Replay Session</p>
+              <p className="mt-1.5 text-xl sm:text-2xl font-black group-hover:underline break-words">{post.title.replace("Replay: ", "")}</p>
+              <p className="mt-1.5 text-xs sm:text-sm text-white/80">Watch full recording inside Classroom & Meet →</p>
+            </Link>
+          )}
+
+          {/* Reaction & Engagement Bar */}
+          <div className="flex items-center justify-between border-t border-b border-zinc-100 py-3 mt-4 text-xs">
+            <div className="flex items-center gap-3">
+              {/* Segmented Like Button matching Skool */}
+              <div className="inline-flex items-center rounded-lg border border-zinc-200 overflow-hidden font-semibold shadow-2xs">
+                <button
+                  onClick={onLike}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 transition cursor-pointer active:scale-95 ${
+                    liked
+                      ? "bg-[#5051F9]/10 text-primary font-bold"
+                      : "bg-white text-zinc-700 hover:bg-zinc-50"
+                  }`}
+                >
+                  <ThumbsUp size={14} fill={liked ? "currentColor" : "none"} />
+                  <span>Like</span>
+                </button>
+                <span className="bg-zinc-50 px-2.5 py-1.5 text-zinc-600 border-l border-zinc-200 font-bold min-w-[28px] text-center">
+                  {post.likes.length || 0}
+                </span>
+              </div>
+
+              <span className="text-zinc-500 font-medium flex items-center gap-1.5">
+                <MessageCircle size={15} />
+                <span>{visibleComments.length} {visibleComments.length === 1 ? "comment" : "comments"}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Comments Thread Section */}
+          <div className="space-y-3 pt-2">
+            {visibleComments.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 p-6 text-center text-xs text-zinc-500">
+                <MessageCircle size={22} className="mx-auto text-zinc-400 mb-1 opacity-70" />
+                <p className="font-semibold text-zinc-700">No comments yet</p>
+                <p className="text-[11px] text-zinc-400 mt-0.5">Be the first to join this discussion!</p>
+              </div>
+            ) : (
+              visibleComments.map((c) => {
+                const isPendingComment = c.status === "pending";
+                const commentAuthor = userById(c.authorId);
+                const isCommentStaff = commentAuthor?.role === "admin" || commentAuthor?.role === "manager";
+                const canDelete = isStaff || c.authorId === currentUserId;
+
+                return (
+                  <div key={c.id} className="flex items-start gap-2.5 sm:gap-3 group">
+                    <Link href={`/profile/${commentAuthor?.id || ""}`} onClick={onClose} className="shrink-0 mt-1">
+                      <AvatarWithLevel user={commentAuthor} size={32} />
+                    </Link>
+
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div
+                        className={`rounded-2xl p-3 sm:p-3.5 border ${
+                          isCommentStaff
+                            ? commentAuthor?.role === "admin"
+                              ? "bg-amber-50/40 border-amber-200/80"
+                              : "bg-blue-50/40 border-blue-200/80"
+                            : "bg-zinc-50/90 border-zinc-100"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Link
+                            href={`/profile/${commentAuthor?.id || ""}`}
+                            onClick={onClose}
+                            className="text-xs sm:text-sm font-bold text-zinc-950 hover:underline truncate"
+                          >
+                            {commentAuthor?.name || "Community Member"}
+                          </Link>
+                          <StaffRoleFavicon role={commentAuthor?.role} size="xs" />
+                          <span className="text-[11px] text-zinc-400">· {timeAgo(c.createdAt)}</span>
+                          {isPendingComment && (
+                            <span className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800 border border-amber-200">
+                              <Clock size={10} /> Pending Approval
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-xs sm:text-sm text-zinc-800 mt-1 whitespace-pre-wrap leading-relaxed break-words">
+                          {c.body}
+                        </p>
+                      </div>
+
+                      {/* Comment Action Links */}
+                      <div className="flex items-center gap-3 pl-2 text-xs font-semibold text-zinc-500">
+                        <button
+                          type="button"
+                          onClick={() => handleReply(commentAuthor?.name)}
+                          className="hover:text-primary transition cursor-pointer"
+                        >
+                          Reply
+                        </button>
+
+                        {isStaff && isPendingComment && (
+                          <>
+                            <button
+                              onClick={() => onApproveComment(c.id)}
+                              className="text-emerald-600 hover:text-emerald-700 transition cursor-pointer"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => onRejectComment(c.id)}
+                              className="text-red-600 hover:text-red-700 transition cursor-pointer"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+
+                        {canDelete && (
+                          <button
+                            onClick={() => {
+                              if (confirm("Are you sure you want to delete this comment?")) {
+                                onDeleteComment(c.id);
+                              }
+                            }}
+                            className="text-zinc-400 hover:text-red-500 transition cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+
+            {/* Jump to latest comment button */}
+            {visibleComments.length > 3 && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={scrollToBottom}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-white border border-zinc-200/90 px-3.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs hover:bg-zinc-50 transition cursor-pointer active:scale-95"
+                >
+                  <ChevronDown size={14} />
+                  <span>Jump to latest comment</span>
+                </button>
+              </div>
+            )}
+
+            <div ref={commentsEndRef} />
+          </div>
+        </div>
+
+        {/* Sticky Bottom Comment Form */}
+        <div className="border-t border-zinc-100 bg-white p-3.5 sm:p-4 shrink-0">
           {feedback && (
             <div
-              className={`rounded-xl px-3.5 py-2.5 text-xs font-semibold border ${
+              className={`mb-2.5 rounded-xl px-3.5 py-2 text-xs font-semibold border ${
                 feedbackIsError
                   ? "bg-red-50 text-red-700 border-red-200"
                   : "bg-emerald-50 text-emerald-800 border-emerald-200"
@@ -759,16 +1115,24 @@ function PostCard({
               e.preventDefault();
               onComment();
             }}
-            className="space-y-1.5 pt-2"
+            className="space-y-1.5"
           >
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2.5 items-center">
+              <AvatarWithLevel user={currentUser} size={34} />
               <input
+                ref={commentInputRef}
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="Write a comment..."
-                className="flex-1 rounded-full bg-zinc-100 px-3.5 sm:px-4 py-2 text-base sm:text-sm outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 border border-transparent focus:border-zinc-200 shadow-2xs"
+                className="flex-1 rounded-full bg-zinc-100 px-4 py-2 text-base sm:text-sm outline-none focus:bg-white focus:ring-1 focus:ring-zinc-900 border border-transparent focus:border-zinc-200 shadow-2xs"
               />
-              <PrimaryButton type="submit" className="py-2 px-3.5 sm:px-4 text-xs sm:text-sm font-bold shrink-0">Send</PrimaryButton>
+              <PrimaryButton
+                type="submit"
+                disabled={!draft.trim()}
+                className="py-2 px-4 text-xs sm:text-sm font-bold shrink-0"
+              >
+                Send
+              </PrimaryButton>
             </div>
             {!isStaff && (
               <p className="px-3 text-[10px] sm:text-[11px] text-zinc-400 flex items-center gap-1">
@@ -777,8 +1141,8 @@ function PostCard({
             )}
           </form>
         </div>
-      )}
-    </Card>
+      </div>
+    </div>
   );
 }
 
