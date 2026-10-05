@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useApp } from "@/components/AppProvider";
-import { Card, Field, PrimaryButton, inputClass } from "@/components/ui";
+import { Card, Field, PrimaryButton, PasswordInput, inputClass } from "@/components/ui";
 
 export default function SettingsPage() {
   const { user, updateProfile, changePassword } = useApp();
@@ -56,10 +56,10 @@ export default function SettingsPage() {
       <Card className="space-y-3 p-6">
         <h2 className="font-semibold">Password</h2>
         <Field label="Current password">
-          <input className={inputClass} type="password" value={current} onChange={(e) => setCurrent(e.target.value)} />
+          <PasswordInput value={current} onChange={(e) => setCurrent(e.target.value)} />
         </Field>
         <Field label="New password">
-          <input className={inputClass} type="password" value={next} onChange={(e) => setNext(e.target.value)} />
+          <PasswordInput value={next} onChange={(e) => setNext(e.target.value)} />
         </Field>
         <PrimaryButton
           onClick={async () => {

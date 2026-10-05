@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { initials } from "@/lib/format";
-import { X } from "lucide-react";
+import { Check, Copy, Eye, EyeOff, X } from "lucide-react";
 import type { PublicUser } from "@/lib/types";
 
 export function Avatar({
@@ -109,6 +110,93 @@ export function Field({
 
 export const inputClass =
   "w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-primary focus:ring-2 focus:ring-primary/20";
+
+export function PasswordInput({
+  className = "",
+  value,
+  defaultValue,
+  ...props
+}: React.InputHTMLAttributes<HTMLInputElement>) {
+  const [show, setShow] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+
+    let textToCopy = "";
+    if (value !== undefined) {
+      textToCopy = typeof value === "string" ? value : String(value || "");
+    } else if (defaultValue !== undefined) {
+      textToCopy = typeof defaultValue === "string" ? defaultValue : String(defaultValue || "");
+    }
+
+    if (!textToCopy) return;
+
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = textToCopy;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback
+    }
+  }
+
+  const hasValue =
+    (value !== undefined && String(value).length > 0) ||
+    (defaultValue !== undefined && String(defaultValue).length > 0);
+
+  return (
+    <div className="relative w-full">
+      <input
+        {...props}
+        value={value}
+        defaultValue={defaultValue}
+        type={show ? "text" : "password"}
+        className={`${inputClass} select-text ${hasValue ? "pr-20" : "pr-10"} ${className}`}
+      />
+      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1">
+        {hasValue && (
+          <button
+            type="button"
+            tabIndex={-1}
+            onClick={handleCopy}
+            className={`rounded-md p-1 transition cursor-pointer focus:outline-none ${
+              copied
+                ? "text-emerald-600 bg-emerald-50"
+                : "text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100"
+            }`}
+            aria-label={copied ? "Password copied to clipboard" : "Copy password"}
+            title={copied ? "Copied!" : "Copy password"}
+          >
+            {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+          </button>
+        )}
+        <button
+          type="button"
+          tabIndex={-1}
+          onClick={() => setShow((prev) => !prev)}
+          className="rounded-md p-1 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-100 transition cursor-pointer focus:outline-none"
+          aria-label={show ? "Hide password" : "Show password"}
+          title={show ? "Hide password" : "Show password"}
+        >
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function Card({
   children,

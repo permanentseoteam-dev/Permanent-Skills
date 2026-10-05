@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthCard } from "@/components/AuthCard";
 import { useApp } from "@/components/AppProvider";
-import { Field, PrimaryButton, inputClass } from "@/components/ui";
+import { Field, PrimaryButton, PasswordInput, inputClass } from "@/components/ui";
 import { trackAffiliateClick } from "@/lib/actions";
 
 function RegisterForm() {
@@ -77,9 +77,7 @@ function RegisterForm() {
           />
         </Field>
         <Field label="Password">
-          <input
-            className={inputClass}
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={8}
@@ -88,9 +86,7 @@ function RegisterForm() {
           />
         </Field>
         <Field label="Confirm password">
-          <input
-            className={inputClass}
-            type="password"
+          <PasswordInput
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             autoComplete="new-password"

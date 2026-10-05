@@ -6,7 +6,7 @@ import { Suspense, useState } from "react";
 import { Sparkles, UserPlus } from "lucide-react";
 import { AuthCard } from "@/components/AuthCard";
 import { useApp } from "@/components/AppProvider";
-import { Field, PrimaryButton, inputClass } from "@/components/ui";
+import { Field, PrimaryButton, PasswordInput, inputClass } from "@/components/ui";
 
 function LoginForm() {
   const { login } = useApp();
@@ -79,9 +79,7 @@ function LoginForm() {
           />
         </Field>
         <Field label="Password">
-          <input
-            className={inputClass}
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"

@@ -19,13 +19,14 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
+    const isApprovedOrStaff = user && (user.role === "admin" || user.role === "manager" || user.status === "approved");
     if (user && (pathname === "/login" || pathname === "/register")) {
-      if (user.role === "admin" || user.status === "approved") router.replace("/community");
+      if (isApprovedOrStaff) router.replace("/community");
       else if (!user.application) router.replace("/apply");
       else router.replace("/pending");
       return;
     }
-    if (user && pathname === "/" && (user.role === "admin" || user.status === "approved")) {
+    if (user && pathname === "/" && isApprovedOrStaff) {
       router.replace("/community");
       return;
     }
@@ -35,9 +36,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     }
     if (user && pathname === "/apply" && user.application && user.status === "pending") {
       router.replace("/pending");
-    }
-    if (user && pathname === "/pending" && (user.role === "admin" || user.status === "approved")) {
-      router.replace("/community");
     }
     if (user && pathname.startsWith("/admin") && user.role !== "admin") {
       router.replace("/community");
