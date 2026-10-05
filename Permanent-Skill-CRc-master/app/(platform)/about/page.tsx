@@ -446,11 +446,21 @@ function AboutPageContent() {
                 ? formatMoney(selectedCourse.price)
                 : "Free Access"
             }
-            creatorName="Nate Herk"
+            creatorName={activeCommunity?.creatorName || "Nate Herk"}
+            creatorAvatarUrl={activeCommunity?.creatorAvatarUrl}
+            creatorBadge={activeCommunity?.creatorBadge || "💎"}
             slides={generateCourseSlides(selectedCourse, videoConfig.videoUrl)}
             defaultVideoUrl={
               selectedCourse.lessons[0]?.videoUrl || videoConfig.videoUrl
             }
+            isAdminOrManager={isAdminOrManager}
+            onEditCreator={() => {
+              setEditCreatorName(activeCommunity?.creatorName || "Nate Herk");
+              setEditCreatorBadge(activeCommunity?.creatorBadge || "💎");
+              setEditCreatorAvatarUrl(activeCommunity?.creatorAvatarUrl || "");
+              setCreatorSaveError("");
+              setEditCreatorModalOpen(true);
+            }}
           />
 
           {/* Course Details, Curriculum & Purchase Box Grid */}
@@ -649,11 +659,20 @@ function AboutPageContent() {
                   : "466.9k members"
               }
               priceText={currentPriceNote}
-              creatorName="Nate Herk"
+              creatorName={activeCommunity?.creatorName || "Nate Herk"}
+              creatorAvatarUrl={activeCommunity?.creatorAvatarUrl}
+              creatorBadge={activeCommunity?.creatorBadge || "💎"}
               defaultVideoUrl={videoConfig.videoUrl}
               customThumbnailUrl={videoConfig.thumbnailUrl}
               isAdminOrManager={isAdminOrManager}
               onEditVideo={openEditModal}
+              onEditCreator={() => {
+                setEditCreatorName(activeCommunity?.creatorName || "Nate Herk");
+                setEditCreatorBadge(activeCommunity?.creatorBadge || "💎");
+                setEditCreatorAvatarUrl(activeCommunity?.creatorAvatarUrl || "");
+                setCreatorSaveError("");
+                setEditCreatorModalOpen(true);
+              }}
             />
 
             {/* Description & Features Matrix Card */}
@@ -1119,6 +1138,35 @@ function AboutPageContent() {
               />
             </Field>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 border-t border-zinc-100">
+              <Field label="Creator Display Name">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Nate Herk"
+                  value={editCreatorName}
+                  onChange={(e) => setEditCreatorName(e.target.value)}
+                />
+              </Field>
+
+              <Field label="Creator Badge / Emoji">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. 💎 or 👑"
+                  value={editCreatorBadge}
+                  onChange={(e) => setEditCreatorBadge(e.target.value)}
+                />
+              </Field>
+            </div>
+
+            <Field label="Creator Avatar Image URL (optional)">
+              <input
+                className={inputClass}
+                placeholder="https://example.com/avatar.jpg"
+                value={editCreatorAvatarUrl}
+                onChange={(e) => setEditCreatorAvatarUrl(e.target.value)}
+              />
+            </Field>
+
             {descSaveError && (
               <p className="text-xs text-red-600 font-semibold">{descSaveError}</p>
             )}
@@ -1138,6 +1186,62 @@ function AboutPageContent() {
               </button>
               <PrimaryButton type="submit" disabled={savingDesc} className="text-xs py-2 px-4">
                 {savingDesc ? "Saving..." : "Save Changes"}
+              </PrimaryButton>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Admin Edit Creator Modal */}
+      {isAdminOrManager && (
+        <Modal
+          open={editCreatorModalOpen}
+          onClose={() => setEditCreatorModalOpen(false)}
+          title="Edit Creator Details"
+        >
+          <form onSubmit={handleSaveCreator} className="space-y-4">
+            <Field label="Creator Display Name">
+              <input
+                className={inputClass}
+                placeholder="e.g. Nate Herk"
+                value={editCreatorName}
+                onChange={(e) => setEditCreatorName(e.target.value)}
+                required
+              />
+            </Field>
+
+            <Field label="Creator Badge / Emoji (displayed next to name)">
+              <input
+                className={inputClass}
+                placeholder="e.g. 💎 or 👑"
+                value={editCreatorBadge}
+                onChange={(e) => setEditCreatorBadge(e.target.value)}
+              />
+            </Field>
+
+            <Field label="Creator Avatar Image URL (optional)">
+              <input
+                className={inputClass}
+                placeholder="https://example.com/avatar.jpg"
+                value={editCreatorAvatarUrl}
+                onChange={(e) => setEditCreatorAvatarUrl(e.target.value)}
+              />
+            </Field>
+
+            {creatorSaveError && (
+              <p className="text-xs text-red-600 font-semibold">{creatorSaveError}</p>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setEditCreatorModalOpen(false)}
+                className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <PrimaryButton type="submit" disabled={savingCreator} className="text-xs py-2 px-4">
+                {savingCreator ? "Saving..." : "Save Creator"}
               </PrimaryButton>
             </div>
           </form>

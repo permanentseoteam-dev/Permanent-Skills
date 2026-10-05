@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
+  Lock,
   MessageCircle,
   Search,
   Sparkles,
@@ -75,6 +76,10 @@ export default function MembersPage() {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"all" | "admins" | "managers" | "team" | "online" | "premium">("all");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
+  const [lockedChatModalOpen, setLockedChatModalOpen] = useState(false);
+
+  // Direct chat is unlocked for Admin and Manager roles only; locked for Team and User roles
+  const canChat = user?.role === "admin" || user?.role === "manager";
 
   // Invite modal state
   const [inviteOpen, setInviteOpen] = useState(false);
