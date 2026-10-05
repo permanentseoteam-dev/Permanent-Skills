@@ -1612,6 +1612,52 @@ export async function createCommunity(input: {
   return { ok: true, id };
 }
 
+export async function updateCommunityDescription(input: {
+  communityId: string;
+  name?: string;
+  priceNote?: string;
+  headline?: string;
+  aboutHeadline?: string;
+  aboutDescription?: string;
+  aboutFeatures?: string[];
+  aboutPainPoints?: string[];
+  aboutClosingText?: string;
+}): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  if (me.role !== "admin" && me.role !== "manager") {
+    return { ok: false, error: "Only admins and managers are permitted to edit community descriptions." };
+  }
+  const db = readDb();
+  const comm = db.communities?.find((c) => c.id === input.communityId);
+  if (!comm) return { ok: false, error: "Community not found." };
+
+  await updateDb((d) => {
+    d.communities = d.communities || [];
+    const target = d.communities.find((c) => c.id === input.communityId);
+    if (!target) return;
+    if (input.name && input.name.trim()) target.name = input.name.trim();
+    if (input.priceNote !== undefined) target.priceNote = input.priceNote.trim();
+    if (input.headline !== undefined) target.headline = input.headline.trim();
+    if (input.aboutHeadline !== undefined) target.aboutHeadline = input.aboutHeadline.trim();
+    if (input.aboutDescription !== undefined) {
+      target.aboutDescription = input.aboutDescription.trim();
+      target.description = input.aboutDescription.trim();
+    }
+    if (input.aboutFeatures !== undefined) {
+      target.aboutFeatures = input.aboutFeatures.map((f) => f.trim()).filter(Boolean);
+    }
+    if (input.aboutPainPoints !== undefined) {
+      target.aboutPainPoints = input.aboutPainPoints.map((p) => p.trim()).filter(Boolean);
+    }
+    if (input.aboutClosingText !== undefined) {
+      target.aboutClosingText = input.aboutClosingText.trim();
+    }
+  });
+
+  return { ok: true, id: input.communityId };
+}
+
 export async function joinCommunity(communityId: string): Promise<ActionResult> {
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in first." };

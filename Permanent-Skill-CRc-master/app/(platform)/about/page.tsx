@@ -6,6 +6,8 @@ import {
   Film,
   Pencil,
   Play,
+  Plus,
+  RotateCcw,
   Star,
   Trash2,
   Video,
@@ -38,6 +40,13 @@ const defaultFeatures = [
   "Built for coaches, agencies, local businesses, and operators",
 ];
 
+const defaultPainPoints = [
+  "Tactics that expire with every algorithm update",
+  "Testing blindly with no blueprint",
+  "Wasting ad budget on vanity noise",
+  "Operating with no repeatable framework",
+];
+
 type VideoConfig = {
   videoUrl: string;
   thumbnailUrl?: string;
@@ -48,7 +57,19 @@ const defaultVideoConfig: VideoConfig = {
 };
 
 export default function AboutPage() {
-  const { reviews, users, user, userById, addReview, deleteReview, activeCommunity, videoResources, saveVideoResource } = useApp();
+  const {
+    reviews,
+    users,
+    user,
+    userById,
+    addReview,
+    deleteReview,
+    activeCommunity,
+    updateCommunityDescription,
+    videoResources,
+    saveVideoResource,
+  } = useApp();
+
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
 
   const [upgradeOpen, setUpgradeOpen] = useState(false);
@@ -68,11 +89,109 @@ export default function AboutPage() {
   const [savingVideo, setSavingVideo] = useState(false);
   const [videoSaveError, setVideoSaveError] = useState("");
 
+  // Edit Description Modal state (Admin & Manager only)
+  const [editDescModalOpen, setEditDescModalOpen] = useState(false);
+  const [editDescPriceNote, setEditDescPriceNote] = useState("");
+  const [editDescHeadline, setEditDescHeadline] = useState("");
+  const [editDescMainStory, setEditDescMainStory] = useState("");
+  const [editDescFeatures, setEditDescFeatures] = useState<string[]>([]);
+  const [editDescPainPoints, setEditDescPainPoints] = useState<string[]>([]);
+  const [editDescClosingText, setEditDescClosingText] = useState("");
+  const [savingDesc, setSavingDesc] = useState(false);
+  const [descSaveError, setDescSaveError] = useState("");
+  const [descSaveSuccess, setDescSaveSuccess] = useState(false);
+
   function openEditModal() {
     setEditVideoUrl(videoConfig.videoUrl || "");
     setEditThumbnailUrl(videoConfig.thumbnailUrl || "");
     setVideoSaveError("");
     setEditModalOpen(true);
+  }
+
+  function openEditDescModal() {
+    setEditDescPriceNote(activeCommunity?.priceNote || "$9/month");
+    setEditDescHeadline(
+      activeCommunity?.aboutHeadline ||
+        activeCommunity?.headline ||
+        "Join today for $9/month after approval. Applications are reviewed so the room stays useful and highly compounding."
+    );
+    setEditDescMainStory(
+      activeCommunity?.aboutDescription ||
+        activeCommunity?.description ||
+        "Think durable skills take years and $10k courses? Think again. The Permanent Skill framework teaches systems that generate compounding authority and revenue."
+    );
+    setEditDescFeatures(
+      activeCommunity?.aboutFeatures && activeCommunity.aboutFeatures.length > 0
+        ? [...activeCommunity.aboutFeatures]
+        : [...defaultFeatures]
+    );
+    setEditDescPainPoints(
+      activeCommunity?.aboutPainPoints && activeCommunity.aboutPainPoints.length > 0
+        ? [...activeCommunity.aboutPainPoints]
+        : [...defaultPainPoints]
+    );
+    setEditDescClosingText(
+      activeCommunity?.aboutClosingText ||
+        `If any of those sound familiar, ${activeCommunity?.name || "AI Architects"} is built for you.`
+    );
+    setDescSaveError("");
+    setDescSaveSuccess(false);
+    setEditDescModalOpen(true);
+  }
+
+  async function handleSaveDescription(e: React.FormEvent) {
+    e.preventDefault();
+    if (!activeCommunity?.id) {
+      setDescSaveError("No active community selected.");
+      return;
+    }
+
+    setSavingDesc(true);
+    setDescSaveError("");
+
+    try {
+      const res = await updateCommunityDescription({
+        communityId: activeCommunity.id,
+        priceNote: editDescPriceNote.trim() || "$9/month",
+        aboutHeadline: editDescHeadline.trim(),
+        headline: editDescHeadline.trim(),
+        aboutDescription: editDescMainStory.trim(),
+        aboutFeatures: editDescFeatures.map((f) => f.trim()).filter(Boolean),
+        aboutPainPoints: editDescPainPoints.map((p) => p.trim()).filter(Boolean),
+        aboutClosingText: editDescClosingText.trim(),
+      });
+
+      if (!res.ok) {
+        setDescSaveError(res.error || "Failed to update community description.");
+        return;
+      }
+
+      setDescSaveSuccess(true);
+      setTimeout(() => {
+        setEditDescModalOpen(false);
+        setDescSaveSuccess(false);
+      }, 700);
+    } catch (err: any) {
+      console.error(err);
+      setDescSaveError(err.message || "Failed to save description.");
+    } finally {
+      setSavingDesc(false);
+    }
+  }
+
+  function handleResetDescriptionDefaults() {
+    setEditDescPriceNote("$9/month");
+    setEditDescHeadline(
+      "Join today for $9/month after approval. Applications are reviewed so the room stays useful and highly compounding."
+    );
+    setEditDescMainStory(
+      "Think durable skills take years and $10k courses? Think again. The Permanent Skill framework teaches systems that generate compounding authority and revenue."
+    );
+    setEditDescFeatures([...defaultFeatures]);
+    setEditDescPainPoints([...defaultPainPoints]);
+    setEditDescClosingText(
+      `If any of those sound familiar, ${activeCommunity?.name || "AI Architects"} is built for you.`
+    );
   }
 
   async function handleSaveVideo(e: React.FormEvent) {
@@ -175,6 +294,31 @@ export default function AboutPage() {
   const communityTitle = activeCommunity?.name || "AI Architects";
   const embed = useMemo(() => toEmbed(videoConfig.videoUrl), [videoConfig.videoUrl]);
 
+  const currentFeatures =
+    activeCommunity?.aboutFeatures && activeCommunity.aboutFeatures.length > 0
+      ? activeCommunity.aboutFeatures
+      : defaultFeatures;
+
+  const currentPainPoints =
+    activeCommunity?.aboutPainPoints && activeCommunity.aboutPainPoints.length > 0
+      ? activeCommunity.aboutPainPoints
+      : defaultPainPoints;
+
+  const currentPriceNote = activeCommunity?.priceNote || "$9/month";
+  const currentHeadline =
+    activeCommunity?.aboutHeadline ||
+    activeCommunity?.headline ||
+    `Join today for ${currentPriceNote} after approval. Applications are reviewed so the room stays useful and highly compounding.`;
+
+  const currentMainStory =
+    activeCommunity?.aboutDescription ||
+    activeCommunity?.description ||
+    "Think durable skills take years and $10k courses? Think again. The Permanent Skill framework teaches systems that generate compounding authority and revenue.";
+
+  const currentClosingText =
+    activeCommunity?.aboutClosingText ||
+    `If any of those sound familiar, ${communityTitle} is built for you.`;
+
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       <div className="min-w-0 flex-1 space-y-5">
@@ -200,14 +344,26 @@ export default function AboutPage() {
             </div>
 
             {isAdminOrManager && (
-              <button
-                type="button"
-                onClick={openEditModal}
-                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
-              >
-                <Pencil size={13} className="text-primary" />
-                <span>Edit / Upload Video</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={openEditDescModal}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
+                  title="Edit community description, headline & features"
+                >
+                  <Pencil size={13} className="text-primary" />
+                  <span>Edit Description</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openEditModal}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
+                  title="Edit video and thumbnail"
+                >
+                  <Video size={13} className="text-primary" />
+                  <span>Edit Video</span>
+                </button>
+              </div>
             )}
           </div>
 
@@ -313,7 +469,7 @@ export default function AboutPage() {
               </span>
               <span>·</span>
               <span className="font-semibold text-primary">
-                💳 $9/month
+                💳 {currentPriceNote}
               </span>
               <span>·</span>
               <span>By <strong>Permanent Skills Team</strong></span>
@@ -331,21 +487,46 @@ export default function AboutPage() {
           </div>
 
           {/* Description & Features Matrix */}
-          <div className="mt-5 space-y-4 text-sm leading-relaxed text-zinc-700">
-            <p className="text-base font-medium text-zinc-900">
-              Join today for <strong className="text-primary font-bold">$9/month</strong> after approval. Applications are reviewed so the room stays useful and highly compounding.
-            </p>
-            <p>
-              Think durable skills take years and $10k courses? Think again. The Permanent Skill framework teaches systems that generate compounding authority and revenue.
+          <div className="mt-5 space-y-4 text-sm leading-relaxed text-zinc-700 relative">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-base font-medium text-zinc-900 flex-1">
+                {currentHeadline}
+              </p>
+              {isAdminOrManager && (
+                <button
+                  type="button"
+                  onClick={openEditDescModal}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg transition cursor-pointer shrink-0"
+                  title="Edit community description section"
+                >
+                  <Pencil size={12} />
+                  <span>Edit Description</span>
+                </button>
+              )}
+            </div>
+
+            <p className="whitespace-pre-line text-zinc-700">
+              {currentMainStory}
             </p>
 
             <div className="pt-2">
-              <p className="text-sm font-bold uppercase tracking-wider text-zinc-900 mb-2">
-                What&apos;s inside:
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold uppercase tracking-wider text-zinc-900">
+                  What&apos;s inside:
+                </p>
+                {isAdminOrManager && (
+                  <button
+                    type="button"
+                    onClick={openEditDescModal}
+                    className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    Edit Checklist
+                  </button>
+                )}
+              </div>
               <ul className="grid gap-2 sm:grid-cols-2">
-                {defaultFeatures.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-800">
+                {currentFeatures.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-800">
                     <span className="text-emerald-500 font-bold shrink-0 mt-0.5">✅</span>
                     <span>{f}</span>
                   </li>
@@ -354,17 +535,23 @@ export default function AboutPage() {
             </div>
 
             <div className="pt-2">
-              <p className="text-sm font-bold uppercase tracking-wider text-zinc-900 mb-2">
-                If you&apos;re tired of:
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-bold uppercase tracking-wider text-zinc-900">
+                  If you&apos;re tired of:
+                </p>
+                {isAdminOrManager && (
+                  <button
+                    type="button"
+                    onClick={openEditDescModal}
+                    className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    Edit Pain Points
+                  </button>
+                )}
+              </div>
               <ul className="grid gap-2 sm:grid-cols-2">
-                {[
-                  "Tactics that expire with every algorithm update",
-                  "Testing blindly with no blueprint",
-                  "Wasting ad budget on vanity noise",
-                  "Operating with no repeatable framework",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-600">
+                {currentPainPoints.map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-600">
                     <span className="text-red-500 font-bold shrink-0 mt-0.5">❌</span>
                     <span>{item}</span>
                   </li>
@@ -373,7 +560,7 @@ export default function AboutPage() {
             </div>
 
             <p className="pt-2 font-medium text-zinc-800">
-              If any of those sound familiar, <strong>{communityTitle}</strong> is built for you.
+              {currentClosingText}
             </p>
           </div>
 
@@ -553,91 +740,286 @@ export default function AboutPage() {
       <Sidebar />
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
 
-      {/* Admin Edit / Upload Video Modal */}
-      <Modal
-        open={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        title="Edit Community Overview Video"
-      >
-        <form onSubmit={handleSaveVideo} className="space-y-4">
-          <p className="text-xs text-zinc-500">
-            Paste a video link from <strong>YouTube</strong>, <strong>Loom</strong>, <strong>Vimeo</strong>, or a direct <strong>MP4 / video file URL</strong> (e.g. Supabase Storage).
-          </p>
+      {/* Admin & Manager Edit Description & Features Modal */}
+      {isAdminOrManager && (
+        <Modal
+          open={editDescModalOpen}
+          onClose={() => setEditDescModalOpen(false)}
+          title={`Edit Description — ${communityTitle}`}
+        >
+          <form onSubmit={handleSaveDescription} className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+            <p className="text-xs text-zinc-500">
+              Customize the overview description, marketing hook, deliverables checklist, and pain points for <strong>{communityTitle}</strong>.
+            </p>
 
-          {videoSaveError && (
-            <div className="rounded-lg bg-red-50 p-2.5 text-xs font-medium text-red-700 border border-red-200">
-              {videoSaveError}
+            {descSaveError && (
+              <div className="rounded-lg bg-red-50 p-2.5 text-xs font-medium text-red-700 border border-red-200">
+                {descSaveError}
+              </div>
+            )}
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Price Badge / Access Note">
+                <input
+                  type="text"
+                  required
+                  className={inputClass}
+                  placeholder="e.g. $9/month or Free Access"
+                  value={editDescPriceNote}
+                  onChange={(e) => setEditDescPriceNote(e.target.value)}
+                />
+              </Field>
+
+              <Field label="Top Headline Callout">
+                <input
+                  type="text"
+                  required
+                  className={inputClass}
+                  placeholder="e.g. Join today for $9/month after approval..."
+                  value={editDescHeadline}
+                  onChange={(e) => setEditDescHeadline(e.target.value)}
+                />
+              </Field>
             </div>
-          )}
 
-          <Field label="Video URL (YouTube, Loom, Vimeo, or MP4 file)">
-            <input
-              type="text"
-              required
-              className={inputClass}
-              placeholder="e.g. https://www.youtube.com/watch?v=... or https://www.loom.com/share/..."
-              value={editVideoUrl}
-              onChange={(e) => setEditVideoUrl(e.target.value)}
-            />
-          </Field>
+            <Field label="Main Overview Story / Hook">
+              <textarea
+                rows={3}
+                required
+                className={`${inputClass} resize-y text-xs sm:text-sm`}
+                placeholder="Describe what makes this community valuable..."
+                value={editDescMainStory}
+                onChange={(e) => setEditDescMainStory(e.target.value)}
+              />
+            </Field>
 
-          <Field label="Custom Thumbnail Image URL (Optional)">
-            <input
-              type="text"
-              className={inputClass}
-              placeholder="e.g. https://images.unsplash.com/... or https://your-bucket.supabase.co/..."
-              value={editThumbnailUrl}
-              onChange={(e) => setEditThumbnailUrl(e.target.value)}
-            />
-          </Field>
+            {/* Features Checklist Builder */}
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+                  What&apos;s Inside (Checklist)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setEditDescFeatures([...editDescFeatures, ""])}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline cursor-pointer"
+                >
+                  <Plus size={13} />
+                  <span>Add Item</span>
+                </button>
+              </div>
 
-          {/* Quick Preview Box */}
-          {editVideoUrl.trim() && (
-            <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 space-y-2">
-              <span className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 font-mono">
-                Preview Embed
-              </span>
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
-                {(() => {
-                  const prevEmbed = toEmbed(editVideoUrl.trim());
-                  if (!prevEmbed) {
-                    return (
-                      <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
-                        Invalid or unsupported video URL
-                      </div>
-                    );
-                  }
-                  if (prevEmbed.type === "file") {
-                    return <video src={prevEmbed.src} controls className="h-full w-full object-contain" />;
-                  }
-                  return (
-                    <iframe
-                      src={prevEmbed.src}
-                      title="Preview"
-                      className="h-full w-full"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
+              <div className="space-y-2">
+                {editDescFeatures.map((feat, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-emerald-500 font-bold shrink-0 text-xs">✅</span>
+                    <input
+                      type="text"
+                      className={`${inputClass} text-xs py-1.5 flex-1`}
+                      placeholder={`Feature item #${idx + 1}`}
+                      value={feat}
+                      onChange={(e) => {
+                        const updated = [...editDescFeatures];
+                        updated[idx] = e.target.value;
+                        setEditDescFeatures(updated);
+                      }}
                     />
-                  );
-                })()}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = editDescFeatures.filter((_, i) => i !== idx);
+                        setEditDescFeatures(updated);
+                      }}
+                      className="p-1.5 text-zinc-400 hover:text-red-500 rounded transition cursor-pointer"
+                      title="Remove item"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
-          )}
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
-            <button
-              type="button"
-              onClick={() => setEditModalOpen(false)}
-              className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
-            >
-              Cancel
-            </button>
-            <PrimaryButton type="submit" disabled={savingVideo}>
-              {savingVideo ? "Saving..." : "Save Video"}
-            </PrimaryButton>
-          </div>
-        </form>
-      </Modal>
+            {/* Pain Points Builder */}
+            <div className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-800">
+                  If You&apos;re Tired Of (Pain Points)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setEditDescPainPoints([...editDescPainPoints, ""])}
+                  className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline cursor-pointer"
+                >
+                  <Plus size={13} />
+                  <span>Add Item</span>
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {editDescPainPoints.map((pain, idx) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className="text-red-500 font-bold shrink-0 text-xs">❌</span>
+                    <input
+                      type="text"
+                      className={`${inputClass} text-xs py-1.5 flex-1`}
+                      placeholder={`Pain point #${idx + 1}`}
+                      value={pain}
+                      onChange={(e) => {
+                        const updated = [...editDescPainPoints];
+                        updated[idx] = e.target.value;
+                        setEditDescPainPoints(updated);
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = editDescPainPoints.filter((_, i) => i !== idx);
+                        setEditDescPainPoints(updated);
+                      }}
+                      className="p-1.5 text-zinc-400 hover:text-red-500 rounded transition cursor-pointer"
+                      title="Remove item"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Field label="Closing Pitch Note">
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="e.g. If any of those sound familiar, AI Architects is built for you."
+                value={editDescClosingText}
+                onChange={(e) => setEditDescClosingText(e.target.value)}
+              />
+            </Field>
+
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={handleResetDescriptionDefaults}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition cursor-pointer"
+                title="Reset to default copy"
+              >
+                <RotateCcw size={12} />
+                <span>Reset to Defaults</span>
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditDescModalOpen(false)}
+                  className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <PrimaryButton type="submit" disabled={savingDesc}>
+                  {savingDesc ? (
+                    "Saving..."
+                  ) : descSaveSuccess ? (
+                    <span className="inline-flex items-center gap-1">
+                      <CheckCircle2 size={14} /> Saved!
+                    </span>
+                  ) : (
+                    "Save Description"
+                  )}
+                </PrimaryButton>
+              </div>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {/* Admin & Manager Edit Video Modal */}
+      {isAdminOrManager && (
+        <Modal
+          open={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          title="Edit Community Overview Video"
+        >
+          <form onSubmit={handleSaveVideo} className="space-y-4">
+            <p className="text-xs text-zinc-500">
+              Paste a video link from <strong>YouTube</strong>, <strong>Loom</strong>, <strong>Vimeo</strong>, or a direct <strong>MP4 / video file URL</strong> (e.g. Supabase Storage).
+            </p>
+
+            {videoSaveError && (
+              <div className="rounded-lg bg-red-50 p-2.5 text-xs font-medium text-red-700 border border-red-200">
+                {videoSaveError}
+              </div>
+            )}
+
+            <Field label="Video URL (YouTube, Loom, Vimeo, or MP4 file)">
+              <input
+                type="text"
+                required
+                className={inputClass}
+                placeholder="e.g. https://www.youtube.com/watch?v=... or https://www.loom.com/share/..."
+                value={editVideoUrl}
+                onChange={(e) => setEditVideoUrl(e.target.value)}
+              />
+            </Field>
+
+            <Field label="Custom Thumbnail Image URL (Optional)">
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="e.g. https://images.unsplash.com/... or https://your-bucket.supabase.co/..."
+                value={editThumbnailUrl}
+                onChange={(e) => setEditThumbnailUrl(e.target.value)}
+              />
+            </Field>
+
+            {/* Quick Preview Box */}
+            {editVideoUrl.trim() && (
+              <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-3 space-y-2">
+                <span className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 font-mono">
+                  Preview Embed
+                </span>
+                <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black">
+                  {(() => {
+                    const prevEmbed = toEmbed(editVideoUrl.trim());
+                    if (!prevEmbed) {
+                      return (
+                        <div className="flex h-full w-full items-center justify-center text-xs text-zinc-400">
+                          Invalid or unsupported video URL
+                        </div>
+                      );
+                    }
+                    if (prevEmbed.type === "file") {
+                      return <video src={prevEmbed.src} controls className="h-full w-full object-contain" />;
+                    }
+                    return (
+                      <iframe
+                        src={prevEmbed.src}
+                        title="Preview"
+                        className="h-full w-full"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                      />
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-100">
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(false)}
+                className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <PrimaryButton type="submit" disabled={savingVideo}>
+                {savingVideo ? "Saving..." : "Save Video"}
+              </PrimaryButton>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 }

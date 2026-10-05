@@ -482,6 +482,20 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
       promises.push(syncSaleToSupabase(sale));
     }
 
+    // 10. Communities
+    const currentCommunityIds = new Set((db.communities || []).map((c) => c.id));
+    for (const comm of db.communities || []) {
+      const prev = prevCommunities.get(comm.id);
+      if (!prev || JSON.stringify(prev) !== JSON.stringify(comm)) {
+        promises.push(syncCommunityToSupabase(comm));
+      }
+    }
+    for (const [prevId] of prevCommunities) {
+      if (!currentCommunityIds.has(prevId)) {
+        promises.push(deleteCommunityFromSupabase(prevId));
+      }
+    }
+
     // Await all Supabase database mutations
     await Promise.allSettled(promises);
   } catch (err) {

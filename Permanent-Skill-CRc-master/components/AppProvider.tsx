@@ -19,6 +19,7 @@ import {
   changePassword as changePasswordAction,
   completeLesson as completeLessonAction,
   createCommunity as createCommunityAction,
+  updateCommunityDescription as updateCommunityDescriptionAction,
   joinCommunity as joinCommunityAction,
   purchaseCommunity as purchaseCommunityAction,
   createMember as createMemberAction,
@@ -209,6 +210,17 @@ type AppContextValue = AppState & {
   upgrade: () => Promise<ActionResult>;
   inviteMember: (email: string) => Promise<ActionResult>;
   createCommunity: (input: { name: string; description: string; isPrivate?: boolean }) => Promise<ActionResult>;
+  updateCommunityDescription: (input: {
+    communityId: string;
+    name?: string;
+    priceNote?: string;
+    headline?: string;
+    aboutHeadline?: string;
+    aboutDescription?: string;
+    aboutFeatures?: string[];
+    aboutPainPoints?: string[];
+    aboutClosingText?: string;
+  }) => Promise<ActionResult>;
   joinCommunity: (communityId: string) => Promise<ActionResult>;
   purchaseCommunity: (communityId: string) => Promise<ActionResult>;
   switchCommunity: (communityId: string) => void;
@@ -658,6 +670,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }),
     [run],
   );
+  const updateCommunityDescriptionFn = useCallback(
+    (input: {
+      communityId: string;
+      name?: string;
+      priceNote?: string;
+      headline?: string;
+      aboutHeadline?: string;
+      aboutDescription?: string;
+      aboutFeatures?: string[];
+      aboutPainPoints?: string[];
+      aboutClosingText?: string;
+    }) =>
+      run(async () => {
+        const result = await updateCommunityDescriptionAction(input);
+        if (result.ok) await refresh();
+        return result;
+      }),
+    [run, refresh],
+  );
   const saveVideoResourceFn = useCallback(
     (data: Partial<VideoResource>) =>
       run(async () => {
@@ -802,6 +833,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteMember: inviteMemberFn,
       purchaseCourse: purchaseCourseFn,
       createCommunity: createCommunityFn,
+      updateCommunityDescription: updateCommunityDescriptionFn,
       joinCommunity: joinCommunityFn,
       purchaseCommunity: purchaseCommunityFn,
       saveVideoResource: saveVideoResourceFn,
@@ -863,6 +895,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteMemberFn,
       purchaseCourseFn,
       createCommunityFn,
+      updateCommunityDescriptionFn,
       joinCommunityFn,
       purchaseCommunityFn,
       saveVideoResourceFn,
