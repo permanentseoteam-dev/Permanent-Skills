@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
       process.env.VERCEL_GIT_COMMIT_SHA ||
       process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
       process.env.BUILD_ID ||
-      null
+      "permanent-skills-prod-v1"
     );
   },
 };

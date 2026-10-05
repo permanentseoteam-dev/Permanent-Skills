@@ -95,15 +95,18 @@ CREATE TABLE IF NOT EXISTS public.posts (
   community_id TEXT
 );
 
--- 6. COMMENTS TABLE
+-- 6. COMMENTS TABLE (Supports both community posts and classroom lessons)
 CREATE TABLE IF NOT EXISTS public.comments (
   id TEXT PRIMARY KEY,
-  post_id TEXT REFERENCES public.posts(id) ON DELETE CASCADE,
+  post_id TEXT NOT NULL,
   author_id TEXT REFERENCES public.users(id) ON DELETE CASCADE,
   body TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   status TEXT DEFAULT 'approved'
 );
+-- Migration helper for existing databases with strict foreign key constraint:
+ALTER TABLE public.comments DROP CONSTRAINT IF EXISTS comments_post_id_fkey;
+
 
 -- 7. PROJECTS TABLE
 CREATE TABLE IF NOT EXISTS public.projects (

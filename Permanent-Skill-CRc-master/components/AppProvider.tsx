@@ -261,8 +261,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const next = await getAppState();
-      setState(next);
+      const res = await fetch("/api/app-state", {
+        cache: "no-store",
+      });
+      if (res.ok) {
+        const next = (await res.json()) as AppState;
+        if (next && typeof next === "object") {
+          setState(next);
+        }
+      } else {
+        const next = await getAppState();
+        setState(next);
+      }
     } catch (err) {
       if (isServerActionMismatch(err)) {
         if (typeof window !== "undefined") {
@@ -270,7 +280,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return;
       }
-      setState(empty);
+      try {
+        const next = await getAppState();
+        setState(next);
+      } catch {
+        setState(empty);
+      }
     } finally {
       setLoading(false);
     }
@@ -279,7 +294,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refresh();
 
-    // 1. Fast polling every 3.5 seconds when the window is visible/active
+    // 1. Fast polling every 3.5 seconds when the window is visible/active via permanent API route
     const fastPoll = setInterval(() => {
       if (typeof document !== "undefined" && !document.hidden) {
         refresh();
@@ -288,10 +303,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     // 2. Heartbeat every 45 seconds for presence and automated 5-minute pre-meeting notifications
     const beat = setInterval(() => {
-      heartbeat().catch((err) => {
-        if (isServerActionMismatch(err) && typeof window !== "undefined") {
-          window.location.reload();
-        }
+      fetch("/api/heartbeat", { method: "POST" }).catch(() => {
+        heartbeat().catch((err) => {
+          if (isServerActionMismatch(err) && typeof window !== "undefined") {
+            window.location.reload();
+          }
+        });
       });
     }, 45000);
 

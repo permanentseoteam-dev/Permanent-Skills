@@ -194,14 +194,39 @@ export async function getAppState(): Promise<AppState> {
         }
       : null;
 
+  const canSeeTeam = me.role === "admin" || me.role === "manager" || me.role === "team_member";
+  const isTeamCommunity = (c: Community) =>
+    c.type === "team" || c.slug === "team-members" || c.id === "comm-team" || c.name.toLowerCase().includes("team");
+
+  const visibleCommunities = (db.communities || []).filter((c) => {
+    if (isTeamCommunity(c) && !canSeeTeam) return false;
+    return true;
+  });
+
+  const visiblePosts = (db.posts || []).filter((p) => {
+    if (p.communityId === "comm-team" && !canSeeTeam) return false;
+    return true;
+  });
+
+  const visibleComments = db.comments.filter((c) => {
+    const post = (db.posts || []).find((p) => p.id === c.postId);
+    if (post?.communityId === "comm-team" && !canSeeTeam) return false;
+    if (!isStaff && c.status !== "approved" && c.status && c.authorId !== me.id) return false;
+    return true;
+  });
+
+  const visibleVideoResources = (db.videoResources || []).filter((v) => {
+    if (v.communityId === "comm-team" && !canSeeTeam) return false;
+    return true;
+  });
+
+  const defaultActiveCommId = visibleCommunities.find((c) => c.id === "comm-students")?.id || visibleCommunities[0]?.id || "comm-students";
+
   return {
     user: publicUser(me, me, activeUserIds),
     users: visibleUsers.map((u) => publicUser(u, me, activeUserIds)),
-    posts: db.posts,
-    comments:
-      isStaff
-        ? db.comments
-        : db.comments.filter((c) => c.status === "approved" || !c.status || c.authorId === me.id),
+    posts: visiblePosts,
+    comments: visibleComments,
     courses: db.courses,
     progress: db.progress.filter((p) => p.userId === me.id || isStaff),
     events: db.events,
@@ -216,9 +241,9 @@ export async function getAppState(): Promise<AppState> {
     stats,
     sales: me.role === "admin" ? db.sales : [],
     limited: false,
-    communities: db.communities || [],
-    activeCommunityId: db.communities?.[0]?.id || "comm-students",
-    videoResources: db.videoResources || [],
+    communities: visibleCommunities,
+    activeCommunityId: defaultActiveCommId,
+    videoResources: visibleVideoResources,
   };
 }
 

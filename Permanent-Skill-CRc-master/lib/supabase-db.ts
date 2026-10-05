@@ -134,18 +134,20 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       completedLessonIds: p.completed_lesson_ids || [],
     }));
 
-    const mappedPosts: Post[] = (posts || []).map((p) => ({
-      id: p.id,
-      authorId: p.author_id,
-      category: p.category,
-      title: p.title,
-      body: p.body,
-      pinned: !!p.pinned,
-      likes: p.likes || [],
-      createdAt: p.created_at,
-      thumbnail: p.thumbnail || undefined,
-      communityId: p.community_id || undefined,
-    }));
+    const mappedPosts: Post[] = (posts || [])
+      .filter((p) => p.category !== "lesson_anchor" && p.category !== "lesson" && !p.id.startsWith("l-"))
+      .map((p) => ({
+        id: p.id,
+        authorId: p.author_id,
+        category: p.category,
+        title: p.title,
+        body: p.body,
+        pinned: !!p.pinned,
+        likes: p.likes || [],
+        createdAt: p.created_at,
+        thumbnail: p.thumbnail || undefined,
+        communityId: p.community_id || undefined,
+      }));
 
     const mappedComments: Comment[] = (comments || []).map((c) => ({
       id: c.id,
@@ -363,18 +365,82 @@ export async function deletePostFromSupabase(postId: string) {
 export async function syncCommentToSupabase(c: Comment) {
   try {
     const supabase = getAdminSupabase();
+    if (!c || !c.id || !c.postId) return;
+
+    // 1. If this comment is attached to a lesson (or any non-post), ensure an anchor exists in `posts` table
+    // to satisfy the PostgreSQL foreign key constraint (comments_post_id_fkey).
+    if (c.postId.startsWith("l-") || !c.postId.startsWith("p-")) {
+      try {
+        await supabase.from("posts").upsert(
+          {
+            id: c.postId,
+            author_id: c.authorId || "u-admin",
+            category: "lesson_anchor",
+            title: `Lesson Discussion Anchor (${c.postId})`,
+            body: "Internal anchor for lesson discussions and comments",
+            pinned: false,
+            likes: [],
+            created_at: c.createdAt || new Date().toISOString(),
+            thumbnail: null,
+            community_id: null,
+          },
+          { onConflict: "id" }
+        );
+      } catch {}
+    }
+
+    // 2. Perform the comment upsert
     const { error } = await supabase.from("comments").upsert(
       {
         id: c.id,
         post_id: c.postId,
-        author_id: c.authorId,
-        body: c.body,
+        author_id: c.authorId || "u-admin",
+        body: c.body || "",
         created_at: c.createdAt || new Date().toISOString(),
         status: c.status || "approved",
       },
       { onConflict: "id" }
     );
-    if (error) console.error("Error upserting comment to Supabase:", error);
+
+    // 3. If a foreign key violation still occurs (e.g. legacy/unexpected postId or authorId), self-heal and retry
+    if (error) {
+      if (error.code === "23503") {
+        try {
+          await supabase.from("posts").upsert(
+            {
+              id: c.postId,
+              author_id: "u-admin",
+              category: "lesson_anchor",
+              title: `Discussion Anchor (${c.postId})`,
+              body: "Internal anchor for comments",
+              pinned: false,
+              likes: [],
+              created_at: c.createdAt || new Date().toISOString(),
+              thumbnail: null,
+              community_id: null,
+            },
+            { onConflict: "id" }
+          );
+        } catch {}
+
+        const retry = await supabase.from("comments").upsert(
+          {
+            id: c.id,
+            post_id: c.postId,
+            author_id: c.authorId || "u-admin",
+            body: c.body || "",
+            created_at: c.createdAt || new Date().toISOString(),
+            status: c.status || "approved",
+          },
+          { onConflict: "id" }
+        );
+        if (retry.error) {
+          console.error("Error upserting comment to Supabase on retry:", retry.error);
+        }
+      } else {
+        console.error("Error upserting comment to Supabase:", error);
+      }
+    }
   } catch (err) {
     console.error("Error syncing comment to Supabase:", err);
   }

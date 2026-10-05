@@ -154,12 +154,32 @@ async function seed() {
   ]);
   const validComments = data.comments.filter((c) => validPostAndLessonIds.has(c.postId));
   if (validComments.length > 0) {
+    // Ensure anchor posts exist for lesson comments to satisfy foreign key constraints
+    const nonPostTargets = Array.from(
+      new Set(validComments.filter((c) => !data.posts.some((p) => p.id === c.postId)).map((c) => c.postId))
+    );
+    if (nonPostTargets.length > 0) {
+      const anchorPosts = nonPostTargets.map((pid) => ({
+        id: pid,
+        author_id: "u-admin",
+        category: "lesson_anchor",
+        title: `Lesson Discussion Anchor (${pid})`,
+        body: "Internal anchor for lesson discussions and comments",
+        pinned: false,
+        likes: [],
+        created_at: new Date().toISOString(),
+        thumbnail: null,
+        community_id: null,
+      }));
+      await supabase.from("posts").upsert(anchorPosts, { onConflict: "id" });
+    }
+
     console.log(`Seeding ${validComments.length} comments...`);
     const commentsToInsert = validComments.map((c) => ({
       id: c.id,
       post_id: c.postId,
-      author_id: c.authorId,
-      body: c.body,
+      author_id: c.authorId || "u-admin",
+      body: c.body || "",
       created_at: c.createdAt || new Date().toISOString(),
       status: c.status || "approved",
     }));

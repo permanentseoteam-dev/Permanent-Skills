@@ -83,15 +83,19 @@ export default function MembersPage() {
 
   const canInvite = user?.role === "admin" || user?.role === "manager";
 
+  const canSeeTeam = user?.role === "admin" || user?.role === "manager" || user?.role === "team_member";
+
   const approvedUsers = useMemo(() => {
-    return users.filter(
-      (u) =>
+    return users.filter((u) => {
+      if (u.role === "team_member" && !canSeeTeam) return false;
+      return (
         u.role === "admin" ||
         u.role === "manager" ||
         u.status === "approved" ||
         typeof u.status === "undefined"
-    );
-  }, [users]);
+      );
+    });
+  }, [users, canSeeTeam]);
 
   const adminsCount = useMemo(
     () => approvedUsers.filter((u) => u.role === "admin").length,
@@ -196,14 +200,16 @@ export default function MembersPage() {
               icon={<ManagerAvatarFavicon size={13} />}
               badgeColor="bg-blue-100 text-blue-900"
             />
-            <PillButton
-              label="Team"
-              count={teamCount}
-              active={tab === "team"}
-              onClick={() => setTab("team")}
-              icon={<span className="text-xs">👥</span>}
-              badgeColor="bg-purple-100 text-purple-900"
-            />
+            {canSeeTeam && (
+              <PillButton
+                label="Team"
+                count={teamCount}
+                active={tab === "team"}
+                onClick={() => setTab("team")}
+                icon={<span className="text-xs">👥</span>}
+                badgeColor="bg-purple-100 text-purple-900"
+              />
+            )}
             <PillButton
               label="VIP Members"
               count={premiumCount}
