@@ -241,16 +241,18 @@ export function Header() {
 
                 {/* Create & Discover & All Courses Actions matching Reference Screenshot */}
                 <div className="space-y-0.5">
-                  <Link
-                    href="/create-community"
-                    onClick={() => setOpen(null)}
-                    className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition"
-                  >
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
-                      <Plus size={15} />
-                    </div>
-                    <span>Create a community</span>
-                  </Link>
+                  {isAdminOrManager && (
+                    <Link
+                      href="/create-community"
+                      onClick={() => setOpen(null)}
+                      className="flex items-center gap-2.5 rounded-xl px-2 py-2 text-xs font-bold text-zinc-800 hover:bg-zinc-50 transition"
+                    >
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-zinc-100 text-zinc-600">
+                        <Plus size={15} />
+                      </div>
+                      <span>Create a community</span>
+                    </Link>
+                  )}
 
                   <Link
                     href="/discover"
@@ -900,9 +902,11 @@ function UserMenu({
         <button onClick={() => go("/help")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
           <HelpCircle size={16} className="text-zinc-500" /> Help center
         </button>
-        <button onClick={() => go("/create-community")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
-          <Plus size={16} className="text-zinc-500" /> Create a community
-        </button>
+        {isAdminOrManager && (
+          <button onClick={() => go("/create-community")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
+            <Plus size={16} className="text-zinc-500" /> Create a community
+          </button>
+        )}
         <button onClick={() => go("/discover")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
           <Compass size={16} className="text-zinc-500" /> Discover communities
         </button>
