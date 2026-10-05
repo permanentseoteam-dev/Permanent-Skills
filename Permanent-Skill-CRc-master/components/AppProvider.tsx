@@ -470,7 +470,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return run(() => deletePostAction(postId));
   }, [run]);
 
-  const toggleLikeFn = useCallback((postId: string) => run(() => toggleLikeAction(postId)), [run]);
+  const toggleLikeFn = useCallback(
+    (postId: string) => {
+      setState((prev) => {
+        if (!prev.user) return prev;
+        const uid = prev.user.id;
+        return {
+          ...prev,
+          posts: prev.posts.map((p) => {
+            if (p.id !== postId) return p;
+            const hasLiked = p.likes.includes(uid);
+            return {
+              ...p,
+              likes: hasLiked ? p.likes.filter((id) => id !== uid) : [...p.likes, uid],
+            };
+          }),
+        };
+      });
+      return run(() => toggleLikeAction(postId));
+    },
+    [run],
+  );
   const addCommentFn = useCallback((postId: string, body: string) => run(() => addCommentAction(postId, body)), [run]);
 
   const approveCommentFn = useCallback((commentId: string) => {
@@ -507,7 +527,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const completeLessonFn = useCallback(
-    (courseId: string, lessonId: string) => run(() => completeLessonAction(courseId, lessonId)),
+    (courseId: string, lessonId: string) => {
+      setState((prev) => {
+        if (!prev.user) return prev;
+        const uid = prev.user.id;
+        const existingRowIndex = prev.progress.findIndex(
+          (p) => p.userId === uid && p.courseId === courseId,
+        );
+        const newProgress = [...prev.progress];
+        if (existingRowIndex >= 0) {
+          const row = newProgress[existingRowIndex];
+          const hasDone = row.completedLessonIds.includes(lessonId);
+          const nextCompleted = hasDone
+            ? row.completedLessonIds.filter((id) => id !== lessonId)
+            : [...row.completedLessonIds, lessonId];
+          newProgress[existingRowIndex] = {
+            ...row,
+            completedLessonIds: nextCompleted,
+          };
+        } else {
+          newProgress.push({
+            userId: uid,
+            courseId,
+            completedLessonIds: [lessonId],
+          });
+        }
+
+        return {
+          ...prev,
+          progress: newProgress,
+        };
+      });
+      return run(() => completeLessonAction(courseId, lessonId));
+    },
     [run],
   );
   const saveCourseFn = useCallback(
