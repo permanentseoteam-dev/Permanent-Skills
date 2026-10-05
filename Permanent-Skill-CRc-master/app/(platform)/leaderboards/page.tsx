@@ -6,6 +6,7 @@ import { Lock, Trophy, Sparkles } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { Avatar, Card } from "@/components/ui";
 import { AvatarWithLevel } from "@/components/feed";
+import { initials } from "@/lib/format";
 import { getLevel, levelShare } from "@/lib/levels";
 import type { PublicUser } from "@/lib/types";
 
@@ -132,12 +133,18 @@ export default function LeaderboardsPage() {
                 className="flex h-28 w-28 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-[conic-gradient(#5051F9_0deg,#5051F9_var(--p),#e4e4e7_var(--p))] p-1 transition-all duration-700 shadow-sm"
                 style={{ "--p": `${3.6 * me.progress}deg` } as React.CSSProperties}
               >
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                  <Avatar user={user} size={84} className="sm:hidden" showOnline={false} />
-                  <Avatar user={user} size={112} className="hidden sm:inline-flex" showOnline={false} />
+                <div className="flex h-full w-full items-center justify-center rounded-full bg-white p-1">
+                  <div
+                    className="flex h-full w-full items-center justify-center rounded-full font-bold text-white shadow-inner select-none transition-transform"
+                    style={{ backgroundColor: user?.avatarColor || "#18181b" }}
+                  >
+                    <span className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+                      {user ? initials(user.name) : "PS"}
+                    </span>
+                  </div>
                 </div>
               </div>
-              <span className="absolute -bottom-1 right-1 sm:right-2 flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-primary text-sm sm:text-base font-bold text-white shadow-md ring-3 sm:ring-4 ring-white">
+              <span className="absolute -bottom-1 right-0 sm:right-1 flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-primary text-xs sm:text-sm font-black text-white shadow-md ring-3 sm:ring-4 ring-white">
                 {me.level}
               </span>
             </div>
