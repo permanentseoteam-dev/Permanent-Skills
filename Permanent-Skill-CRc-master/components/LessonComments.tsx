@@ -124,7 +124,7 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
 
         {/* Admin / Manager Moderation Filter Tabs */}
         {isAdminOrManager && (
-          <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-1">
+          <div className="flex items-center gap-1 rounded-lg bg-zinc-100 p-1 flex-wrap">
             <button
               type="button"
               onClick={() => setModFilter("all")}
@@ -164,7 +164,7 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
       {/* Submission Feedback Alert */}
       {feedbackMsg && (
         <div
-          className={`flex items-start gap-2.5 rounded-xl p-3.5 text-xs font-medium border ${
+          className={`flex items-start gap-2.5 rounded-xl p-3 sm:p-3.5 text-xs font-medium border ${
             feedbackMsg.type === "success"
               ? "bg-emerald-50 text-emerald-800 border-emerald-200"
               : "bg-amber-50 text-amber-900 border-amber-200"
@@ -181,11 +181,11 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
 
       {/* Post Comment Input Form */}
       <form onSubmit={handleSubmitComment} className="space-y-3">
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-2.5 sm:gap-3">
           {user ? (
-            <Avatar user={user} size={36} className="shrink-0 ring-1 ring-zinc-200" />
+            <Avatar user={user} size={32} className="shrink-0 ring-1 ring-zinc-200 sm:w-9 sm:h-9" />
           ) : (
-            <div className="h-9 w-9 rounded-full bg-zinc-200 shrink-0" />
+            <div className="h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-zinc-200 shrink-0" />
           )}
 
           <div className="flex-1 space-y-2">
@@ -194,11 +194,11 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
               onChange={(e) => setCommentText(e.target.value)}
               placeholder="Ask a question or share a takeaway from this lesson..."
               rows={2}
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 p-3 text-xs md:text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary transition resize-none"
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50/50 p-2.5 sm:p-3 text-xs md:text-sm text-zinc-900 placeholder:text-zinc-400 outline-none focus:border-primary focus:bg-white focus:ring-1 focus:ring-primary transition resize-none"
             />
 
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-zinc-400">
+            <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2">
+              <span className="text-[10px] sm:text-[11px] text-zinc-400">
                 {isAdminOrManager
                   ? "✓ Admin/Manager posting (auto-approved)"
                   : "ℹ️ Comments require approval by admin/manager before public display"}
@@ -207,7 +207,7 @@ export function LessonComments({ lessonId, lessonTitle }: LessonCommentsProps) {
               <PrimaryButton
                 type="submit"
                 disabled={submitting || !commentText.trim()}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold cursor-pointer shadow-xs"
+                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold cursor-pointer shadow-xs self-end xs:self-auto shrink-0"
               >
                 <Send size={13} /> {submitting ? "Posting..." : "Post Comment"}
               </PrimaryButton>

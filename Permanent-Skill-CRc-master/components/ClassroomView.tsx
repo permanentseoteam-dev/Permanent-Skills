@@ -167,7 +167,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     if (isLevel1 || glow === "yellow") {
       return (
         <div
-          className="relative h-44 sm:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none"
+          className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none"
           style={{
             backgroundImage:
               "radial-gradient(circle, rgba(0,0,0,0.22) 1.5px, transparent 1.5px)",
@@ -175,16 +175,16 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           }}
         >
           {/* Terminal Watermark behind */}
-          <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-black/35 tracking-tight pointer-events-none select-none">
+          <div className="absolute inset-x-0 bottom-3 sm:bottom-4 text-center font-mono text-xl sm:text-2xl md:text-3xl font-black text-black/35 tracking-tight pointer-events-none select-none">
             {watermark}
           </div>
 
           {/* Center Black Lock Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
-              <Lock size={20} className="stroke-[2.5]" />
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
+              <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
             </div>
-            <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+            <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
               {isAdmin ? "Unlocked for Admin" : "Unlock at Level 1"}
             </span>
           </div>
@@ -195,7 +195,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     // Glow Configurations
     let glowBg = "bg-emerald-500/25";
     let ringBorder = "border-emerald-400/90 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]";
-    let lockIcon = <Lock size={20} className="stroke-[2.5]" />;
+    let lockIcon = <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />;
 
     if (glow === "green") {
       glowBg = "bg-emerald-500/25";
@@ -206,7 +206,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     } else if (glow === "orange") {
       glowBg = "bg-orange-500/30";
       ringBorder = "border-orange-400/90 text-orange-400 shadow-[0_0_20px_rgba(249,115,22,0.45)]";
-      lockIcon = <Flame size={20} className="stroke-[2.5]" />;
+      lockIcon = <Flame size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />;
     } else if (glow === "red") {
       glowBg = "bg-rose-500/25";
       ringBorder = "border-rose-400/90 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.4)]";
@@ -216,24 +216,24 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     }
 
     return (
-      <div className="relative h-44 sm:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
+      <div className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
         {/* Radial Glow */}
-        <div className={`absolute h-28 w-28 rounded-full ${glowBg} blur-2xl pointer-events-none`} />
+        <div className={`absolute h-24 sm:h-28 w-24 sm:w-28 rounded-full ${glowBg} blur-2xl pointer-events-none`} />
 
         {/* Terminal Watermark behind */}
-        <div className="absolute inset-x-0 bottom-4 text-center font-mono text-2xl sm:text-3xl font-black text-white/10 tracking-tight pointer-events-none select-none">
+        <div className="absolute inset-x-0 bottom-3 sm:bottom-4 text-center font-mono text-xl sm:text-2xl md:text-3xl font-black text-white/10 tracking-tight pointer-events-none select-none">
           {watermark}
         </div>
 
         {/* Center Glowing Lock Badge */}
         <div className="relative z-10 flex flex-col items-center justify-center text-center">
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
+            className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
           >
             {lockIcon}
           </div>
 
-          <span className="mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+          <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
             {isAdmin
               ? "Unlocked for Admin"
               : isPremiumOnly
@@ -242,7 +242,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           </span>
 
           {!isAdmin && !isPremiumOnly && (
-            <span className="text-[10.5px] text-zinc-400 font-medium">
+            <span className="text-[10px] sm:text-[10.5px] text-zinc-400 font-medium">
               or Upgrade to VIP
             </span>
           )}
@@ -254,9 +254,9 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   // 1. PRIMARY VIEW: Classroom Course / Module Cards Grid (Original Design)
   if (!activeCourse) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Module Cards Grid */}
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {availableCourses.map((course) => {
             const cRow = progress.find(
               (p) => p.courseId === course.id && p.userId === user?.id
@@ -283,13 +283,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                     <h3 className="text-[15px] sm:text-base font-bold text-zinc-900 group-hover:text-primary transition-colors line-clamp-1">
                       {course.title}
                     </h3>
-                    <p className="mt-1 text-xs sm:text-[13px] text-zinc-600 line-clamp-2 leading-relaxed min-h-[36px]">
+                    <p className="mt-1 text-xs sm:text-[13px] text-zinc-600 line-clamp-2 leading-relaxed min-h-[34px] sm:min-h-[36px]">
                       {course.description}
                     </p>
                   </div>
 
                   {/* Clean Pill Progress Bar */}
-                  <div className="mt-4">
+                  <div className="mt-3.5 sm:mt-4">
                     <div className="relative h-5 w-full overflow-hidden rounded-full bg-[#e5e7eb] flex items-center shadow-inner">
                       {cPct > 0 && (
                         <div
@@ -313,26 +313,26 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
   // 2. DETAILED MODULE / COURSE LESSON VIEW
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Navigation Bar: Back to Classroom & Course Switcher */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-200/90 pb-4">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-zinc-200/90 pb-3 sm:pb-4">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
             onClick={handleBackToClassroom}
-            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition cursor-pointer shadow-xs"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 sm:px-3.5 py-1.5 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition cursor-pointer shadow-xs shrink-0"
           >
             <ChevronLeft size={16} /> Back to Classroom
           </button>
 
-          <span className="text-zinc-300">/</span>
+          <span className="text-zinc-300 shrink-0">/</span>
 
-          <h1 className="text-sm font-bold text-zinc-900 line-clamp-1">
+          <h1 className="text-xs sm:text-sm font-bold text-zinc-900 truncate">
             {activeCourse.title}
           </h1>
         </div>
 
         {/* Course Switcher Pills */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           {availableCourses.map((c, idx) => {
             const isSelected = c.id === activeCourse.id;
             const cRow = progress.find(
@@ -349,7 +349,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
               <button
                 key={c.id}
                 onClick={() => handleSelectCourse(c)}
-                className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition cursor-pointer ${
+                className={`inline-flex items-center gap-1.5 rounded-lg px-2 sm:px-2.5 py-1 text-xs font-semibold transition cursor-pointer shrink-0 ${
                   isSelected
                     ? "bg-primary text-white shadow-xs"
                     : "bg-white text-zinc-600 border border-zinc-200 hover:border-primary/30 hover:text-primary"
@@ -365,25 +365,25 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
       </div>
 
       {locked ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-10 text-center">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 sm:p-10 text-center">
           <Lock className="mx-auto mb-3 text-primary" />
-          <h2 className="text-xl font-bold text-zinc-900">
+          <h2 className="text-lg sm:text-xl font-bold text-zinc-900">
             Unlock at Level {activeCourse.unlockLevel} or upgrade to VIP
           </h2>
           <button
             onClick={() => setUpgradeOpen(true)}
-            className="mt-5 inline-flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 font-bold text-white shadow-md hover:bg-primary-dark transition cursor-pointer"
+            className="mt-4 sm:mt-5 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 sm:px-5 py-2.5 font-bold text-xs sm:text-sm text-white shadow-md hover:bg-primary-dark transition cursor-pointer"
           >
             👑 Upgrade to VIP
           </button>
         </div>
       ) : (
-        <div className="grid gap-7 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
-          {/* Left Sidebar */}
-          <aside className="order-2 lg:order-1 space-y-6">
+        <div className="grid gap-5 sm:gap-7 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
+          {/* Left / Secondary Sidebar for Module Lessons */}
+          <aside className="order-2 lg:order-1 space-y-4 sm:space-y-6">
             {/* Store Theme Pill Progress Bar */}
             <div
-              className="relative h-8 w-full overflow-hidden rounded-full bg-[#e2e4e9] flex items-center shadow-inner"
+              className="relative h-7 sm:h-8 w-full overflow-hidden rounded-full bg-[#e2e4e9] flex items-center shadow-inner"
               role="progressbar"
               aria-valuenow={pct}
               aria-valuemin={0}
@@ -396,7 +396,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
               />
 
               <span
-                className={`absolute inset-y-0 left-4 flex items-center text-xs font-black tracking-wide transition-colors ${
+                className={`absolute inset-y-0 left-3.5 sm:left-4 flex items-center text-xs font-black tracking-wide transition-colors ${
                   pct > 15 ? "text-white drop-shadow-xs" : "text-zinc-800"
                 }`}
               >
@@ -405,14 +405,14 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
             </div>
 
             {/* Prominent Lesson Navigation List */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {modules.map((mod) => (
-                <div key={mod.name} className="space-y-2.5">
-                  <h2 className="text-lg font-bold tracking-tight text-zinc-900">
+                <div key={mod.name} className="space-y-2 sm:space-y-2.5">
+                  <h2 className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-zinc-900">
                     {mod.name}
                   </h2>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1 sm:space-y-1.5">
                     {mod.lessons.map((item) => {
                       const isActive = activeLesson?.id === item.id;
                       const isDone = completedIds.includes(item.id);
@@ -423,14 +423,14 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                           onClick={() => handleSelectLesson(item.id)}
                           className={`group flex w-full items-center justify-between text-left transition-all cursor-pointer ${
                             isActive
-                              ? "rounded-xl bg-primary/10 border border-primary/25 px-4 py-2.5 font-bold text-primary shadow-2xs"
-                              : "rounded-xl px-4 py-2.5 text-[14.5px] font-medium text-zinc-800 hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-zinc-200"
+                              ? "rounded-xl bg-primary/10 border border-primary/25 px-3.5 sm:px-4 py-2 sm:py-2.5 font-bold text-primary shadow-2xs"
+                              : "rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-[14.5px] font-medium text-zinc-800 hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-zinc-200"
                           }`}
                         >
                           <span
                             className={`truncate leading-snug ${
                               isActive
-                                ? "font-bold text-primary text-[14.5px]"
+                                ? "font-bold text-primary text-xs sm:text-[14.5px]"
                                 : "text-zinc-800 group-hover:text-primary"
                             }`}
                             title={item.title}
@@ -440,10 +440,10 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
                           {isDone && (
                             <span
-                              className="ml-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full shadow-xs bg-primary text-white"
+                              className="ml-2 flex h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0 items-center justify-center rounded-full shadow-xs bg-primary text-white"
                               title="Completed"
                             >
-                              <Check size={11} strokeWidth={3.5} />
+                              <Check size={10} className="sm:w-3 sm:h-3 stroke-[3]" />
                             </span>
                           )}
                         </button>
@@ -455,13 +455,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
             </div>
           </aside>
 
-          {/* Right Main Card */}
-          <main className="order-1 lg:order-2 rounded-2xl border border-zinc-200/90 bg-white p-6 shadow-sm md:p-8 space-y-8">
+          {/* Right Main Player & Content Card */}
+          <main className="order-1 lg:order-2 rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-6 md:p-8 shadow-sm space-y-5 sm:space-y-8 min-w-0">
             {activeLesson ? (
-              <div className="space-y-8">
+              <div className="space-y-5 sm:space-y-8">
                 {/* Header: Lesson Title + Circular Completion Checkmark Button */}
-                <div className="flex items-center justify-between gap-4 pb-5 border-b border-zinc-100">
-                  <h1 className="text-xl font-bold tracking-tight text-zinc-900 md:text-2xl">
+                <div className="flex items-start sm:items-center justify-between gap-3 pb-3.5 sm:pb-5 border-b border-zinc-100">
+                  <h1 className="text-base sm:text-xl md:text-2xl font-bold tracking-tight text-zinc-950 leading-snug">
                     {activeLesson.videoTitle || activeLesson.title}
                   </h1>
 
@@ -478,18 +478,18 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         ? "Completed! Click to unmark"
                         : "Click to mark as completed"
                     }
-                    className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer ${
+                    className={`flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer ${
                       isCurrentCompleted
                         ? "border-2 border-primary bg-primary text-white shadow-sm hover:bg-primary-dark hover:border-primary-dark hover:scale-105"
                         : "border-2 border-zinc-400 text-zinc-400 hover:border-primary hover:text-primary hover:scale-105"
                     }`}
                   >
-                    <Check size={17} strokeWidth={3} />
+                    <Check size={15} className="sm:w-4 sm:h-4 stroke-[3]" />
                   </button>
                 </div>
 
                 {/* 16:9 Video Player Container */}
-                <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-200 shadow-inner group">
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-950 border border-zinc-200 shadow-inner group">
                   {playing ? (
                     embed?.type === "file" ? (
                       <video
@@ -509,7 +509,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         allowFullScreen
                       />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-sm text-zinc-400">
+                      <div className="flex h-full w-full items-center justify-center text-xs sm:text-sm text-zinc-400">
                         No video source available.
                       </div>
                     )
@@ -526,11 +526,11 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                           className="h-full w-full object-cover"
                         />
                       ) : (
-                        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-primary/20 flex flex-col items-center justify-center p-6 text-center">
-                          <span className="rounded-full bg-primary/20 px-3 py-1 text-xs font-bold text-primary ring-1 ring-primary/30 mb-2">
+                        <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 via-zinc-950 to-primary/20 flex flex-col items-center justify-center p-4 sm:p-6 text-center">
+                          <span className="rounded-full bg-primary/20 px-2.5 sm:px-3 py-0.5 sm:py-1 text-[11px] sm:text-xs font-bold text-primary ring-1 ring-primary/30 mb-2">
                             {activeCourse.badge || "LESSON"}
                           </span>
-                          <h2 className="max-w-md text-lg font-bold text-white line-clamp-2">
+                          <h2 className="max-w-md text-sm sm:text-lg font-bold text-white line-clamp-2">
                             {activeLesson.title}
                           </h2>
                         </div>
@@ -541,13 +541,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
                       {/* Center Play Button Overlay with Store Blurple Theme */}
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-black/65 text-white backdrop-blur-xs transition group-hover:scale-110 group-hover:bg-primary shadow-2xl">
-                          <Play size={26} fill="currentColor" className="ml-1" />
+                        <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl bg-black/65 text-white backdrop-blur-xs transition group-hover:scale-110 group-hover:bg-primary shadow-2xl">
+                          <Play size={22} className="sm:w-6 sm:h-6 ml-1 fill-current" />
                         </div>
                       </div>
 
                       {/* Bottom-right Duration Badge */}
-                      <div className="absolute bottom-3 right-3 rounded bg-black/85 px-2.5 py-1 font-mono text-xs font-bold text-white shadow-xs">
+                      <div className="absolute bottom-2.5 right-2.5 sm:bottom-3 sm:right-3 rounded bg-black/85 px-2 py-0.5 sm:px-2.5 sm:py-1 font-mono text-[10px] sm:text-xs font-bold text-white shadow-xs">
                         {activeLesson.duration || "0:34"}
                       </div>
                     </div>
@@ -555,58 +555,58 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                 </div>
 
                 {/* Bottom Section Navigator Tabs */}
-                <div className="flex items-center gap-2 border-b border-zinc-200 pb-3 flex-wrap">
+                <div className="flex items-center gap-1.5 sm:gap-2 border-b border-zinc-200 pb-2.5 sm:pb-3 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setActiveBottomTab("overview")}
-                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                    className={`flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                       activeBottomTab === "overview"
                         ? "bg-primary text-white shadow-xs"
                         : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
                     }`}
                   >
-                    <BookOpen size={14} /> Lesson Overview & Swipe Files
+                    <BookOpen size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Lesson Overview</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveBottomTab("word-notes")}
-                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                    className={`flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                       activeBottomTab === "word-notes"
                         ? "bg-primary text-white shadow-xs"
                         : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
                     }`}
                   >
-                    <FileText size={14} /> Notes
+                    <FileText size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Notes</span>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => setActiveBottomTab("comments")}
-                    className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold transition cursor-pointer ${
+                    className={`flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer ${
                       activeBottomTab === "comments"
                         ? "bg-primary text-white shadow-xs"
                         : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
                     }`}
                   >
-                    <MessageSquare size={14} /> Discussion & Comments
+                    <MessageSquare size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Discussion</span>
                   </button>
                 </div>
 
                 {/* 1. SECTION 1: Lesson Description & Notes */}
                 {activeBottomTab === "overview" && (
-                  <div className="space-y-4 rounded-2xl border border-zinc-200/90 bg-white p-6 md:p-8 shadow-xs">
-                    <div className="flex items-center justify-between pb-3 border-b border-zinc-100 mb-2">
+                  <div className="space-y-3.5 sm:space-y-4 rounded-xl sm:rounded-2xl border border-zinc-200/90 bg-white p-4 sm:p-6 md:p-8 shadow-xs">
+                    <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-2 pb-3 border-b border-zinc-100">
                       <div className="flex items-center gap-2">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-black text-[10px] font-black text-white">
+                        <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-md bg-black text-[9px] sm:text-[10px] font-black text-white">
                           PSS
                         </span>
                         <span className="text-xs font-bold text-zinc-900">Permanent Skills Academy</span>
                         <StaffRoleFavicon role="admin" size="xs" />
                       </div>
-                      <span className="text-[11px] text-zinc-400 font-medium">Official Course Material</span>
+                      <span className="text-[10px] sm:text-[11px] text-zinc-400 font-medium">Official Course Material</span>
                     </div>
-                    <div className="prose max-w-none text-[15px] leading-relaxed text-zinc-800">
+                    <div className="prose max-w-none text-xs sm:text-sm md:text-[15px] leading-relaxed text-zinc-800 break-words">
                       {renderNotes(activeLesson.notes || "No notes provided for this lesson.")}
                     </div>
                   </div>
@@ -633,7 +633,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                 )}
 
                 {/* Previous / Next Navigation */}
-                <div className="flex items-center justify-between border-t border-zinc-100 pt-6">
+                <div className="flex items-center justify-between gap-2 border-t border-zinc-100 pt-4 sm:pt-6 flex-wrap">
                   <button
                     disabled={currentIndex <= 0}
                     onClick={() => {
@@ -641,12 +641,12 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         handleSelectLesson(activeCourse.lessons[currentIndex - 1].id);
                       }
                     }}
-                    className="text-sm font-semibold text-zinc-500 hover:text-zinc-900 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    className="text-xs sm:text-sm font-semibold text-zinc-500 hover:text-zinc-900 disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                   >
                     ← Previous Lesson
                   </button>
 
-                  <div className="text-xs font-bold text-zinc-400">
+                  <div className="text-[11px] sm:text-xs font-bold text-zinc-400">
                     Lesson {currentIndex + 1} of {totalLessons}
                   </div>
 
@@ -657,14 +657,14 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                         handleSelectLesson(activeCourse.lessons[currentIndex + 1].id);
                       }
                     }}
-                    className="text-sm font-bold text-primary hover:text-primary-dark disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
+                    className="text-xs sm:text-sm font-bold text-primary hover:text-primary-dark disabled:opacity-30 disabled:pointer-events-none transition cursor-pointer"
                   >
                     Next Lesson →
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="py-12 text-center text-zinc-500">
+              <div className="py-12 text-center text-zinc-500 text-xs sm:text-sm">
                 <p>No lessons available in this course.</p>
               </div>
             )}

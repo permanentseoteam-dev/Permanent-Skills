@@ -518,7 +518,7 @@ ${body}
         {/* Editor Main Canvas */}
         <div className="overflow-hidden rounded-2xl border border-zinc-200/90 bg-white shadow-sm">
           {/* Note Title Input */}
-          <div className="border-b border-zinc-100 px-6 pt-5 pb-3">
+          <div className="border-b border-zinc-100 px-4 sm:px-6 pt-4 sm:pt-5 pb-3">
             <input
               type="text"
               value={editTitle}
@@ -528,12 +528,12 @@ ${body}
                 triggerAutoSave(nextTitle, editBody, editTag);
               }}
               placeholder="Note Title..."
-              className="w-full text-lg sm:text-xl font-bold text-zinc-900 placeholder:text-zinc-300 outline-none bg-transparent"
+              className="w-full text-base sm:text-lg md:text-xl font-bold text-zinc-900 placeholder:text-zinc-300 outline-none bg-transparent"
             />
           </div>
 
           {/* Clean Markdown/Formatting Toolbar */}
-          <div className="flex flex-wrap items-center gap-1 bg-zinc-50/70 px-4 py-2 border-b border-zinc-100 text-zinc-600 text-xs">
+          <div className="flex flex-wrap items-center gap-1 bg-zinc-50/70 px-3 sm:px-4 py-2 border-b border-zinc-100 text-zinc-600 text-xs">
             <button
               type="button"
               onClick={() => insertFormatting("**", "**")}
@@ -610,13 +610,13 @@ ${body}
               <Quote size={14} />
             </button>
 
-            <div className="ml-auto text-[11px] text-zinc-400 font-medium">
+            <div className="ml-auto text-[10px] sm:text-[11px] text-zinc-400 font-medium">
               Markdown Supported
             </div>
           </div>
 
           {/* Note Body Textarea */}
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <textarea
               ref={textareaRef}
               value={editBody}
@@ -626,13 +626,13 @@ ${body}
                 triggerAutoSave(editTitle, nextBody, editTag);
               }}
               placeholder="Start typing your notes, key takeaways, code snippets, or sprint points here... (Auto-saves continuously)"
-              className="w-full min-h-[320px] sm:min-h-[380px] resize-none bg-transparent outline-none text-zinc-800 placeholder:text-zinc-400 text-sm leading-relaxed"
+              className="w-full min-h-[260px] sm:min-h-[340px] md:min-h-[380px] resize-none bg-transparent outline-none text-zinc-800 placeholder:text-zinc-400 text-xs sm:text-sm leading-relaxed"
             />
           </div>
 
           {/* Bottom Status Bar */}
-          <div className="flex flex-wrap items-center justify-between bg-zinc-50/80 px-6 py-2.5 text-[11px] text-zinc-500 border-t border-zinc-100">
-            <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-zinc-50/80 px-4 sm:px-6 py-2.5 text-[10px] sm:text-[11px] text-zinc-500 border-t border-zinc-100">
+            <div className="flex items-center gap-3 sm:gap-4">
               <span>{wordCount} words</span>
               <span>{charCount} characters</span>
               <span className="hidden sm:inline">
@@ -640,7 +640,7 @@ ${body}
               </span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1 font-medium text-zinc-600">
+              <span className="inline-flex items-center gap-1 font-medium text-zinc-600 truncate max-w-[180px] sm:max-w-none">
                 <FileText size={12} /> {lessonTitle}
               </span>
             </div>
