@@ -10,12 +10,15 @@ import {
   Calendar,
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronsUpDown,
   Compass,
   Copy,
   Download,
   ExternalLink,
   Globe,
+  GraduationCap,
   HelpCircle,
   LogOut,
   MessageCircle,
@@ -25,9 +28,11 @@ import {
   Shield,
   Sparkles,
   Star,
+  Trophy,
   UserRound,
   Users,
   RefreshCw,
+  X,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
 import { Avatar, UserRoleBadge } from "./ui";
@@ -37,12 +42,12 @@ import { createGoogleCalendarUrl, downloadIcsCalendarFile } from "@/lib/calendar
 import { ChatDrawer } from "./ChatDrawer";
 
 const NAV = [
-  { href: "/community", label: "Community" },
-  { href: "/classroom", label: "Classroom" },
-  { href: "/calendar", label: "Meet" },
-  { href: "/members", label: "Members" },
-  { href: "/leaderboards", label: "Leaderboards" },
-  { href: "/about", label: "About" },
+  { href: "/community", label: "Community", icon: MessageCircle },
+  { href: "/classroom", label: "Classroom", icon: GraduationCap },
+  { href: "/calendar", label: "Meet", icon: Calendar },
+  { href: "/members", label: "Members", icon: Users },
+  { href: "/leaderboards", label: "Leaderboards", icon: Trophy },
+  { href: "/about", label: "About", icon: Sparkles },
 ];
 
 export function Header() {
@@ -77,6 +82,44 @@ export function Header() {
   const chatRef = useRef<HTMLDivElement>(null);
   const bellRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Horizontal Navigation Slider Refs & Scroll States
+  const navRef = useRef<HTMLElement>(null);
+  const activeLinkRef = useRef<HTMLAnchorElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  function checkNavScroll() {
+    if (!navRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = navRef.current;
+    setShowLeftArrow(scrollLeft > 10);
+    setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
+  }
+
+  function scrollNav(dir: "left" | "right") {
+    if (!navRef.current) return;
+    const delta = dir === "left" ? -180 : 180;
+    navRef.current.scrollBy({ left: delta, behavior: "smooth" });
+  }
+
+  // Auto-center active link on route changes and on load
+  useEffect(() => {
+    checkNavScroll();
+    if (activeLinkRef.current) {
+      activeLinkRef.current.scrollIntoView({
+        behavior: "smooth",
+        inline: "center",
+        block: "nearest",
+      });
+    }
+  }, [pathname]);
+
+  // Window resize listener to update scroll arrows
+  useEffect(() => {
+    const handleResize = () => checkNavScroll();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
   const userLevel = getLevel(user?.points || 0).level;
@@ -370,8 +413,76 @@ export function Header() {
             )}
           </div>
 
-          {/* Top Right 3 Icons: Chats, Notifications, User Profile */}
-          <div className="ml-auto flex items-center gap-2 shrink-0">
+          {/* Top Right Icons: Search (Mobile), Chats, Notifications, User Profile */}
+          <div className="ml-auto flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Mobile Search Button */}
+            <div className="relative md:hidden">
+              <button
+                onClick={() => setOpen(open === "search" ? null : "search")}
+                className={`relative rounded-full p-2 transition-colors hover:bg-zinc-100 ${
+                  open === "search" ? "bg-zinc-100 text-primary" : "text-zinc-700"
+                }`}
+                aria-label="Search"
+              >
+                <Search size={20} className="stroke-[1.8]" />
+              </button>
+
+              {/* Mobile Search Dropdown Overlay */}
+              {open === "search" && (
+                <div className="fixed inset-x-2 top-16 z-50 overflow-hidden rounded-2xl border border-zinc-200 bg-white p-3 shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                  <div className="relative flex items-center mb-2">
+                    <Search size={15} className="absolute left-3 text-zinc-400 pointer-events-none" />
+                    <input
+                      autoFocus
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder={pathname === "/members" ? "Search members..." : "Search posts, courses, members..."}
+                      className="w-full rounded-xl bg-zinc-100 py-2.5 pl-9 pr-9 text-xs sm:text-sm outline-none ring-primary/30 focus:bg-white focus:ring-2"
+                    />
+                    <button
+                      onClick={() => setOpen(null)}
+                      className="absolute right-2.5 text-zinc-400 hover:text-zinc-700 p-1"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+
+                  {query.trim().length >= 2 && (
+                    <div className="max-h-[300px] overflow-y-auto divide-y divide-zinc-50 pt-1">
+                      {searchHits.people.length === 0 && searchHits.posts.length === 0 && (
+                        <p className="px-3 py-5 text-center text-xs text-zinc-500">No matches found</p>
+                      )}
+                      {searchHits.people.map((p) => (
+                        <Link
+                          key={p.id}
+                          href={`/profile/${p.id}`}
+                          onClick={() => setOpen(null)}
+                          className="flex items-center gap-2.5 px-3 py-2 hover:bg-zinc-50 rounded-lg"
+                        >
+                          <Avatar user={p} size={30} />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-semibold text-zinc-900 truncate">{p.name}</p>
+                            <p className="text-[10px] text-zinc-500">@{p.username}</p>
+                          </div>
+                        </Link>
+                      ))}
+                      {searchHits.posts.map((p) => (
+                        <Link
+                          key={p.id}
+                          href="/community"
+                          onClick={() => setOpen(null)}
+                          className="block px-3 py-2 hover:bg-zinc-50 rounded-lg"
+                        >
+                          <p className="text-xs font-semibold text-zinc-900 truncate">{p.title}</p>
+                          <p className="line-clamp-1 text-[11px] text-zinc-500">{p.body}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* 1. Chat Icon */}
             <div ref={chatRef} className="relative">
               <button
@@ -391,7 +502,7 @@ export function Header() {
 
               {/* Chat Dropdown Menu */}
               {open === "chat" && (
-                <div className="absolute right-0 top-full mt-2 z-50 w-[360px] sm:w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 top-full mt-2 z-50 w-[calc(100vw-1.5rem)] sm:w-[380px] max-w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
                   <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-zinc-900">Chats</h3>
@@ -526,7 +637,7 @@ export function Header() {
 
               {/* Notifications Dropdown Menu */}
               {open === "bell" && (
-                <div className="absolute right-0 top-full mt-2 z-50 w-[360px] sm:w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 top-full mt-2 z-50 w-[calc(100vw-1.5rem)] sm:w-[380px] max-w-[380px] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
                   <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3 bg-zinc-50/50">
                     <div className="flex items-center gap-2">
                       <h3 className="font-semibold text-zinc-900">Notifications</h3>
@@ -611,7 +722,7 @@ export function Header() {
                             <div className="min-w-0 flex-1">
                               <p
                                 className={`text-sm ${
-                                  !n.read ? "font-semibold text-zinc-900" : "font-medium text-zinc-800"
+                                   !n.read ? "font-semibold text-zinc-900" : "font-medium text-zinc-800"
                                 }`}
                               >
                                 {n.title}
@@ -723,29 +834,81 @@ export function Header() {
           </div>
         </div>
 
-        {/* Main Navigation Row - Full Width */}
-        <nav className="flex h-11 w-full items-center gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8 border-t border-zinc-100/80 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`skool-nav-link whitespace-nowrap ${pathname.startsWith(item.href) ? "active" : ""}`}
+        {/* Main Navigation Row - Horizontal Slider for all screen sizes */}
+        <div className="relative w-full border-t border-zinc-100 bg-white">
+          {/* Left scroll arrow indicator for smaller screens */}
+          {showLeftArrow && (
+            <button
+              type="button"
+              onClick={() => scrollNav("left")}
+              className="absolute left-0 top-0 bottom-0 z-20 flex w-7 items-center justify-center bg-gradient-to-r from-white via-white/95 to-transparent text-zinc-600 hover:text-primary transition cursor-pointer"
+              aria-label="Scroll left"
             >
-              {item.label}
-            </Link>
-          ))}
-          {user?.role === "admin" && (
-            <Link href="/admin" className={`skool-nav-link whitespace-nowrap ${pathname.startsWith("/admin") ? "active" : ""}`}>
-              Admin
-            </Link>
+              <ChevronLeft size={16} />
+            </button>
           )}
-          <Link
-            href="/all-courses"
-            className={`skool-nav-link whitespace-nowrap ${pathname.startsWith("/all-courses") ? "active" : ""}`}
+
+          {/* Slider navigation track */}
+          <nav
+            ref={navRef}
+            onScroll={checkNavScroll}
+            className="flex h-11 w-full items-center gap-0.5 sm:gap-1 overflow-x-auto px-3 sm:px-6 lg:px-8 scroll-smooth scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
           >
-            All Courses
-          </Link>
-        </nav>
+            {NAV.map((item) => {
+              const isActive = pathname.startsWith(item.href);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  ref={isActive ? activeLinkRef : undefined}
+                  className={`skool-nav-link whitespace-nowrap flex items-center gap-1.5 px-3 sm:px-3.5 text-xs sm:text-sm font-medium transition shrink-0 ${
+                    isActive ? "active font-bold text-zinc-950" : "text-zinc-600 hover:text-zinc-900"
+                  }`}
+                >
+                  <Icon size={14} className={`shrink-0 ${isActive ? "text-primary stroke-[2.2]" : "text-zinc-400 stroke-[1.8]"}`} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+
+            {user?.role === "admin" && (
+              <Link
+                href="/admin"
+                ref={pathname.startsWith("/admin") ? activeLinkRef : undefined}
+                className={`skool-nav-link whitespace-nowrap flex items-center gap-1.5 px-3 sm:px-3.5 text-xs sm:text-sm font-medium transition shrink-0 ${
+                  pathname.startsWith("/admin") ? "active font-bold text-zinc-950" : "text-zinc-600 hover:text-zinc-900"
+                }`}
+              >
+                <Shield size={14} className={`shrink-0 ${pathname.startsWith("/admin") ? "text-primary stroke-[2.2]" : "text-zinc-400 stroke-[1.8]"}`} />
+                <span>Admin</span>
+              </Link>
+            )}
+
+            <Link
+              href="/all-courses"
+              ref={pathname.startsWith("/all-courses") ? activeLinkRef : undefined}
+              className={`skool-nav-link whitespace-nowrap flex items-center gap-1.5 px-3 sm:px-3.5 text-xs sm:text-sm font-medium transition shrink-0 ${
+                pathname.startsWith("/all-courses") ? "active font-bold text-zinc-950" : "text-zinc-600 hover:text-zinc-900"
+              }`}
+            >
+              <BookOpen size={14} className={`shrink-0 ${pathname.startsWith("/all-courses") ? "text-primary stroke-[2.2]" : "text-zinc-400 stroke-[1.8]"}`} />
+              <span>All Courses</span>
+            </Link>
+          </nav>
+
+          {/* Right scroll arrow indicator for smaller screens */}
+          {showRightArrow && (
+            <button
+              type="button"
+              onClick={() => scrollNav("right")}
+              className="absolute right-0 top-0 bottom-0 z-20 flex w-7 items-center justify-center bg-gradient-to-l from-white via-white/95 to-transparent text-zinc-600 hover:text-primary transition cursor-pointer"
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={16} />
+            </button>
+          )}
+        </div>
       </header>
       <ChatDrawer userId={chatUserId} onClose={() => setChatUserId(null)} />
     </>
