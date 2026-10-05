@@ -158,12 +158,13 @@ export default function AdminPage() {
   const [managerFeedback, setManagerFeedback] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showManagerPassword, setShowManagerPassword] = useState(false);
 
-  // Auto-dismiss alert notification banner after 3 seconds
+  // Auto-dismiss alert notification banner (keep errors visible longer)
   useEffect(() => {
     if (!message) return;
+    const duration = message.type === "error" ? 8000 : 3500;
     const timer = setTimeout(() => {
       setMessage(null);
-    }, 3000);
+    }, duration);
     return () => clearTimeout(timer);
   }, [message]);
 

@@ -622,8 +622,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const approveUserFn = useCallback(
-    (userId: string) => {
+    async (userId: string) => {
+      let previousUsers: PublicUser[] = [];
       setState((prev) => {
+        previousUsers = prev.users;
         const target = prev.users.find((u) => u.id === userId);
         const targetEmail = target?.email?.trim().toLowerCase();
         return {
@@ -635,13 +637,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ),
         };
       });
-      return run(() => approveUserAction(userId));
+
+      try {
+        const res = await fetch("/api/admin/user-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "approve", userId }),
+        });
+        const data = (await res.json().catch(() => null)) as ActionResult | null;
+        if (data && data.ok) {
+          await refresh();
+          return data;
+        } else if (data && !data.ok) {
+          if (previousUsers.length > 0) {
+            setState((prev) => ({ ...prev, users: previousUsers }));
+          }
+          return data;
+        }
+      } catch {}
+
+      const result = await run(() => approveUserAction(userId));
+      if (!result.ok && previousUsers.length > 0) {
+        setState((prev) => ({ ...prev, users: previousUsers }));
+      }
+      return result;
     },
-    [run]
+    [run, refresh]
   );
+
   const rejectUserFn = useCallback(
-    (userId: string) => {
+    async (userId: string) => {
+      let previousUsers: PublicUser[] = [];
       setState((prev) => {
+        previousUsers = prev.users;
         const target = prev.users.find((u) => u.id === userId);
         const targetEmail = target?.email?.trim().toLowerCase();
         return {
@@ -653,13 +681,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ),
         };
       });
-      return run(() => rejectUserAction(userId));
+
+      try {
+        const res = await fetch("/api/admin/user-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "reject", userId }),
+        });
+        const data = (await res.json().catch(() => null)) as ActionResult | null;
+        if (data && data.ok) {
+          await refresh();
+          return data;
+        } else if (data && !data.ok) {
+          if (previousUsers.length > 0) {
+            setState((prev) => ({ ...prev, users: previousUsers }));
+          }
+          return data;
+        }
+      } catch {}
+
+      const result = await run(() => rejectUserAction(userId));
+      if (!result.ok && previousUsers.length > 0) {
+        setState((prev) => ({ ...prev, users: previousUsers }));
+      }
+      return result;
     },
-    [run]
+    [run, refresh]
   );
+
   const deleteMemberFn = useCallback(
-    (userId: string) => {
+    async (userId: string) => {
+      let previousUsers: PublicUser[] = [];
       setState((prev) => {
+        previousUsers = prev.users;
         const target = prev.users.find((u) => u.id === userId);
         const targetEmail = target?.email?.trim().toLowerCase();
         return {
@@ -669,15 +723,74 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ),
         };
       });
-      return run(() => deleteMemberAction(userId));
+
+      try {
+        const res = await fetch("/api/admin/user-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "delete", userId }),
+        });
+        const data = (await res.json().catch(() => null)) as ActionResult | null;
+        if (data && data.ok) {
+          await refresh();
+          return data;
+        } else if (data && !data.ok) {
+          if (previousUsers.length > 0) {
+            setState((prev) => ({ ...prev, users: previousUsers }));
+          }
+          return data;
+        }
+      } catch {}
+
+      const result = await run(() => deleteMemberAction(userId));
+      if (!result.ok && previousUsers.length > 0) {
+        setState((prev) => ({ ...prev, users: previousUsers }));
+      }
+      return result;
     },
-    [run]
+    [run, refresh]
   );
+
   const createMemberFn = useCallback((input: MemberInput) => run(() => createMemberAction(input)), [run]);
-  const updateMemberFn = useCallback((input: MemberUpdateInput) => run(() => updateMemberAction(input)), [run]);
+
+  const updateMemberFn = useCallback(
+    async (input: MemberUpdateInput) => {
+      try {
+        const res = await fetch("/api/admin/user-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "update", ...input }),
+        });
+        const data = (await res.json().catch(() => null)) as ActionResult | null;
+        if (data && data.ok) {
+          await refresh();
+          return data;
+        }
+      } catch {}
+
+      return run(() => updateMemberAction(input));
+    },
+    [run, refresh]
+  );
+
   const releaseMemberLoginFn = useCallback(
-    (userId: string) => run(() => releaseMemberLoginAction(userId)),
-    [run],
+    async (userId: string) => {
+      try {
+        const res = await fetch("/api/admin/user-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "releaseLogin", userId }),
+        });
+        const data = (await res.json().catch(() => null)) as ActionResult | null;
+        if (data && data.ok) {
+          await refresh();
+          return data;
+        }
+      } catch {}
+
+      return run(() => releaseMemberLoginAction(userId));
+    },
+    [run, refresh]
   );
   const upgradeFn = useCallback(() => run(() => upgradeAction()), [run]);
   const inviteMemberFn = useCallback((email: string) => run(() => inviteMemberAction(email)), [run]);

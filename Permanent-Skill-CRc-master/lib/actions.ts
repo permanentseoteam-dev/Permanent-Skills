@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { randomBytes } from "crypto";
 import { ensureDbLoaded, readDb, refreshFromSupabase, updateDb, upsertUser } from "./db";
+import { syncUserToSupabase, deleteUserFromSupabase } from "./supabase-db";
 import { hashPassword, verifyPassword } from "./password";
 import { nextPathFor, signPayload, verifyPayload } from "./session";
 import { slugify, formatDateTime } from "./format";
@@ -469,7 +470,7 @@ export async function submitApplication(form: Application): Promise<ActionResult
 
 export async function approveUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Staff access only." };
   await ensureDbLoaded().catch(() => {});
   const db = readDb();
   let target = db.users.find((u) => u.id === userId);
@@ -552,12 +553,19 @@ export async function approveUser(userId: string): Promise<ActionResult> {
       createdAt: now,
     });
   });
+
+  // Guarantee synchronous Supabase sync for approved user
+  const matchingUpdated = readDb().users.filter((u) => u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail));
+  for (const u of matchingUpdated) {
+    await syncUserToSupabase(u).catch((err) => console.error("Error direct syncing approved user to Supabase:", err));
+  }
+
   return { ok: true };
 }
 
 export async function rejectUser(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Staff access only." };
   await ensureDbLoaded().catch(() => {});
   const db = readDb();
   let target = db.users.find((u) => u.id === userId);
@@ -581,12 +589,19 @@ export async function rejectUser(userId: string): Promise<ActionResult> {
       d.sales = d.sales.filter((s) => !matchingIds.has(s.userId));
     }
   });
+
+  // Guarantee synchronous Supabase sync for rejected user
+  const matchingUpdated = readDb().users.filter((u) => u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail));
+  for (const u of matchingUpdated) {
+    await syncUserToSupabase(u).catch((err) => console.error("Error direct syncing rejected user to Supabase:", err));
+  }
+
   return { ok: true };
 }
 
 export async function deleteMember(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Staff access only." };
   await ensureDbLoaded().catch(() => {});
   const db = readDb();
   let target = db.users.find((u) => u.id === userId);
@@ -599,9 +614,10 @@ export async function deleteMember(userId: string): Promise<ActionResult> {
   if (target.id === me.id) return { ok: false, error: "Cannot delete your own account." };
   const targetEmail = target.email?.trim().toLowerCase();
 
+  const matchingIds = new Set<string>();
   await updateDb((d) => {
     const matchingUsers = d.users.filter((u) => u.id === userId || (targetEmail && u.email?.trim().toLowerCase() === targetEmail));
-    const matchingIds = new Set(matchingUsers.map((u) => u.id));
+    matchingUsers.forEach((u) => matchingIds.add(u.id));
 
     d.users = d.users.filter((u) => !matchingIds.has(u.id));
     d.sessions = d.sessions.filter((s) => !matchingIds.has(s.userId));
@@ -611,6 +627,13 @@ export async function deleteMember(userId: string): Promise<ActionResult> {
     d.sales = (d.sales || []).filter((s) => !matchingIds.has(s.userId));
     d.reviews = (d.reviews || []).filter((r) => !matchingIds.has(r.userId));
   });
+
+  // Guarantee synchronous Supabase deletion
+  for (const id of matchingIds) {
+    await deleteUserFromSupabase(id).catch((err) => console.error("Error direct deleting user from Supabase:", err));
+  }
+  await deleteUserFromSupabase(userId).catch(() => {});
+
   return { ok: true };
 }
 
@@ -629,7 +652,7 @@ export async function createMember(input: {
   planName?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Staff access only." };
 
   const name = input.name.trim();
   const email = input.email.trim().toLowerCase();
@@ -704,6 +727,12 @@ export async function createMember(input: {
       });
     }
   });
+
+  const createdUser = readDb().users.find((u) => u.id === id);
+  if (createdUser) {
+    await syncUserToSupabase(createdUser).catch((err) => console.error("Error direct syncing created user to Supabase:", err));
+  }
+
   return { ok: true, id };
 }
 
@@ -723,7 +752,7 @@ export async function updateMember(input: {
   planName?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Staff access only." };
 
   const db = readDb();
   const target = db.users.find((u) => u.id === input.userId);
@@ -808,12 +837,18 @@ export async function updateMember(input: {
       });
     }
   });
+
+  const updatedUser = readDb().users.find((u) => u.id === input.userId);
+  if (updatedUser) {
+    await syncUserToSupabase(updatedUser).catch((err) => console.error("Error direct syncing updated member to Supabase:", err));
+  }
+
   return { ok: true };
 }
 
 export async function releaseMemberLogin(userId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin access only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Staff access only." };
   await updateDb((db) => {
     db.sessions = db.sessions.filter((s) => s.userId !== userId);
   });

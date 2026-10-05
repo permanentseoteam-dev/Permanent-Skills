@@ -123,6 +123,11 @@ function migrate(db: Database) {
     managerUser.role = "manager";
     changed = true;
   }
+  const jackUser = db.users.find((u) => u.email?.toLowerCase().trim() === "jack212321@gmail.com");
+  if (jackUser && jackUser.role !== "admin") {
+    jackUser.role = "admin";
+    changed = true;
+  }
   const catalogIds = COURSE_CATALOG_IDS as readonly string[];
   const hasOld = db.courses.some((course) => OLD_COURSE_IDS.includes(course.id));
   const missingNew = catalogIds.some((id) => !db.courses.some((course) => course.id === id));
