@@ -341,7 +341,7 @@ export function AdminClassroom() {
       )}
 
       {/* SECTION 2: LESSON EDITOR FORM */}
-      <Card className="p-6 space-y-4 border border-zinc-200 shadow-sm">
+      <Card className="p-4 sm:p-6 space-y-4 border border-zinc-200 shadow-sm">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -433,9 +433,9 @@ export function AdminClassroom() {
           </Field>
 
           <Field label="Or Upload Direct Video File">
-            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-2.5 text-xs font-semibold text-zinc-600 hover:border-primary hover:bg-primary/5 hover:text-primary transition">
-              <Upload size={15} />
-              {fileName || "Upload MP4 / WebM / MOV File"}
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/50 p-2.5 text-xs font-semibold text-zinc-600 hover:border-primary hover:bg-primary/5 hover:text-primary transition min-h-[44px]">
+              <Upload size={15} className="shrink-0" />
+              {fileName ? <span className="truncate max-w-[220px]">{fileName}</span> : "Upload MP4 / WebM / MOV File"}
               <input
                 type="file"
                 accept="video/mp4,video/webm,video/ogg,video/quicktime"
@@ -501,7 +501,7 @@ export function AdminClassroom() {
       </Card>
 
       {/* SECTION 3: COURSE LESSONS DIRECTORY & MODULE BREAKDOWN */}
-      <Card className="p-6 space-y-4 border border-zinc-200 shadow-sm">
+      <Card className="p-4 sm:p-6 space-y-4 border border-zinc-200 shadow-sm">
         <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
           <div>
             <h3 className="text-base font-black text-zinc-900">

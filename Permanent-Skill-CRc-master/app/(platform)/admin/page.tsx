@@ -672,10 +672,10 @@ export default function AdminPage() {
       {tab === "pending" && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative w-full sm:flex-1 sm:max-w-md">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
-                className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-zinc-900"
+                className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-base sm:text-xs outline-none focus:border-zinc-900"
                 placeholder="Search applicants by name, email, profession, city, experience, goals..."
                 value={pendingSearch}
                 onChange={(e) => setPendingSearch(e.target.value)}
@@ -726,19 +726,19 @@ export default function AdminPage() {
       {tab === "members" && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="relative flex-1 max-w-md">
+            <div className="relative w-full sm:flex-1 sm:max-w-md">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
               <input
-                className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-xs outline-none focus:border-zinc-900"
+                className="w-full rounded-xl border border-zinc-200 bg-white py-2 pl-9 pr-3 text-base sm:text-xs outline-none focus:border-zinc-900"
                 placeholder="Search by name, email, @username, IP, location, profession..."
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
               />
             </div>
 
-            <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none w-full sm:w-auto shrink-0">
               {/* Table / Cards View Toggle */}
-              <div className="inline-flex rounded-xl border border-zinc-200 bg-zinc-100 p-0.5 text-xs font-semibold text-zinc-600">
+              <div className="inline-flex rounded-xl border border-zinc-200 bg-zinc-100 p-0.5 text-xs font-semibold text-zinc-600 shrink-0">
                 <button
                   type="button"
                   onClick={() => setMemberViewMode("table")}
@@ -760,7 +760,7 @@ export default function AdminPage() {
               </div>
 
               <select
-                className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 outline-none"
+                className="rounded-xl border border-zinc-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-zinc-700 outline-none shrink-0 cursor-pointer"
                 value={memberRoleFilter}
                 onChange={(e) => setMemberRoleFilter(e.target.value)}
               >
@@ -823,7 +823,7 @@ export default function AdminPage() {
               ))}
             </div>
           ) : (
-            <Card className="overflow-x-auto shadow-sm">
+            <Card className="overflow-x-auto shadow-sm -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border-x-0 sm:border-x">
               <table className="w-full text-left text-xs min-w-[680px]">
                 <thead className="bg-zinc-50 border-b border-zinc-100 uppercase tracking-wider text-zinc-400 text-[10px]">
                   <tr>
@@ -1109,10 +1109,10 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-200/60">
                       <button
                         onClick={() => loadManagerIntoForm(mgr)}
-                        className="rounded-lg px-3 py-1.5 text-xs font-bold border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 transition"
+                        className="rounded-lg px-3 py-1.5 text-xs font-bold border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700 transition cursor-pointer"
                       >
                         Edit Credentials
                       </button>
@@ -1122,7 +1122,7 @@ export default function AdminPage() {
                             await updateMember({ userId: mgr.id, role: "member" });
                           }
                         }}
-                        className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition"
+                        className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer"
                       >
                         Demote
                       </button>
@@ -1139,7 +1139,7 @@ export default function AdminPage() {
       {tab === "posts" && (
         <div className="space-y-6">
           {/* Pending Posts Queue */}
-          <Card className="p-6 border border-zinc-200 shadow-sm space-y-4">
+          <Card className="p-4 sm:p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
@@ -1175,11 +1175,11 @@ export default function AdminPage() {
 
                   return (
                     <div key={p.id} className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-3">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Avatar user={author} size={30} />
                           <span className="font-bold text-xs text-zinc-900">{author?.name}</span>
-                          <span className="text-[11px] text-zinc-400">({author?.email})</span>
+                          <span className="text-[11px] text-zinc-400 break-all">({author?.email})</span>
                           <UserRoleBadge role={author?.role || "member"} size="xs" />
                           <span className="inline-flex items-center gap-1 rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-800">
                             {categoryLabel}
@@ -1192,7 +1192,7 @@ export default function AdminPage() {
                           <span className="text-[11px] text-zinc-400">• {timeAgo(p.createdAt)}</span>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-200/60 flex-wrap">
                           <button
                             onClick={async () => {
                               const res = await approvePost(p.id);
@@ -1231,7 +1231,7 @@ export default function AdminPage() {
 
                       <div className="rounded-lg border border-amber-100/80 bg-white p-3.5 space-y-1">
                         <h4 className="font-bold text-sm text-zinc-950">{p.title}</h4>
-                        <p className="text-xs text-zinc-700 whitespace-pre-wrap leading-relaxed">
+                        <p className="text-xs text-zinc-700 whitespace-pre-wrap leading-relaxed break-words">
                           {p.body}
                         </p>
                       </div>
@@ -1243,7 +1243,7 @@ export default function AdminPage() {
           </Card>
 
           {/* Published Posts History */}
-          <Card className="p-6 border border-zinc-200 shadow-sm space-y-4">
+          <Card className="p-4 sm:p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-black text-zinc-900">Published Posts History</h3>
@@ -1253,7 +1253,7 @@ export default function AdminPage() {
               <div className="relative w-full sm:w-64">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
-                  className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-zinc-900"
+                  className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8 pr-3 text-base sm:text-xs outline-none focus:border-zinc-900"
                   placeholder="Filter published posts..."
                   value={postsSearch}
                   onChange={(e) => setPostsSearch(e.target.value)}
@@ -1284,7 +1284,7 @@ export default function AdminPage() {
                         </div>
                         <div className="mt-1 bg-zinc-50 p-2.5 rounded-lg space-y-0.5">
                           <p className="text-xs font-bold text-zinc-900">{p.title}</p>
-                          <p className="text-xs text-zinc-600 line-clamp-2">{p.body}</p>
+                          <p className="text-xs text-zinc-600 line-clamp-2 break-words">{p.body}</p>
                         </div>
                       </div>
                     </div>
@@ -1322,7 +1322,7 @@ export default function AdminPage() {
       {tab === "comments" && (
         <div className="space-y-6">
           {/* Pending Comments */}
-          <Card className="p-6 border border-zinc-200 shadow-sm space-y-4">
+          <Card className="p-4 sm:p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-black text-zinc-900 flex items-center gap-2">
@@ -1351,18 +1351,18 @@ export default function AdminPage() {
 
                   return (
                     <div key={c.id} className="p-4 rounded-xl border border-amber-200 bg-amber-50/40 space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <div className="flex items-center gap-2 flex-wrap">
                           <Avatar user={author} size={28} />
                           <span className="font-bold text-xs text-zinc-900">{author?.name}</span>
-                          <span className="text-[11px] text-zinc-400">({author?.email})</span>
+                          <span className="text-[11px] text-zinc-400 break-all">({author?.email})</span>
                           <span className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold ${isLesson ? "bg-purple-100 text-purple-800" : "bg-blue-100 text-blue-800"}`}>
                             {isLesson ? "🎓 Lesson" : "💬 Post"}
                           </span>
                           <span className="text-[11px] text-zinc-600 font-medium truncate max-w-xs">• {contextTitle}</span>
                         </div>
 
-                        <div className="flex items-center gap-2 self-end sm:self-auto">
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-amber-200/60 flex-wrap">
                           <button
                             onClick={() => approveComment(c.id)}
                             className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-2xs transition cursor-pointer"
@@ -1389,7 +1389,7 @@ export default function AdminPage() {
           </Card>
 
           {/* Approved Comments Feed */}
-          <Card className="p-6 border border-zinc-200 shadow-sm space-y-4">
+          <Card className="p-4 sm:p-6 border border-zinc-200 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-100 pb-3">
               <div>
                 <h3 className="text-base font-black text-zinc-900">Published Comments History</h3>
@@ -1399,7 +1399,7 @@ export default function AdminPage() {
               <div className="relative w-full sm:w-64">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
                 <input
-                  className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8 pr-3 text-xs outline-none focus:border-zinc-900"
+                  className="w-full rounded-xl border border-zinc-200 bg-white py-1.5 pl-8 pr-3 text-base sm:text-xs outline-none focus:border-zinc-900"
                   placeholder="Filter comments..."
                   value={commentsSearch}
                   onChange={(e) => setCommentsSearch(e.target.value)}
@@ -1471,7 +1471,7 @@ export default function AdminPage() {
             </Card>
           </div>
 
-          <Card className="overflow-x-auto shadow-sm">
+          <Card className="overflow-x-auto shadow-sm -mx-4 sm:mx-0 rounded-none sm:rounded-2xl border-x-0 sm:border-x">
             <table className="w-full text-left text-xs min-w-[560px]">
               <thead className="bg-zinc-50 border-b border-zinc-100 uppercase tracking-wider text-zinc-400 text-[10px]">
                 <tr>

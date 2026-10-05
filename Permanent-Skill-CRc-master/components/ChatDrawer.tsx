@@ -99,7 +99,7 @@ export function ChatDrawer({ userId, onClose }: { userId: string | null; onClose
         </div>
         <div className="flex-1 space-y-3 overflow-y-auto p-3.5 sm:p-4">
           {thread.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center text-center text-zinc-400">
+            <div className="flex h-full min-h-[160px] flex-col items-center justify-center text-center text-zinc-400">
               <p className="text-sm font-medium">No messages yet</p>
               <p className="text-xs">Say hello to {person.name}!</p>
             </div>
@@ -116,12 +116,33 @@ export function ChatDrawer({ userId, onClose }: { userId: string | null; onClose
             );
           })}
         </div>
+
+        {/* Quick Emoji Bar */}
+        <div className="px-3 py-1 bg-zinc-50 border-t border-zinc-100 flex items-center gap-1 overflow-x-auto scrollbar-none">
+          {["👋", "🔥", "🚀", "💡", "🙌", "👍"].map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => setText((t) => t + emoji)}
+              className="rounded p-0.5 text-xs hover:bg-white transition cursor-pointer"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+
         <form onSubmit={submit} className="flex gap-2 border-t border-zinc-100 p-2.5 sm:p-3 bg-white">
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit(e);
+              }
+            }}
             placeholder="Write a message..."
-            className="flex-1 rounded-full bg-zinc-100 px-3.5 sm:px-4 py-2 text-base sm:text-sm outline-none focus:bg-white focus:ring-1 focus:ring-primary border border-transparent focus:border-zinc-200 shadow-2xs"
+            className="flex-1 rounded-full bg-zinc-100 px-3.5 sm:px-4 py-2 text-base sm:text-xs outline-none focus:bg-white focus:ring-1 focus:ring-primary border border-transparent focus:border-zinc-200 shadow-2xs"
           />
           <button type="submit" className="rounded-full bg-primary p-2 text-white hover:bg-primary/90 transition shadow-sm cursor-pointer active:scale-95 shrink-0">
             <Send size={16} />
