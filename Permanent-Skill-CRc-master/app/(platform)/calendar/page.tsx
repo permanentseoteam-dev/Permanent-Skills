@@ -15,6 +15,7 @@ import {
   Copy,
   Download,
   ExternalLink,
+  Image as ImageIcon,
   Layers,
   Link2,
   ListTodo,
@@ -26,6 +27,7 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Upload,
   Users,
   Video,
   VideoOff,
@@ -99,6 +101,7 @@ type ProjectForm = {
   title: string;
   description: string;
   version: string;
+  thumbnail?: string;
   leadId: string;
   leadName: string;
   memberIds: string[];
@@ -115,6 +118,7 @@ const emptyProjectForm: ProjectForm = {
   title: "",
   description: "",
   version: "v1.0.0",
+  thumbnail: "",
   leadId: "",
   leadName: "",
   memberIds: [],
@@ -276,6 +280,35 @@ export default function MeetPage() {
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  // Thumbnail upload state
+  const [thumbnailUploading, setThumbnailUploading] = useState(false);
+  const [thumbnailError, setThumbnailError] = useState("");
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleThumbnailUpload(file: File) {
+    if (!file.type.startsWith("image/")) {
+      setThumbnailError("Please select a valid image file (PNG, JPG, WebP).");
+      return;
+    }
+    setThumbnailUploading(true);
+    setThumbnailError("");
+    try {
+      const data = new FormData();
+      data.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: data });
+      const json = await res.json();
+      setThumbnailUploading(false);
+      if (!json.ok) {
+        setThumbnailError(json.error || "Image upload failed.");
+        return;
+      }
+      setForm((f) => ({ ...f, thumbnail: json.url }));
+    } catch {
+      setThumbnailUploading(false);
+      setThumbnailError("Failed to upload image. Please check your connection.");
+    }
+  }
+
   // New task input state inside modal
   const [newModalTaskTitle, setNewModalTaskTitle] = useState("");
 
@@ -399,9 +432,11 @@ export default function MeetPage() {
       tasks: [],
       progress: 0,
       status: "active",
+      thumbnail: "",
     });
     setEditingProjectId(null);
     setErrorMsg("");
+    setThumbnailError("");
     setNewModalTaskTitle("");
     setMemberPickerOpen(false);
     setMemberFilterText("");
@@ -414,6 +449,7 @@ export default function MeetPage() {
       title: proj.title,
       description: proj.description,
       version: proj.version || "v1.0.0",
+      thumbnail: proj.thumbnail || "",
       leadId: proj.leadId,
       leadName: proj.leadName || "",
       memberIds: proj.memberIds || [],
@@ -427,6 +463,7 @@ export default function MeetPage() {
     });
     setEditingProjectId(proj.id);
     setErrorMsg("");
+    setThumbnailError("");
     setMemberPickerOpen(false);
     setMemberFilterText("");
     setProjectModalOpen(true);
@@ -768,26 +805,69 @@ export default function MeetPage() {
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-6">
                   {/* Left: UI Mockup / Thumbnail Box */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
-                    <div className="relative h-28 w-full sm:w-44 md:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner">
-                      <div className="flex items-center justify-between border-b border-zinc-200/60 pb-1.5">
-                        <span className="text-[10px] font-bold text-zinc-700 truncate max-w-[110px]">
-                          {activeProject.title}
+                    {/* Left: UI Mockup / Thumbnail Box (Editable for Admin & Manager) */}
+                    {activeProject.thumbnail ? (
+                      <div
+                        onClick={() => openEditProject(activeProject)}
+                        className="relative h-28 w-full sm:w-44 md:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-900 shadow-inner group cursor-pointer transition hover:shadow-md"
+                        title="Click to edit project & cover image"
+                      >
+                        <img
+                          src={activeProject.thumbnail}
+                          alt={activeProject.title}
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/60 pointer-events-none" />
+                        <div className="relative z-5 flex items-center justify-between p-2.5 border-b border-white/10">
+                          <span className="text-[10px] font-bold text-white truncate max-w-[110px] drop-shadow-xs">
+                            {activeProject.title}
+                          </span>
+                          <span className="text-[9px] font-mono text-indigo-300 drop-shadow-xs">#meet-sync</span>
+                        </div>
+                        <span className="absolute bottom-2 right-2 z-5 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs border border-white/10">
+                          {activeProject.version || "v1.0.0"}
                         </span>
-                        <span className="text-[9px] font-mono text-zinc-400">#meet-sync</span>
-                      </div>
-                      <div className="mt-2 space-y-1.5">
-                        <div className="h-2 w-3/4 rounded bg-indigo-200/70" />
-                        <div className="h-2 w-1/2 rounded bg-zinc-200" />
-                        <div className="grid grid-cols-3 gap-1 pt-1">
-                          <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
-                          <div className="h-5 rounded bg-indigo-500/10 border border-indigo-100" />
-                          <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                        {/* Hover & Mobile Edit Overlay */}
+                        <div className="absolute inset-0 z-10 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 backdrop-blur-[2px]">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+                            <Pencil size={13} className="text-white" />
+                          </div>
+                          <span className="text-[11px] font-semibold text-white tracking-wide">Edit Card</span>
                         </div>
                       </div>
-                      <span className="absolute bottom-2 right-2 rounded bg-zinc-900/80 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs">
-                        {activeProject.version || "v1.0.0"}
-                      </span>
-                    </div>
+                    ) : (
+                      <div
+                        onClick={() => openEditProject(activeProject)}
+                        className="relative h-28 w-full sm:w-44 md:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner group cursor-pointer transition hover:shadow-md"
+                        title="Click to edit project & cover image"
+                      >
+                        <div className="flex items-center justify-between border-b border-zinc-200/60 pb-1.5">
+                          <span className="text-[10px] font-bold text-zinc-700 truncate max-w-[110px]">
+                            {activeProject.title}
+                          </span>
+                          <span className="text-[9px] font-mono text-zinc-400">#meet-sync</span>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          <div className="h-2 w-3/4 rounded bg-indigo-200/70" />
+                          <div className="h-2 w-1/2 rounded bg-zinc-200" />
+                          <div className="grid grid-cols-3 gap-1 pt-1">
+                            <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                            <div className="h-5 rounded bg-indigo-500/10 border border-indigo-100" />
+                            <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                          </div>
+                        </div>
+                        <span className="absolute bottom-2 right-2 rounded bg-zinc-900/80 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs">
+                          {activeProject.version || "v1.0.0"}
+                        </span>
+                        {/* Hover Edit Overlay */}
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white gap-1 backdrop-blur-[2px] rounded-xl">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+                            <Pencil size={13} className="text-white" />
+                          </div>
+                          <span className="text-[11px] font-semibold text-white tracking-wide">Edit Card</span>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Middle: Details, Host, Team & Time of Meeting in Square Box */}
                     <div className="min-w-0 flex-1 space-y-2.5 sm:space-y-3">
@@ -1022,39 +1102,98 @@ export default function MeetPage() {
                 </div>
               ) : (
                 /* Regular User View */
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
-                  {/* Left: Title, Profile Icons, Host Name */}
-                  <div className="min-w-0 flex-1 space-y-2.5 sm:space-y-3">
-                    <h3 className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">{activeProject.title}</h3>
-
-                    <div className="flex items-center gap-3 sm:gap-3.5 flex-wrap">
-                      {/* Profile Icons */}
-                      <div className="flex items-center -space-x-2">
-                        {teamMembers.slice(0, 4).map((m) => (
-                          <Avatar
-                            key={m.id}
-                            user={m}
-                            size={26}
-                            className="ring-2 ring-white shadow-2xs sm:w-7 sm:h-7"
-                          />
-                        ))}
-                        {teamMembers.length > 4 && (
-                          <span className="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-indigo-100 text-[10px] sm:text-[11px] font-bold text-indigo-700 ring-2 ring-white">
-                            +{teamMembers.length - 4}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-6">
+                  {/* Left: Thumbnail & Details */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                    {/* Thumbnail Card (View Only) */}
+                    {activeProject.thumbnail ? (
+                      <div className="relative h-28 w-full sm:w-44 md:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-900 shadow-inner">
+                        <img
+                          src={activeProject.thumbnail}
+                          alt={activeProject.title}
+                          className="absolute inset-0 h-full w-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/60 pointer-events-none" />
+                        <div className="relative z-5 flex items-center justify-between p-2.5 border-b border-white/10">
+                          <span className="text-[10px] font-bold text-white truncate max-w-[110px] drop-shadow-xs">
+                            {activeProject.title}
                           </span>
-                        )}
+                          <span className="text-[9px] font-mono text-indigo-300 drop-shadow-xs">#meet-sync</span>
+                        </div>
+                        <span className="absolute bottom-2 right-2 z-5 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs border border-white/10">
+                          {activeProject.version || "v1.0.0"}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="relative h-28 w-full sm:w-44 md:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner">
+                        <div className="flex items-center justify-between border-b border-zinc-200/60 pb-1.5">
+                          <span className="text-[10px] font-bold text-zinc-700 truncate max-w-[110px]">
+                            {activeProject.title}
+                          </span>
+                          <span className="text-[9px] font-mono text-zinc-400">#meet-sync</span>
+                        </div>
+                        <div className="mt-2 space-y-1.5">
+                          <div className="h-2 w-3/4 rounded bg-indigo-200/70" />
+                          <div className="h-2 w-1/2 rounded bg-zinc-200" />
+                          <div className="grid grid-cols-3 gap-1 pt-1">
+                            <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                            <div className="h-5 rounded bg-indigo-500/10 border border-indigo-100" />
+                            <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                          </div>
+                        </div>
+                        <span className="absolute bottom-2 right-2 rounded bg-zinc-900/80 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs">
+                          {activeProject.version || "v1.0.0"}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Middle: Title, Profile Icons, Host Name */}
+                    <div className="min-w-0 flex-1 space-y-2.5 sm:space-y-3">
+                      <div>
+                        <h3 className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">{activeProject.title}</h3>
+                        <p className="mt-1 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
+                          {activeProject.description.split(" ").map((word, i) => {
+                            if (word.startsWith("@")) {
+                              return (
+                                <span key={i} className="font-semibold text-primary bg-primary/10 px-1 py-0.5 rounded mx-0.5">
+                                  {word}{" "}
+                                </span>
+                              );
+                            }
+                            return word + " ";
+                          })}
+                        </p>
                       </div>
 
-                      {/* Host Name Badge */}
-                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1 text-xs font-medium text-zinc-800 shadow-2xs">
-                        <Users size={12} className="text-[#5051F9] sm:w-3.5 sm:h-3.5" />
-                        <span className="text-[11px] sm:text-xs">Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
+                      <div className="flex items-center gap-3 sm:gap-3.5 flex-wrap">
+                        {/* Profile Icons */}
+                        <div className="flex items-center -space-x-2">
+                          {teamMembers.slice(0, 4).map((m) => (
+                            <Avatar
+                              key={m.id}
+                              user={m}
+                              size={26}
+                              className="ring-2 ring-white shadow-2xs sm:w-7 sm:h-7"
+                            />
+                          ))}
+                          {teamMembers.length > 4 && (
+                            <span className="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-indigo-100 text-[10px] sm:text-[11px] font-bold text-indigo-700 ring-2 ring-white">
+                              +{teamMembers.length - 4}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Host Name Badge */}
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1 text-xs font-medium text-zinc-800 shadow-2xs">
+                          <Users size={12} className="text-[#5051F9] sm:w-3.5 sm:h-3.5" />
+                          <span className="text-[11px] sm:text-xs">Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Right: Join now button and below it Time of Meeting in red */}
-                  <div className="flex flex-col items-start sm:items-end gap-1.5 border-t sm:border-t-0 sm:border-l border-zinc-100 pt-3 sm:pt-0 sm:pl-6 shrink-0 w-full sm:w-auto">
+                  <div className="flex flex-col items-start sm:items-end gap-1.5 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0 w-full lg:w-auto">
                     {activeProject.meetUrl && (
                       <a
                         href={targetUrl}
@@ -1554,6 +1693,122 @@ export default function MeetPage() {
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
+            {/* Initiative Card & Cover Image Customizer */}
+            <div className="sm:col-span-2 rounded-2xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50/70 via-white to-indigo-50/25 p-3.5 sm:p-4 space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-zinc-200/60 pb-2.5 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#5051F9] text-white shadow-2xs shrink-0">
+                    <ImageIcon size={14} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-zinc-900">Initiative Card & Cover Image</h4>
+                    <p className="text-[10px] sm:text-[11px] text-zinc-500">Customize card preview or upload a custom cover image</p>
+                  </div>
+                </div>
+                {form.thumbnail && (
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, thumbnail: "" }))}
+                    className="text-[11px] font-semibold text-red-600 hover:text-red-700 underline cursor-pointer"
+                  >
+                    Reset to UI Mockup
+                  </button>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                {/* Live Card Preview */}
+                <div className="shrink-0 w-full sm:w-auto">
+                  <span className="block text-[10px] font-bold text-zinc-500 uppercase tracking-wider mb-1 font-mono">
+                    Live Card Preview
+                  </span>
+                  {form.thumbnail ? (
+                    <div className="relative h-28 w-full sm:w-44 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-zinc-900 shadow-inner">
+                      <img src={form.thumbnail} alt="Preview" className="absolute inset-0 h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-black/60 pointer-events-none" />
+                      <div className="relative z-5 flex items-center justify-between p-2.5 border-b border-white/10">
+                        <span className="text-[10px] font-bold text-white truncate max-w-[100px]">
+                          {form.title || "Initiative Title"}
+                        </span>
+                        <span className="text-[9px] font-mono text-indigo-300">#meet-sync</span>
+                      </div>
+                      <span className="absolute bottom-2 right-2 z-5 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs border border-white/10">
+                        {form.version || "v1.0.0"}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="relative h-28 w-full sm:w-44 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner">
+                      <div className="flex items-center justify-between border-b border-zinc-200/60 pb-1.5">
+                        <span className="text-[10px] font-bold text-zinc-700 truncate max-w-[100px]">
+                          {form.title || "Initiative Title"}
+                        </span>
+                        <span className="text-[9px] font-mono text-zinc-400">#meet-sync</span>
+                      </div>
+                      <div className="mt-2 space-y-1.5">
+                        <div className="h-2 w-3/4 rounded bg-indigo-200/70" />
+                        <div className="h-2 w-1/2 rounded bg-zinc-200" />
+                        <div className="grid grid-cols-3 gap-1 pt-1">
+                          <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                          <div className="h-5 rounded bg-indigo-500/10 border border-indigo-100" />
+                          <div className="h-5 rounded bg-white shadow-xs border border-zinc-100" />
+                        </div>
+                      </div>
+                      <span className="absolute bottom-2 right-2 rounded bg-zinc-900/80 px-1.5 py-0.5 text-[10px] font-bold font-mono text-white backdrop-blur-xs">
+                        {form.version || "v1.0.0"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Upload Controls */}
+                <div className="flex-1 w-full space-y-2.5">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1">
+                      Upload Custom Cover Image
+                    </label>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        type="file"
+                        ref={thumbnailInputRef}
+                        accept="image/png,image/jpeg,image/webp,image/gif"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleThumbnailUpload(file);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => thumbnailInputRef.current?.click()}
+                        disabled={thumbnailUploading}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs hover:bg-zinc-50 transition cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload size={13} className="text-[#5051F9]" />
+                        <span>{thumbnailUploading ? "Uploading..." : "Upload Image..."}</span>
+                      </button>
+                      <span className="text-[11px] text-zinc-500">Supports PNG, JPG, WebP</span>
+                    </div>
+                    {thumbnailError && (
+                      <p className="mt-1 text-xs text-red-600 font-medium">{thumbnailError}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-700 mb-1">
+                      Or Image URL
+                    </label>
+                    <input
+                      type="url"
+                      className={inputClass}
+                      placeholder="https://example.com/cover-image.png"
+                      value={form.thumbnail || ""}
+                      onChange={(e) => setForm((f) => ({ ...f, thumbnail: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <Field label="Project Title *">
               <input
                 className={inputClass}

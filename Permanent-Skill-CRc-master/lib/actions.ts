@@ -1821,6 +1821,7 @@ export async function saveProject(input: {
   title: string;
   description: string;
   version?: string;
+  thumbnail?: string;
   leadId: string;
   leadName?: string;
   memberIds: string[];
@@ -1856,6 +1857,7 @@ export async function saveProject(input: {
       title,
       description: input.description.trim(),
       version: input.version?.trim() || "v1.0.0",
+      thumbnail: input.thumbnail?.trim() || undefined,
       leadId: input.leadId || me.id,
       leadName,
       memberIds: Array.from(new Set([input.leadId || me.id, ...(input.memberIds || [])])),

@@ -176,6 +176,7 @@ type AppContextValue = AppState & {
     title: string;
     description: string;
     version?: string;
+    thumbnail?: string;
     leadId: string;
     leadName?: string;
     memberIds: string[];
@@ -548,6 +549,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       title: string;
       description: string;
       version?: string;
+      thumbnail?: string;
       leadId: string;
       leadName?: string;
       memberIds: string[];
