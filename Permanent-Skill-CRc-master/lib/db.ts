@@ -240,6 +240,11 @@ function migrate(db: Database) {
       post.status = "approved";
       changed = true;
     }
+    if (post.id === "p-team-welcome" && post.category !== "team") {
+      post.category = "team";
+      post.communityId = "comm-team";
+      changed = true;
+    }
   }
   if (!db.projects || db.projects.length === 0) {
     db.projects = createSeed().projects;
