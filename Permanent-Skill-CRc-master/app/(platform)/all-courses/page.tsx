@@ -519,16 +519,16 @@ export default function AllCoursesPage() {
       {/* Filter Tabs - Responsive Horizontal Slider */}
       <div className="relative w-full border-b border-zinc-200/80 pb-1.5">
         {showTabsLeftArrow && (
-          <button
-            type="button"
-            onClick={() => scrollTabs("left")}
-            className="absolute left-0 top-0 bottom-1.5 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-r from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
-            aria-label="Scroll tabs left"
-          >
-            <span className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+          <div className="absolute left-0 top-0 bottom-1.5 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-r from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent pointer-events-none">
+            <button
+              type="button"
+              onClick={() => scrollTabs("left")}
+              className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200 text-zinc-600 hover:text-zinc-950 transition cursor-pointer pointer-events-auto active:scale-95"
+              aria-label="Scroll tabs left"
+            >
               <ChevronLeft size={15} />
-            </span>
-          </button>
+            </button>
+          </div>
         )}
 
         <div
@@ -572,6 +572,7 @@ export default function AllCoursesPage() {
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={(e) => {
                   setSelectedFilter(tab.id as FilterTab);
                   e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
@@ -603,16 +604,16 @@ export default function AllCoursesPage() {
         </div>
 
         {showTabsRightArrow && (
-          <button
-            type="button"
-            onClick={() => scrollTabs("right")}
-            className="absolute right-0 top-0 bottom-1.5 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
-            aria-label="Scroll tabs right"
-          >
-            <span className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+          <div className="absolute right-0 top-0 bottom-1.5 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent pointer-events-none">
+            <button
+              type="button"
+              onClick={() => scrollTabs("right")}
+              className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200 text-zinc-600 hover:text-zinc-950 transition cursor-pointer pointer-events-auto active:scale-95"
+              aria-label="Scroll tabs right"
+            >
               <ChevronRight size={15} />
-            </span>
-          </button>
+            </button>
+          </div>
         )}
       </div>
 

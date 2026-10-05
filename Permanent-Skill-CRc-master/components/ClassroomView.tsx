@@ -117,27 +117,11 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
   // Sync selected course when initialCourseSlug changes from navigation / browser back
   useEffect(() => {
-    if (initialCourseSlug) {
+    if (initialCourseSlug && availableCourses.length > 0) {
       const found = availableCourses.find((c) => c.slug === initialCourseSlug);
       if (found) {
-        setSelectedCourseId((prev) => {
-          if (prev !== found.id) {
-            setActiveLessonId(null);
-            setPlaying(false);
-            return found.id;
-          }
-          return prev;
-        });
+        setSelectedCourseId(found.id);
       }
-    } else {
-      setSelectedCourseId((prev) => {
-        if (prev !== null) {
-          setActiveLessonId(null);
-          setPlaying(false);
-          return null;
-        }
-        return prev;
-      });
     }
   }, [initialCourseSlug, availableCourses]);
 
@@ -230,6 +214,14 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   function handleToggleComplete() {
     if (!activeCourse || !activeLesson) return;
     completeLesson(activeCourse.id, activeLesson.id);
+  }
+
+  function handleToggleLessonComplete(lessonId: string, e?: React.MouseEvent) {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (!activeCourse) return;
+    completeLesson(activeCourse.id, lessonId);
   }
 
   // Helper to render course banner matching original design
@@ -582,17 +574,17 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                       const isDone = completedIds.includes(item.id);
 
                       return (
-                        <button
+                        <div
                           key={item.id}
                           onClick={() => handleSelectLesson(item.id)}
-                          className={`group flex w-full items-center justify-between text-left transition-all cursor-pointer ${
+                          className={`group flex w-full items-center justify-between text-left transition-all cursor-pointer select-none ${
                             isActive
                               ? "rounded-xl bg-primary/10 border border-primary/25 px-3.5 sm:px-4 py-2 sm:py-2.5 font-bold text-primary shadow-2xs"
                               : "rounded-xl px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-[14.5px] font-medium text-zinc-800 hover:bg-white hover:text-primary hover:shadow-xs border border-transparent hover:border-zinc-200"
                           }`}
                         >
                           <span
-                            className={`truncate leading-snug ${
+                            className={`truncate flex-1 leading-snug ${
                               isActive
                                 ? "font-bold text-primary text-xs sm:text-[14.5px]"
                                 : "text-zinc-800 group-hover:text-primary"
@@ -602,15 +594,20 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                             {item.title}
                           </span>
 
-                          {isDone && (
-                            <span
-                              className="ml-2 flex h-4.5 w-4.5 sm:h-5 sm:w-5 shrink-0 items-center justify-center rounded-full shadow-xs bg-primary text-white"
-                              title="Completed"
-                            >
-                              <Check size={10} className="sm:w-3 sm:h-3 stroke-[3]" />
-                            </span>
-                          )}
-                        </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleLessonComplete(item.id, e)}
+                            aria-label={isDone ? `Mark ${item.title} as incomplete` : `Mark ${item.title} as complete`}
+                            title={isDone ? "Completed! Click to unmark" : "Click to mark as completed"}
+                            className={`ml-2 flex h-5 w-5 sm:h-5.5 sm:w-5.5 shrink-0 items-center justify-center rounded-full transition-all cursor-pointer ${
+                              isDone
+                                ? "bg-primary text-white shadow-xs hover:bg-primary-dark hover:scale-105"
+                                : "border-2 border-zinc-300 text-transparent hover:border-primary hover:text-primary/40 hover:scale-105"
+                            }`}
+                          >
+                            <Check size={11} className={`sm:w-3 sm:h-3 stroke-[3] ${isDone ? "opacity-100 text-white" : "opacity-0 group-hover:opacity-60"}`} />
+                          </button>
+                        </div>
                       );
                     })}
                   </div>

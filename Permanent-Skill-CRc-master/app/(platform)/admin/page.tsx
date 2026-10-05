@@ -639,16 +639,16 @@ export default function AdminPage() {
       {/* SECTION 2: SUBTAB NAVIGATION BAR - Responsive Horizontal Slider */}
       <div className="relative w-full -mx-4 px-4 sm:mx-0 sm:px-0">
         {showAdminLeftArrow && (
-          <button
-            type="button"
-            onClick={() => scrollAdminTabs("left")}
-            className="absolute left-0 sm:-left-3 top-0 bottom-2 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-r from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
-            aria-label="Scroll subtabs left"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+          <div className="absolute left-0 sm:-left-3 top-0 bottom-2 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-r from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent pointer-events-none">
+            <button
+              type="button"
+              onClick={() => scrollAdminTabs("left")}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200 text-zinc-600 hover:text-zinc-950 transition cursor-pointer pointer-events-auto active:scale-95"
+              aria-label="Scroll subtabs left"
+            >
               <ChevronLeft size={16} />
-            </span>
-          </button>
+            </button>
+          </div>
         )}
 
         <div
@@ -733,16 +733,16 @@ export default function AdminPage() {
         </div>
 
         {showAdminRightArrow && (
-          <button
-            type="button"
-            onClick={() => scrollAdminTabs("right")}
-            className="absolute right-0 sm:-right-3 top-0 bottom-2 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
-            aria-label="Scroll subtabs right"
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+          <div className="absolute right-0 sm:-right-3 top-0 bottom-2 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent pointer-events-none">
+            <button
+              type="button"
+              onClick={() => scrollAdminTabs("right")}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200 text-zinc-600 hover:text-zinc-950 transition cursor-pointer pointer-events-auto active:scale-95"
+              aria-label="Scroll subtabs right"
+            >
               <ChevronRight size={16} />
-            </span>
-          </button>
+            </button>
+          </div>
         )}
       </div>
 
@@ -2148,6 +2148,7 @@ function TabButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className={`group relative inline-flex items-center gap-1.5 sm:gap-2 rounded-full px-3.5 sm:px-4 py-2 text-xs font-bold transition whitespace-nowrap active:scale-95 cursor-pointer shrink-0 ${
         active
