@@ -83,6 +83,7 @@ export interface PublicUser {
   affiliateClicks?: number;
   affiliateSignups?: number;
   affiliateEarnings?: number;
+  referredBy?: string;
   hasActiveSession?: boolean;
 }
 
