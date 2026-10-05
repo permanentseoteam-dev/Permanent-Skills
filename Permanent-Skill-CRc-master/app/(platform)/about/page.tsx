@@ -320,19 +320,19 @@ export default function AboutPage() {
     `If any of those sound familiar, ${communityTitle} is built for you.`;
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row">
-      <div className="min-w-0 flex-1 space-y-5">
+    <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row items-start">
+      <div className="min-w-0 w-full flex-1 space-y-4 sm:space-y-5">
         {/* Main Community Overview Card */}
-        <Card className="p-6 sm:p-7 shadow-sm">
+        <Card className="p-4 sm:p-6 lg:p-7 shadow-sm">
           {/* Header Title & Reviews */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-zinc-900 tracking-tight break-words">
                 {communityTitle}
               </h1>
-              <div className="mt-1 flex items-center gap-2 text-sm text-zinc-600 font-medium">
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs sm:text-sm text-zinc-600 font-medium">
                 <span className="flex items-center gap-1 text-amber-500 font-bold">
-                  <Star size={15} fill="currentColor" /> {avgRating.toFixed(1)}
+                  <Star size={14} fill="currentColor" /> {avgRating.toFixed(1)}
                 </span>
                 <span>·</span>
                 <span>{reviews.length} reviews</span>
@@ -344,23 +344,23 @@ export default function AboutPage() {
             </div>
 
             {isAdminOrManager && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={openEditDescModal}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
                   title="Edit community description, headline & features"
                 >
-                  <Pencil size={13} className="text-primary" />
+                  <Pencil size={12} className="text-primary" />
                   <span>Edit Description</span>
                 </button>
                 <button
                   type="button"
                   onClick={openEditModal}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3.5 py-2 text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-zinc-800 shadow-2xs transition cursor-pointer"
                   title="Edit video and thumbnail"
                 >
-                  <Video size={13} className="text-primary" />
+                  <Video size={12} className="text-primary" />
                   <span>Edit Video</span>
                 </button>
               </div>
@@ -368,7 +368,7 @@ export default function AboutPage() {
           </div>
 
           {/* 16:9 Big Thumbnail / Video Player Container */}
-          <div className="mt-5 relative aspect-video w-full overflow-hidden rounded-2xl bg-zinc-950 border border-zinc-200 shadow-md group">
+          <div className="mt-4 sm:mt-5 relative aspect-video w-full overflow-hidden rounded-xl sm:rounded-2xl bg-zinc-950 border border-zinc-200 shadow-md group">
             {playing ? (
               embed?.type === "file" ? (
                 <div className="relative h-full w-full bg-black">
@@ -381,10 +381,10 @@ export default function AboutPage() {
                   <button
                     type="button"
                     onClick={() => setPlaying(false)}
-                    className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black transition cursor-pointer"
+                    className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black transition cursor-pointer shadow-md"
                     title="Close Video"
                   >
-                    <X size={16} />
+                    <X size={15} />
                   </button>
                 </div>
               ) : embed ? (
@@ -399,19 +399,19 @@ export default function AboutPage() {
                   <button
                     type="button"
                     onClick={() => setPlaying(false)}
-                    className="absolute top-3 right-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black transition cursor-pointer shadow-md"
+                    className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-black/70 text-white hover:bg-black transition cursor-pointer shadow-md"
                     title="Close Video"
                   >
-                    <X size={16} />
+                    <X size={15} />
                   </button>
                 </div>
               ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-zinc-400 bg-zinc-900 p-6 text-center">
-                  <Film size={36} className="text-zinc-500" />
-                  <p className="text-sm font-semibold">Video preview currently unavailable</p>
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-zinc-400 bg-zinc-900 p-4 sm:p-6 text-center">
+                  <Film size={32} className="text-zinc-500" />
+                  <p className="text-xs sm:text-sm font-semibold">Video preview currently unavailable</p>
                   <button
                     onClick={() => setPlaying(false)}
-                    className="mt-2 text-xs text-primary underline cursor-pointer"
+                    className="mt-1 text-xs text-primary underline cursor-pointer"
                   >
                     Back to thumbnail
                   </button>
@@ -443,18 +443,18 @@ export default function AboutPage() {
                       e.stopPropagation();
                       openEditModal();
                     }}
-                    className="absolute top-3 right-3 z-20 inline-flex items-center gap-1.5 rounded-lg bg-black/60 hover:bg-black/90 px-3 py-1.5 text-xs font-semibold text-white shadow-md backdrop-blur-xs transition cursor-pointer"
+                    className="absolute top-2 right-2 sm:top-3 sm:right-3 z-20 inline-flex items-center gap-1 rounded-lg bg-black/60 hover:bg-black/90 px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-semibold text-white shadow-md backdrop-blur-xs transition cursor-pointer"
                     title="Change community video"
                   >
-                    <Pencil size={12} />
+                    <Pencil size={11} />
                     <span>Change Video</span>
                   </button>
                 )}
 
                 {/* Center Large Play Action Button */}
                 <div className="relative z-10 flex items-center justify-center">
-                  <div className="flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-full bg-white text-primary shadow-2xl ring-8 ring-white/30 transition-all duration-300 group-hover:scale-110 group-hover:bg-[#5051F9] group-hover:text-white group-hover:ring-primary/40">
-                    <Play fill="currentColor" size={32} className="ml-1 sm:h-10 sm:w-10" />
+                  <div className="flex h-14 w-14 sm:h-20 sm:w-20 lg:h-24 lg:w-24 items-center justify-center rounded-full bg-white text-primary shadow-2xl ring-6 sm:ring-8 ring-white/30 transition-all duration-300 group-hover:scale-110 group-hover:bg-[#5051F9] group-hover:text-white group-hover:ring-primary/40">
+                    <Play fill="currentColor" size={24} className="ml-1 sm:size-8 lg:size-10" />
                   </div>
                 </div>
               </div>
@@ -462,8 +462,8 @@ export default function AboutPage() {
           </div>
 
           {/* Pricing & Member Metadata Row */}
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-y border-zinc-100 py-3 text-xs sm:text-sm text-zinc-600">
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+          <div className="mt-4 sm:mt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-y border-zinc-100 py-3 text-xs sm:text-sm text-zinc-600">
+            <div className="flex flex-wrap items-center gap-x-3 sm:gap-x-4 gap-y-1">
               <span className="font-semibold text-zinc-900">
                 👥 {approvedUsers.length}+ Members
               </span>
@@ -475,43 +475,45 @@ export default function AboutPage() {
               <span>By <strong>Permanent Skills Team</strong></span>
             </div>
 
-            {user?.isPremium ? (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                <CheckCircle2 size={13} /> Active VIP Membership
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
-                🔒 Subscription Required
-              </span>
-            )}
+            <div className="shrink-0">
+              {user?.isPremium ? (
+                <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                  <CheckCircle2 size={13} /> Active VIP Membership
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                  🔒 Subscription Required
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Description & Features Matrix */}
-          <div className="mt-5 space-y-4 text-sm leading-relaxed text-zinc-700 relative">
-            <div className="flex items-start justify-between gap-3">
-              <p className="text-base font-medium text-zinc-900 flex-1">
+          <div className="mt-4 sm:mt-5 space-y-4 text-xs sm:text-sm leading-relaxed text-zinc-700 relative">
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+              <p className="text-sm sm:text-base font-semibold text-zinc-900 flex-1 leading-snug">
                 {currentHeadline}
               </p>
               {isAdminOrManager && (
                 <button
                   type="button"
                   onClick={openEditDescModal}
-                  className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg transition cursor-pointer shrink-0"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:text-primary/80 bg-primary/5 hover:bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-lg transition cursor-pointer self-start shrink-0"
                   title="Edit community description section"
                 >
-                  <Pencil size={12} />
+                  <Pencil size={11} />
                   <span>Edit Description</span>
                 </button>
               )}
             </div>
 
-            <p className="whitespace-pre-line text-zinc-700">
+            <p className="whitespace-pre-line text-zinc-700 text-xs sm:text-sm leading-relaxed">
               {currentMainStory}
             </p>
 
             <div className="pt-2">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-bold uppercase tracking-wider text-zinc-900">
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-900">
                   What&apos;s inside:
                 </p>
                 {isAdminOrManager && (
@@ -524,7 +526,7 @@ export default function AboutPage() {
                   </button>
                 )}
               </div>
-              <ul className="grid gap-2 sm:grid-cols-2">
+              <ul className="grid gap-2 grid-cols-1 sm:grid-cols-2">
                 {currentFeatures.map((f, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-800">
                     <span className="text-emerald-500 font-bold shrink-0 mt-0.5">✅</span>
@@ -536,7 +538,7 @@ export default function AboutPage() {
 
             <div className="pt-2">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-bold uppercase tracking-wider text-zinc-900">
+                <p className="text-xs sm:text-sm font-bold uppercase tracking-wider text-zinc-900">
                   If you&apos;re tired of:
                 </p>
                 {isAdminOrManager && (
@@ -549,7 +551,7 @@ export default function AboutPage() {
                   </button>
                 )}
               </div>
-              <ul className="grid gap-2 sm:grid-cols-2">
+              <ul className="grid gap-2 grid-cols-1 sm:grid-cols-2">
                 {currentPainPoints.map((item, i) => (
                   <li key={i} className="flex items-start gap-2 text-xs sm:text-sm text-zinc-600">
                     <span className="text-red-500 font-bold shrink-0 mt-0.5">❌</span>
@@ -559,23 +561,23 @@ export default function AboutPage() {
               </ul>
             </div>
 
-            <p className="pt-2 font-medium text-zinc-800">
+            <p className="pt-2 font-medium text-xs sm:text-sm text-zinc-800">
               {currentClosingText}
             </p>
           </div>
 
           {/* Join / Upgrade CTA Button */}
-          <div className="mt-6 border-t border-zinc-100 pt-5 flex items-center justify-between flex-wrap gap-3">
+          <div className="mt-6 border-t border-zinc-100 pt-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold text-zinc-900">Unlock All Courses & Masterminds</p>
+              <p className="text-xs sm:text-sm font-bold text-zinc-900">Unlock All Courses & Masterminds</p>
               <p className="text-xs text-zinc-500">Includes weekly live calls, replays, bonuses, and templates.</p>
             </div>
             {!user?.isPremium ? (
-              <GoldButton onClick={() => setUpgradeOpen(true)} className="px-6 py-2.5 shadow-sm text-sm font-bold cursor-pointer">
+              <GoldButton onClick={() => setUpgradeOpen(true)} className="w-full sm:w-auto px-6 py-2.5 shadow-sm text-xs sm:text-sm font-bold cursor-pointer justify-center text-center">
                 👑 Upgrade to VIP ($9/mo)
               </GoldButton>
             ) : (
-              <span className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-2 text-xs font-bold text-primary">
+              <span className="rounded-xl bg-primary/10 border border-primary/20 px-4 py-2 text-xs font-bold text-primary text-center">
                 💎 You Have Full Access
               </span>
             )}
@@ -583,7 +585,7 @@ export default function AboutPage() {
         </Card>
 
         {/* Reviews Section */}
-        <Card className="p-6 sm:p-7 shadow-sm">
+        <Card className="p-4 sm:p-6 lg:p-7 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
             <div>
               <h2 className="text-lg font-bold text-zinc-900 flex items-center gap-2">
@@ -674,7 +676,7 @@ export default function AboutPage() {
           </form>
 
           {/* Reviews List */}
-          <div className="mt-5 divide-y divide-zinc-100">
+          <div className="mt-4 sm:mt-5 divide-y divide-zinc-100">
             {sortedReviews.length === 0 ? (
               <p className="text-xs text-zinc-400 py-6 text-center italic">
                 No reviews yet. Be the first to share your experience!
@@ -684,18 +686,18 @@ export default function AboutPage() {
                 const author = userById(r.userId);
                 const canDelete = isAdminOrManager || (user && user.id === r.userId);
                 return (
-                  <div key={r.id} className="flex items-start gap-3.5 py-4 group">
-                    <Avatar user={author} size={40} />
+                  <div key={r.id} className="flex items-start gap-3 py-3.5 sm:py-4 group">
+                    <Avatar user={author} size={36} className="shrink-0" />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-sm text-zinc-900">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap min-w-0">
+                          <span className="font-bold text-xs sm:text-sm text-zinc-900 truncate max-w-[160px] sm:max-w-none">
                             {author?.name || "Community Member"}
                           </span>
                           <UserRoleBadge role={author?.role} isPremium={author?.isPremium} size="xs" />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] text-zinc-400 font-mono">
+                        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                          <span className="text-[10px] sm:text-[11px] text-zinc-400 font-mono">
                             {timeAgo(r.createdAt)}
                           </span>
                           {canDelete && (
@@ -706,7 +708,7 @@ export default function AboutPage() {
                                   await deleteReview(r.id);
                                 }
                               }}
-                              className="text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition p-0.5 rounded cursor-pointer"
+                              className="text-zinc-400 hover:text-red-500 opacity-80 sm:opacity-0 group-hover:opacity-100 transition p-1 rounded cursor-pointer"
                               title="Delete review"
                             >
                               <Trash2 size={13} />
@@ -715,17 +717,17 @@ export default function AboutPage() {
                         </div>
                       </div>
 
-                      <div className="mt-1 flex items-center gap-1 text-amber-400">
+                      <div className="mt-1 flex items-center gap-0.5 text-amber-400">
                         {Array.from({ length: 5 }).map((_, i) => (
                           <Star
                             key={i}
-                            size={13}
+                            size={12}
                             className={i < r.rating ? "fill-amber-400 text-amber-400" : "text-zinc-200"}
                           />
                         ))}
                       </div>
 
-                      <p className="mt-1.5 text-xs sm:text-sm text-zinc-700 leading-relaxed">
+                      <p className="mt-1.5 text-xs sm:text-sm text-zinc-700 leading-relaxed break-words">
                         {r.body}
                       </p>
                     </div>
@@ -897,26 +899,26 @@ export default function AboutPage() {
               />
             </Field>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-zinc-100">
               <button
                 type="button"
                 onClick={handleResetDescriptionDefaults}
-                className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-800 transition cursor-pointer"
+                className="inline-flex items-center justify-center gap-1 text-xs font-semibold text-zinc-500 hover:text-zinc-800 py-1.5 transition cursor-pointer"
                 title="Reset to default copy"
               >
                 <RotateCcw size={12} />
                 <span>Reset to Defaults</span>
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setEditDescModalOpen(false)}
-                  className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+                  className="flex-1 sm:flex-initial rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer text-center"
                 >
                   Cancel
                 </button>
-                <PrimaryButton type="submit" disabled={savingDesc}>
+                <PrimaryButton type="submit" disabled={savingDesc} className="flex-1 sm:flex-initial text-center justify-center">
                   {savingDesc ? (
                     "Saving..."
                   ) : descSaveSuccess ? (
@@ -1009,11 +1011,11 @@ export default function AboutPage() {
               <button
                 type="button"
                 onClick={() => setEditModalOpen(false)}
-                className="rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+                className="flex-1 sm:flex-initial rounded-lg border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer text-center"
               >
                 Cancel
               </button>
-              <PrimaryButton type="submit" disabled={savingVideo}>
+              <PrimaryButton type="submit" disabled={savingVideo} className="flex-1 sm:flex-initial text-center justify-center">
                 {savingVideo ? "Saving..." : "Save Video"}
               </PrimaryButton>
             </div>
