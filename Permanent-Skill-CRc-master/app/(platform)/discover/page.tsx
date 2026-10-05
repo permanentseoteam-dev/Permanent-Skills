@@ -80,11 +80,13 @@ export default function DiscoverPage() {
           <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Discover communities</h1>
           <p className="text-sm text-zinc-500">Explore and switch between active communities and special interest groups.</p>
         </div>
-        <Link href="/create-community">
-          <PrimaryButton className="inline-flex items-center gap-1.5 text-xs">
-            <Plus size={15} /> Create community
-          </PrimaryButton>
-        </Link>
+        {(user?.role === "admin" || user?.role === "manager") && (
+          <Link href="/create-community">
+            <PrimaryButton className="inline-flex items-center gap-1.5 text-xs">
+              <Plus size={15} /> Create community
+            </PrimaryButton>
+          </Link>
+        )}
       </div>
 
       {errorMsg && (

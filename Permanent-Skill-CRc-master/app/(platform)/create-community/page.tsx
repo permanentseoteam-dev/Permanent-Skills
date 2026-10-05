@@ -41,6 +41,35 @@ export default function CreateCommunityPage() {
     }
   }
 
+  const isStaff = user?.role === "admin" || user?.role === "manager";
+
+  if (user && !isStaff) {
+    return (
+      <div className="mx-auto max-w-lg pt-8 text-center space-y-4">
+        <Card className="p-8 border-amber-200 bg-amber-50/50 space-y-3">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+            <Lock size={24} />
+          </div>
+          <h2 className="text-lg font-bold text-zinc-900">Access Restricted</h2>
+          <p className="text-xs text-zinc-600 leading-relaxed">
+            Community creation is reserved for Academy Administrators and Managers. As a community member, you can explore, join, and participate in existing communities.
+          </p>
+          <div className="pt-2 flex items-center justify-center gap-2">
+            <PrimaryButton onClick={() => router.push("/discover")} className="text-xs">
+              Discover Communities
+            </PrimaryButton>
+            <button
+              onClick={() => router.push("/community")}
+              className="rounded-lg border border-zinc-200 bg-white px-3.5 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+            >
+              Back to Community
+            </button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-xl">
       <h1 className="mb-2 text-2xl font-bold">Create a community</h1>
