@@ -902,7 +902,7 @@ function UserMenu({
         <button onClick={() => go("/help")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
           <HelpCircle size={16} className="text-zinc-500" /> Help center
         </button>
-        {isAdminOrManager && (
+        {(user?.role === "admin" || user?.role === "manager") && (
           <button onClick={() => go("/create-community")} className="flex w-full items-center gap-2.5 px-4 py-2 text-sm text-zinc-700 hover:bg-zinc-50">
             <Plus size={16} className="text-zinc-500" /> Create a community
           </button>
