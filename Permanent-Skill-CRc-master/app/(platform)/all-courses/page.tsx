@@ -28,6 +28,7 @@ import { UpgradeModal } from "@/components/UpgradeModal";
 import { LockedCourseModal } from "@/components/LockedCourseModal";
 import { getLevel } from "@/lib/levels";
 import { formatMoney } from "@/lib/format";
+import { isCourseAccessible } from "@/lib/course-security";
 import type { Course } from "@/lib/types";
 
 type FilterTab = "all" | "in_progress" | "completed" | "unlocked" | "vip" | "team";
@@ -189,16 +190,9 @@ export default function AllCoursesPage() {
 
   // Helper to render classroom-style lock banner matching ClassroomView
   function renderCourseBanner(course: Course) {
-    const isStaff = user?.role === "admin" || user?.role === "manager";
-    const userLevel = user ? Math.min(9, Math.floor((user.points || 0) / 20) + 1) : 1;
-    const isPurchased = Boolean(
-      isStaff ||
-      user?.isPremium ||
-      user?.purchasedCourseIds?.includes(course.id) ||
-      (!course.isPremiumOnly && (course.unlockLevel <= 1 || userLevel >= (course.unlockLevel || 1)))
-    );
+    const isAccessible = isCourseAccessible(course, user);
     const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
-    const isPremiumOnly = Boolean(course.isPremiumOnly);
+    const isPremiumOnly = Boolean(course.isPremiumOnly || course.badge?.toUpperCase() === "VIP");
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 
@@ -224,13 +218,13 @@ export default function AllCoursesPage() {
           {/* Center Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center text-center">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/85 text-white shadow-xl border border-white/25">
-              {isStaff ? (
+              {isAccessible ? (
                 <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               ) : (
                 <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               )}
             </div>
-            {!isStaff && (
+            {!isAccessible && (
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 {isPremiumOnly ? "👑 Unlock with VIP" : `Unlock at Level ${course.unlockLevel}`}
               </span>
@@ -258,13 +252,13 @@ export default function AllCoursesPage() {
           {/* Center Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
-              {isStaff ? (
+              {isAccessible ? (
                 <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               ) : (
                 <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               )}
             </div>
-            {!isStaff && (
+            {!isAccessible && (
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 Unlock at Level 1
               </span>
@@ -310,7 +304,7 @@ export default function AllCoursesPage() {
           <div
             className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
           >
-            {isStaff ? (
+            {isAccessible ? (
               <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
             ) : glow === "orange" ? (
               <Flame size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -319,7 +313,7 @@ export default function AllCoursesPage() {
             )}
           </div>
 
-          {!isStaff && (
+          {!isAccessible && (
             <>
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 {isPremiumOnly

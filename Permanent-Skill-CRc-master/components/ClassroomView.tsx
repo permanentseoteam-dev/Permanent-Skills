@@ -30,6 +30,7 @@ import { Card, Field, Modal, PrimaryButton, StaffRoleFavicon, inputClass } from 
 import { getLevel } from "@/lib/levels";
 import { formatMoney } from "@/lib/format";
 import { getVideoThumbnail, renderNotes, toEmbed } from "@/lib/video";
+import { isCourseAccessible } from "@/lib/course-security";
 import type { Course, Lesson } from "@/lib/types";
 
 interface ClassroomViewProps {
@@ -119,29 +120,33 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     if (initialCourseSlug) {
       const found = availableCourses.find((c) => c.slug === initialCourseSlug);
       if (found) {
-        setSelectedCourseId(found.id);
-        setActiveLessonId(null);
-        setPlaying(false);
+        setSelectedCourseId((prev) => {
+          if (prev !== found.id) {
+            setActiveLessonId(null);
+            setPlaying(false);
+            return found.id;
+          }
+          return prev;
+        });
       }
     } else {
-      setSelectedCourseId(null);
-      setActiveLessonId(null);
-      setPlaying(false);
+      setSelectedCourseId((prev) => {
+        if (prev !== null) {
+          setActiveLessonId(null);
+          setPlaying(false);
+          return null;
+        }
+        return prev;
+      });
     }
   }, [initialCourseSlug, availableCourses]);
 
   function isCourseUnlocked(c: Course) {
-    if (!user) return false;
-    if (user.role === "admin" || user.role === "manager") return true;
-    if (user.isPremium) return true;
-    if (user.purchasedCourseIds?.includes(c.id)) return true;
-    if (c.isPremiumOnly) return false;
-    const userLevel = getLevel(user.points || 0).level;
-    return (c.unlockLevel || 1) <= 1 || userLevel >= (c.unlockLevel || 1);
+    return isCourseAccessible(c, user);
   }
 
   function handleSelectCourse(course: Course) {
-    if (!isCourseUnlocked(course)) {
+    if (!isCourseAccessible(course, user)) {
       setLockedModalCourse(course);
       return;
     }
@@ -166,16 +171,8 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   const [activeLessonId, setActiveLessonId] = useState<string | null>(null);
 
   const locked = useMemo(() => {
-    if (!activeCourse || !user) return false;
-    if (user.role === "admin" || user.role === "manager") return false;
-    if (user.isPremium) return false;
-    if (user.purchasedCourseIds?.includes(activeCourse.id)) return false;
-    if (activeCourse.isPremiumOnly) return true;
-    const level = getLevel(user.points).level;
-    return (
-      activeCourse.unlockLevel > 1 &&
-      level < activeCourse.unlockLevel
-    );
+    if (!activeCourse) return false;
+    return !isCourseAccessible(activeCourse, user);
   }, [activeCourse, user]);
 
   // Group lessons by module
@@ -237,16 +234,9 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
   // Helper to render course banner matching original design
   function renderCourseBanner(course: Course) {
-    const userLevel = user ? Math.min(9, Math.floor((user.points || 0) / 20) + 1) : 1;
-    const isPurchased = Boolean(
-      isAdmin ||
-      user?.isPremium ||
-      user?.purchasedCourseIds?.includes(course.id) ||
-      (!course.isPremiumOnly && (course.unlockLevel <= 1 || userLevel >= (course.unlockLevel || 1)))
-    );
-    const isStaff = Boolean(user?.role === "admin" || user?.role === "manager");
+    const isAccessible = isCourseAccessible(course, user);
     const isLevel1 = course.unlockLevel === 1 && !course.isPremiumOnly;
-    const isPremiumOnly = Boolean(course.isPremiumOnly);
+    const isPremiumOnly = Boolean(course.isPremiumOnly || course.badge?.toUpperCase() === "VIP");
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 
@@ -287,13 +277,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           {/* Center Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center text-center">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/85 text-white shadow-xl border border-white/25">
-              {isStaff ? (
+              {isAccessible ? (
                 <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               ) : (
                 <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               )}
             </div>
-            {!isStaff && (
+            {!isAccessible && (
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 {isPremiumOnly ? "👑 Unlock with VIP" : `Unlock at Level ${course.unlockLevel}`}
               </span>
@@ -336,13 +326,13 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           {/* Center Badge */}
           <div className="relative z-10 flex flex-col items-center justify-center">
             <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/90 text-white shadow-xl border border-white/20">
-              {isStaff ? (
+              {isAccessible ? (
                 <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               ) : (
                 <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
               )}
             </div>
-            {!isStaff && (
+            {!isAccessible && (
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 Unlock at Level 1
               </span>
@@ -403,7 +393,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           <div
             className={`flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-zinc-950/90 border-2 ${ringBorder} transition-transform group-hover:scale-105`}
           >
-            {isStaff ? (
+            {isAccessible ? (
               <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
             ) : glow === "orange" ? (
               <Flame size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
@@ -412,7 +402,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
             )}
           </div>
 
-          {!isStaff && (
+          {!isAccessible && (
             <>
               <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
                 {isPremiumOnly
@@ -728,43 +718,45 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                   )}
                 </div>
 
-                {/* Bottom Section Navigator Tabs */}
-                <div className="flex items-center gap-1.5 sm:gap-2 border-b border-zinc-200 pb-2.5 sm:pb-3 flex-wrap">
-                  <button
-                    type="button"
-                    onClick={() => setActiveBottomTab("overview")}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer ${
-                      activeBottomTab === "overview"
-                        ? "bg-primary text-white shadow-xs"
-                        : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
-                    }`}
-                  >
-                    <BookOpen size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Lesson Overview</span>
-                  </button>
+                {/* Bottom Section Navigator Tabs - Responsive Horizontal Slider */}
+                <div className="relative w-full border-b border-zinc-200 pb-2.5 sm:pb-3">
+                  <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setActiveBottomTab("overview")}
+                      className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer active:scale-95 ${
+                        activeBottomTab === "overview"
+                          ? "bg-primary text-white shadow-xs"
+                          : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
+                      }`}
+                    >
+                      <BookOpen size={13} className="sm:w-3.5 sm:h-3.5 shrink-0" /> <span>Lesson Overview</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveBottomTab("word-notes")}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer ${
-                      activeBottomTab === "word-notes"
-                        ? "bg-primary text-white shadow-xs"
-                        : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
-                    }`}
-                  >
-                    <FileText size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Notes</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveBottomTab("word-notes")}
+                      className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer active:scale-95 ${
+                        activeBottomTab === "word-notes"
+                          ? "bg-primary text-white shadow-xs"
+                          : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
+                      }`}
+                    >
+                      <FileText size={13} className="sm:w-3.5 sm:h-3.5 shrink-0" /> <span>Notes</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setActiveBottomTab("comments")}
-                    className={`flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer ${
-                      activeBottomTab === "comments"
-                        ? "bg-primary text-white shadow-xs"
-                        : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
-                    }`}
-                  >
-                    <MessageSquare size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Discussion</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveBottomTab("comments")}
+                      className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 rounded-xl px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer active:scale-95 ${
+                        activeBottomTab === "comments"
+                          ? "bg-primary text-white shadow-xs"
+                          : "bg-white text-zinc-700 border border-zinc-200 hover:border-primary/40 hover:text-primary"
+                      }`}
+                    >
+                      <MessageSquare size={13} className="sm:w-3.5 sm:h-3.5 shrink-0" /> <span>Discussion</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* 1. SECTION 1: Lesson Description & Notes */}

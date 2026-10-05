@@ -8,6 +8,7 @@ import {
   BookOpen,
   Check,
   CheckCircle2,
+  ChevronLeft,
   Clock,
   ExternalLink,
   Flame,
@@ -415,13 +416,21 @@ function AboutPageContent() {
         /* ================= COURSE SPECIFIC ABOUT PAGE ================= */
         <div className="space-y-5 sm:space-y-6">
           {/* Breadcrumb Navigation */}
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              href="/about"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-zinc-600 hover:text-primary transition"
-            >
-              <ArrowLeft size={14} /> Back to Community About
-            </Link>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Link
+                href="/classroom"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-3 py-1.5 text-xs font-bold text-zinc-700 hover:border-primary/40 hover:text-primary hover:bg-primary/5 transition shadow-2xs"
+              >
+                <ChevronLeft size={14} /> Back to Classroom
+              </Link>
+              <Link
+                href="/about"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-zinc-500 hover:text-primary transition ml-1"
+              >
+                Community About
+              </Link>
+            </div>
 
             <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-bold text-primary">
               <Sparkles size={12} /> Course Overview
