@@ -669,13 +669,13 @@ export default function MeetPage() {
     <div className="space-y-6">
       {/* 1. Projects Section: Single Selected Project Card */}
       <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 px-1">
           <div>
-            <h2 className="text-xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
+            <h2 className="text-lg sm:text-xl font-bold tracking-tight text-zinc-900 flex items-center gap-2">
               <span>Projects & Initiatives</span>
               <span className="h-2.5 w-2.5 rounded-full bg-[#5051F9]" />
             </h2>
-            <p className="text-xs text-zinc-500 mt-0.5">
+            <p className="text-[11px] sm:text-xs text-zinc-500 mt-0.5">
               Comprehensive overview of your initiatives synced with Meet Calendar
             </p>
           </div>
@@ -684,7 +684,7 @@ export default function MeetPage() {
             {isAdminOrManager && (
               <button
                 onClick={openCreateProject}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-[#5051F9] px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-[#4041d8] transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-[#5051F9] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-[#4041d8] transition cursor-pointer"
               >
                 <Plus size={14} /> Add Project
               </button>
@@ -693,12 +693,12 @@ export default function MeetPage() {
         </div>
 
         {!activeProject ? (
-          <Card className="p-8 text-center bg-zinc-50/50 border-dashed">
+          <Card className="p-6 sm:p-8 text-center bg-zinc-50/50 border-dashed">
             <Layers size={32} className="mx-auto text-zinc-400 mb-2" />
-            <p className="text-sm font-semibold text-zinc-700">
+            <p className="text-xs sm:text-sm font-semibold text-zinc-700">
               No projects created yet
             </p>
-            <p className="text-xs text-zinc-500 mt-1">
+            <p className="text-[11px] sm:text-xs text-zinc-500 mt-1">
               Click &ldquo;+ Add Project&rdquo; to create a new initiative.
             </p>
           </Card>
@@ -761,14 +761,14 @@ export default function MeetPage() {
           return (
             <Card
               key={activeProject.id}
-              className="overflow-hidden border border-zinc-200/80 bg-white p-5 shadow-sm transition hover:shadow-md"
+              className="overflow-hidden border border-zinc-200/80 bg-white p-4 sm:p-5 shadow-sm transition hover:shadow-md"
             >
               {isAdminOrManager ? (
                 /* Admin & Manager View */
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 sm:gap-6">
                   {/* Left: UI Mockup / Thumbnail Box */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 flex-1 min-w-0">
-                    <div className="relative h-28 w-full sm:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5 flex-1 min-w-0">
+                    <div className="relative h-28 w-full sm:w-44 md:w-48 shrink-0 overflow-hidden rounded-xl border border-zinc-200/80 bg-gradient-to-br from-zinc-50 via-zinc-100 to-indigo-50/40 p-3 shadow-inner">
                       <div className="flex items-center justify-between border-b border-zinc-200/60 pb-1.5">
                         <span className="text-[10px] font-bold text-zinc-700 truncate max-w-[110px]">
                           {activeProject.title}
@@ -790,9 +790,9 @@ export default function MeetPage() {
                     </div>
 
                     {/* Middle: Details, Host, Team & Time of Meeting in Square Box */}
-                    <div className="min-w-0 flex-1 space-y-3">
+                    <div className="min-w-0 flex-1 space-y-2.5 sm:space-y-3">
                       <div>
-                        <h3 className="text-lg font-bold text-zinc-900">{activeProject.title}</h3>
+                        <h3 className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">{activeProject.title}</h3>
                         <p className="mt-1 text-xs text-zinc-600 line-clamp-2 leading-relaxed">
                           {activeProject.description.split(" ").map((word, i) => {
                             if (word.startsWith("@")) {
@@ -808,40 +808,40 @@ export default function MeetPage() {
                       </div>
 
                       {/* Metadata row: Avatars, Host, and Time of Meeting in Square Box */}
-                      <div className="flex items-center gap-3.5 flex-wrap pt-0.5">
+                      <div className="flex items-center gap-2.5 sm:gap-3.5 flex-wrap pt-0.5">
                         {/* Member Avatars */}
                         <div className="flex items-center -space-x-2">
                           {teamMembers.slice(0, 4).map((m) => (
                             <Avatar
                               key={m.id}
                               user={m}
-                              size={28}
-                              className="ring-2 ring-white shadow-2xs"
+                              size={26}
+                              className="ring-2 ring-white shadow-2xs sm:w-7 sm:h-7"
                             />
                           ))}
                           {teamMembers.length > 4 && (
-                            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-700 ring-2 ring-white">
+                            <span className="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-indigo-100 text-[10px] sm:text-[11px] font-bold text-indigo-700 ring-2 ring-white">
                               +{teamMembers.length - 4}
                             </span>
                           )}
                         </div>
 
                         {/* Host Badge */}
-                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1.5 text-xs font-medium text-zinc-800 shadow-2xs">
-                          <Users size={13} className="text-[#5051F9]" />
-                          <span>Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
+                        <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1 text-xs font-medium text-zinc-800 shadow-2xs">
+                          <Users size={12} className="text-[#5051F9] sm:w-3.5 sm:h-3.5" />
+                          <span className="text-[11px] sm:text-xs">Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
                         </div>
 
                         {/* Time of Meeting in Square Box */}
-                        <div className="inline-flex items-center gap-2.5 rounded-xl border border-red-200/80 bg-red-50/70 px-3.5 py-1.5 text-zinc-900 shadow-2xs">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-red-100 text-red-600 shrink-0">
-                            <Clock size={14} />
+                        <div className="inline-flex items-center gap-2 sm:gap-2.5 rounded-xl border border-red-200/80 bg-red-50/70 px-2.5 sm:px-3.5 py-1 text-zinc-900 shadow-2xs">
+                          <div className="flex h-5.5 w-5.5 sm:h-6 sm:w-6 items-center justify-center rounded-lg bg-red-100 text-red-600 shrink-0">
+                            <Clock size={13} className="sm:w-3.5 sm:h-3.5" />
                           </div>
                           <div className="min-w-0">
-                            <span className="block text-[9px] font-bold uppercase tracking-wider text-red-600 font-mono leading-none mb-0.5">
+                            <span className="block text-[8.5px] sm:text-[9px] font-bold uppercase tracking-wider text-red-600 font-mono leading-none mb-0.5">
                               Time of Meeting
                             </span>
-                            <span className="text-sm font-bold text-zinc-900 truncate block leading-tight">
+                            <span className="text-xs sm:text-sm font-bold text-zinc-900 truncate block leading-tight">
                               {activeProject.meetSyncTime || "Sprint Sync: Today, 3:00 PM"}
                             </span>
                           </div>
@@ -851,8 +851,8 @@ export default function MeetPage() {
                   </div>
 
                   {/* Right: Meet Link Box with Single Project Selector Dropdown, Copyable Link & Actions */}
-                  <div className="flex flex-col items-stretch lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3 lg:pt-0 lg:pl-6 shrink-0 w-full lg:w-auto">
-                    <div className="w-full lg:w-[320px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3.5 space-y-3">
+                  <div className="flex flex-col items-stretch lg:items-end justify-between gap-3 border-t lg:border-t-0 lg:border-l border-zinc-100 pt-3.5 lg:pt-0 lg:pl-6 shrink-0 w-full lg:w-auto">
+                    <div className="w-full lg:w-[320px] rounded-xl bg-[#5051F9]/5 border border-[#5051F9]/15 p-3 sm:p-3.5 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="block text-[10px] font-bold uppercase tracking-widest text-[#5051F9]/90 font-mono">
                           Select Project for Meeting
@@ -865,7 +865,7 @@ export default function MeetPage() {
                         )}
                       </div>
 
-                      {/* Single Dropdown showing current projects - remembered across refreshes */}
+                      {/* Single Dropdown showing current projects */}
                       <div className="relative">
                         <select
                           value={activeProject.id}
@@ -909,7 +909,7 @@ export default function MeetPage() {
                           <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 font-mono flex items-center gap-1">
                             <Link2 size={12} className="text-[#5051F9]" /> Meeting Room Link
                           </span>
-                          <span className="text-[10px] text-zinc-500 font-mono font-medium">
+                          <span className="text-[10px] text-zinc-500 font-mono font-medium truncate max-w-[130px]">
                             {activeProject.meetRoom || "Nexus Meet"}
                           </span>
                         </div>
@@ -1021,34 +1021,34 @@ export default function MeetPage() {
                   </div>
                 </div>
               ) : (
-                /* Regular User View: Dynamically reflects active project selected by admin, with 5-minute rule */
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                /* Regular User View */
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6">
                   {/* Left: Title, Profile Icons, Host Name */}
-                  <div className="min-w-0 flex-1 space-y-3">
-                    <h3 className="text-lg font-bold text-zinc-900">{activeProject.title}</h3>
+                  <div className="min-w-0 flex-1 space-y-2.5 sm:space-y-3">
+                    <h3 className="text-base sm:text-lg font-bold text-zinc-900 leading-snug">{activeProject.title}</h3>
 
-                    <div className="flex items-center gap-3.5 flex-wrap">
+                    <div className="flex items-center gap-3 sm:gap-3.5 flex-wrap">
                       {/* Profile Icons */}
                       <div className="flex items-center -space-x-2">
                         {teamMembers.slice(0, 4).map((m) => (
                           <Avatar
                             key={m.id}
                             user={m}
-                            size={28}
-                            className="ring-2 ring-white shadow-2xs"
+                            size={26}
+                            className="ring-2 ring-white shadow-2xs sm:w-7 sm:h-7"
                           />
                         ))}
                         {teamMembers.length > 4 && (
-                          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-indigo-100 text-[11px] font-bold text-indigo-700 ring-2 ring-white">
+                          <span className="flex h-6.5 w-6.5 sm:h-7 sm:w-7 items-center justify-center rounded-full bg-indigo-100 text-[10px] sm:text-[11px] font-bold text-indigo-700 ring-2 ring-white">
                             +{teamMembers.length - 4}
                           </span>
                         )}
                       </div>
 
                       {/* Host Name Badge */}
-                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1.5 text-xs font-medium text-zinc-800 shadow-2xs">
-                        <Users size={13} className="text-[#5051F9]" />
-                        <span>Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
+                      <div className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100/90 border border-zinc-200/60 px-2.5 py-1 text-xs font-medium text-zinc-800 shadow-2xs">
+                        <Users size={12} className="text-[#5051F9] sm:w-3.5 sm:h-3.5" />
+                        <span className="text-[11px] sm:text-xs">Host: <strong className="font-semibold text-zinc-900">{activeProject.leadName || lead?.name || "Permanent Skills Admin"}</strong></span>
                       </div>
                     </div>
                   </div>
@@ -1099,35 +1099,37 @@ export default function MeetPage() {
       </div>
 
       {/* 2. Calendar Grid Toolbar & Grid */}
-      <Card className="p-5">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <Card className="p-3.5 sm:p-5">
+        <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-2.5 sm:gap-3">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCursor(new Date())}
-              className="rounded-full border border-zinc-200 bg-white px-3.5 py-1 text-sm font-medium hover:bg-zinc-50 shadow-xs cursor-pointer"
+              className="rounded-full border border-zinc-200 bg-white px-3 sm:px-3.5 py-1 text-xs sm:text-sm font-medium hover:bg-zinc-50 shadow-xs cursor-pointer"
             >
               Today
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}
               className="rounded-lg p-1.5 hover:bg-zinc-100 text-zinc-600 transition cursor-pointer"
+              title="Previous Month"
             >
               <ChevronLeft size={18} />
             </button>
             <div className="text-center">
-              <h1 className="text-lg font-bold text-zinc-900">
+              <h1 className="text-base sm:text-lg font-bold text-zinc-900 leading-tight">
                 {cursor.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
               </h1>
-              <p className="text-xs text-zinc-500">
+              <p className="text-[10px] sm:text-xs text-zinc-500">
                 {new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })} ({userTz})
               </p>
             </div>
             <button
               onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
               className="rounded-lg p-1.5 hover:bg-zinc-100 text-zinc-600 transition cursor-pointer"
+              title="Next Month"
             >
               <ChevronRight size={18} />
             </button>
@@ -1135,27 +1137,27 @@ export default function MeetPage() {
 
           {/* Right Toolbar Actions: + Add Meeting & + Add Project */}
           {isAdminOrManager && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => openCreateMeeting()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs transition cursor-pointer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs transition cursor-pointer"
               >
-                <Plus size={14} className="text-primary" /> Add Meeting
+                <Plus size={13} className="text-primary sm:w-3.5 sm:h-3.5" /> <span>Add Meeting</span>
               </button>
               <PrimaryButton
                 onClick={openCreateProject}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3.5 shadow-sm cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 sm:px-3.5 shadow-sm cursor-pointer"
               >
-                <Plus size={14} /> Add Project
+                <Plus size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Add Project</span>
               </PrimaryButton>
             </div>
           )}
         </div>
 
-        <div className="grid grid-cols-7 text-center text-xs font-bold uppercase tracking-wider text-zinc-400">
+        <div className="grid grid-cols-7 text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider text-zinc-400">
           {DAYS.map((d) => (
-            <div key={d} className="py-2.5">
+            <div key={d} className="py-1.5 sm:py-2.5">
               {d}
             </div>
           ))}
@@ -1171,12 +1173,12 @@ export default function MeetPage() {
             return (
               <div
                 key={key}
-                className={`min-h-[110px] border-b border-r border-zinc-100 p-2 transition ${
+                className={`min-h-[80px] sm:min-h-[110px] border-b border-r border-zinc-100 p-1 sm:p-2 transition ${
                   inMonth ? "bg-white" : "bg-zinc-50/50"
                 }`}
               >
                 <div
-                  className={`mb-1 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                  className={`mb-1 inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[10px] sm:text-xs font-semibold ${
                     isToday
                       ? "bg-red-500 text-white"
                       : inMonth
@@ -1200,7 +1202,7 @@ export default function MeetPage() {
                       <button
                         key={e.id}
                         onClick={() => openViewMeeting(e)}
-                        className={`block w-full truncate rounded px-1.5 py-0.5 text-left text-[11px] font-medium transition cursor-pointer ${
+                        className={`block w-full truncate rounded px-1 sm:px-1.5 py-0.5 text-left text-[10px] sm:text-[11px] font-medium transition cursor-pointer ${
                           isPrem
                             ? "bg-[#f3f0ff] text-[#6d28d9] hover:bg-[#eae5ff]"
                             : "bg-[#eef4ff] text-[#1d4ed8] hover:bg-[#e0ecff]"
@@ -1363,7 +1365,7 @@ export default function MeetPage() {
                 )}
 
                 {/* Add to Calendar Options Row */}
-                <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 pt-0.5">
                   <a
                     href={gcalUrl}
                     target="_blank"
@@ -1405,7 +1407,7 @@ export default function MeetPage() {
               </div>
 
               {/* Modal Footer with "← Back" and Admin/Manager CRUD actions */}
-              <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -1418,7 +1420,7 @@ export default function MeetPage() {
                 </button>
 
                 {isAdminOrManager && (
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <button
                       type="button"
                       onClick={() => openEditMeeting(selectedEvent)}
@@ -1492,7 +1494,7 @@ export default function MeetPage() {
                 <Field label="Description & Agenda *">
                   <textarea
                     rows={3}
-                    className="w-full rounded-lg border border-zinc-200 p-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                    className="w-full rounded-lg border border-zinc-200 p-2.5 text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                     placeholder="Describe agenda, topics covered, links, or guest speakers..."
                     value={eventForm.description}
                     onChange={(e) => setEventForm((f) => ({ ...f, description: e.target.value }))}
@@ -1502,7 +1504,7 @@ export default function MeetPage() {
             </div>
 
             {/* Modal Footer with "← Back to Details" / "← Back" and Action Buttons */}
-            <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100">
               <button
                 type="button"
                 onClick={() => {
@@ -1518,7 +1520,7 @@ export default function MeetPage() {
                 <ArrowLeft size={14} /> {eventModalMode === "edit" ? "Back to Details" : "Back / Cancel"}
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 {eventModalMode === "edit" && selectedEvent && (
                   <button
                     type="button"
@@ -1528,7 +1530,7 @@ export default function MeetPage() {
                     <Trash2 size={13} /> Delete Meeting
                   </button>
                 )}
-                <PrimaryButton disabled={eventBusy} onClick={onSaveMeeting} className="cursor-pointer">
+                <PrimaryButton disabled={eventBusy} onClick={onSaveMeeting} className="cursor-pointer text-xs">
                   {eventBusy ? "Saving..." : eventModalMode === "edit" ? "Save Changes" : "Schedule Meeting"}
                 </PrimaryButton>
               </div>
@@ -1604,15 +1606,15 @@ export default function MeetPage() {
             </Field>
 
             {/* Zoom-Style Custom Meeting Date & Time Adjuster */}
-            <div className="sm:col-span-2 rounded-2xl border border-indigo-100/90 bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/30 p-4 space-y-3.5 shadow-2xs">
-              <div className="flex items-center justify-between border-b border-indigo-100/70 pb-2.5">
+            <div className="sm:col-span-2 rounded-2xl border border-indigo-100/90 bg-gradient-to-br from-indigo-50/40 via-white to-blue-50/30 p-3.5 sm:p-4 space-y-3.5 shadow-2xs">
+              <div className="flex items-center justify-between border-b border-indigo-100/70 pb-2.5 flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#5051F9] text-white shadow-2xs">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#5051F9] text-white shadow-2xs shrink-0">
                     <Video size={14} />
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-zinc-900">Meeting Schedule & Room Settings</h4>
-                    <p className="text-[11px] text-zinc-500">Manually adjust meeting date, start time, room name, and video URL</p>
+                    <p className="text-[10px] sm:text-[11px] text-zinc-500">Manually adjust meeting date, start time, room name, and video URL</p>
                   </div>
                 </div>
                 <span className="rounded-md bg-indigo-100/80 text-indigo-800 px-2 py-0.5 text-[10px] font-mono font-bold">
@@ -1674,7 +1676,7 @@ export default function MeetPage() {
 
               {/* Quick Date/Time Shortcuts */}
               <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-indigo-100/60 text-xs">
-                <span className="text-[11px] font-semibold text-zinc-500 mr-1">Quick Presets:</span>
+                <span className="text-[10px] sm:text-[11px] font-semibold text-zinc-500 mr-1">Quick Presets:</span>
                 <button
                   type="button"
                   onClick={() => {
@@ -1682,7 +1684,7 @@ export default function MeetPage() {
                     d.setHours(15, 0, 0, 0);
                     setForm((f) => ({ ...f, meetSyncTime: "Today, 3:00 PM" }));
                   }}
-                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
                 >
                   Today, 3:00 PM
                 </button>
@@ -1694,7 +1696,7 @@ export default function MeetPage() {
                     d.setHours(16, 0, 0, 0);
                     setForm((f) => ({ ...f, meetSyncTime: "Tomorrow, 4:00 PM" }));
                   }}
-                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
                 >
                   Tomorrow, 4:00 PM
                 </button>
@@ -1705,7 +1707,7 @@ export default function MeetPage() {
                     d.setHours(d.getHours() + 1, 0, 0, 0);
                     setForm((f) => ({ ...f, meetSyncTime: formatDateTime(d.toISOString()) }));
                   }}
-                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
                 >
                   +1 Hour
                 </button>
@@ -1717,7 +1719,7 @@ export default function MeetPage() {
                     d.setHours(14, 0, 0, 0);
                     setForm((f) => ({ ...f, meetSyncTime: "Friday, 2:00 PM" }));
                   }}
-                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
+                  className="rounded-lg bg-white border border-zinc-200 px-2 py-1 text-[10px] sm:text-[11px] font-medium text-zinc-700 hover:border-primary hover:text-primary transition shadow-2xs cursor-pointer"
                 >
                   Friday, 2:00 PM
                 </button>
@@ -1730,7 +1732,7 @@ export default function MeetPage() {
             <Field label="Description & Notes (Type @ to mention and add members)">
               <textarea
                 ref={descriptionRef}
-                className="min-h-[85px] w-full rounded-lg border border-zinc-200 p-2.5 text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                className="min-h-[85px] w-full rounded-lg border border-zinc-200 p-2.5 text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
                 placeholder="Describe project goals. Type @ to mention community members and auto-assign them to the team..."
                 value={form.description}
                 onChange={handleDescriptionChange}
@@ -1739,7 +1741,7 @@ export default function MeetPage() {
 
             {/* Floating @ Mention Autocomplete Popover */}
             {showMentionMenu && (
-              <div className="absolute left-2 top-[72px] z-50 w-80 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute left-2 top-[72px] z-50 w-72 sm:w-80 max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
                 <div className="bg-zinc-50 px-3 py-1.5 text-[11px] font-bold text-zinc-500 uppercase tracking-wider flex items-center justify-between border-b border-zinc-100">
                   <span>Mention & Add Member</span>
                   <span className="text-[10px] text-zinc-400 font-normal">Esc to close</span>
@@ -1836,7 +1838,7 @@ export default function MeetPage() {
                       <Check size={9} className="stroke-[3]" />
                     </div>
                     <Avatar user={mem} size={18} />
-                    <span>{mem.name}</span>
+                    <span className="truncate max-w-[120px]">{mem.name}</span>
                     <button
                       type="button"
                       onClick={() => toggleTeamMember(id)}
@@ -1866,7 +1868,7 @@ export default function MeetPage() {
 
                 {/* Floating Member Picker Popover */}
                 {memberPickerOpen && (
-                  <div className="absolute left-0 bottom-full mb-2 sm:bottom-auto sm:top-full sm:mt-2 z-50 w-72 sm:w-80 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute left-0 bottom-full mb-2 sm:bottom-auto sm:top-full sm:mt-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-100">
                     {/* Search Input Box */}
                     <div className="p-2 border-b border-zinc-100 bg-zinc-50/50">
                       <div className="relative">
@@ -1981,7 +1983,7 @@ export default function MeetPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100">
             <button
               type="button"
               onClick={() => setProjectModalOpen(false)}
@@ -1990,7 +1992,7 @@ export default function MeetPage() {
               <ArrowLeft size={14} /> Back / Cancel
             </button>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               {editingProjectId && (
                 <button
                   type="button"
@@ -2003,7 +2005,7 @@ export default function MeetPage() {
                   <Trash2 size={13} /> Delete Project
                 </button>
               )}
-              <PrimaryButton disabled={busy} onClick={onSaveProject} className="cursor-pointer">
+              <PrimaryButton disabled={busy} onClick={onSaveProject} className="cursor-pointer text-xs">
                 {busy ? "Saving..." : editingProjectId ? "Save Changes" : "Create Project"}
               </PrimaryButton>
             </div>
