@@ -241,6 +241,18 @@ async function postAuth(url: string, body?: unknown): Promise<ActionResult> {
   }
 }
 
+function isServerActionMismatch(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes("was not found on the server") ||
+    msg.includes("failed-to-find-server-action") ||
+    msg.includes("Failed to find Server Action") ||
+    msg.includes("could not be found on the server") ||
+    msg.includes("is not a valid Server Action")
+  );
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(empty);
   const [loading, setLoading] = useState(true);
@@ -249,7 +261,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     try {
       const next = await getAppState();
       setState(next);
-    } catch {
+    } catch (err) {
+      if (isServerActionMismatch(err)) {
+        if (typeof window !== "undefined") {
+          window.location.reload();
+        }
+        return;
+      }
       setState(empty);
     } finally {
       setLoading(false);
@@ -259,7 +277,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refresh();
     const beat = setInterval(() => {
-      heartbeat();
+      heartbeat().catch((err) => {
+        if (isServerActionMismatch(err) && typeof window !== "undefined") {
+          window.location.reload();
+        }
+      });
     }, 60000);
     return () => clearInterval(beat);
   }, [refresh]);
@@ -271,6 +293,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (result.ok) await refresh();
         return result;
       } catch (error) {
+        if (isServerActionMismatch(error)) {
+          // A new deployment occurred while the client tab was open.
+          // Trigger a reload so the browser fetches the latest server action signatures.
+          if (typeof window !== "undefined") {
+            setTimeout(() => {
+              window.location.reload();
+            }, 600);
+          }
+          return {
+            ok: false,
+            error: "A new version of the application was deployed. Refreshing to load updates...",
+          };
+        }
         const message = error instanceof Error ? error.message : "Something went wrong. Please try again.";
         return { ok: false, error: message };
       }

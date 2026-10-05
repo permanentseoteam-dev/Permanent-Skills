@@ -10,6 +10,14 @@ const nextConfig: NextConfig = {
     },
     proxyClientMaxBodySize: "80mb",
   },
+  generateBuildId: async () => {
+    return (
+      process.env.VERCEL_GIT_COMMIT_SHA ||
+      process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ||
+      process.env.BUILD_ID ||
+      null
+    );
+  },
 };
 
 export default nextConfig;
