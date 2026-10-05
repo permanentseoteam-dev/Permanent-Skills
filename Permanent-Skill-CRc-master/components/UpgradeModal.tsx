@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useApp } from "./AppProvider";
 import { GoldButton, Modal, PrimaryButton } from "./ui";
 
@@ -31,9 +32,18 @@ export function UpgradeModal({ open, onClose }: { open: boolean; onClose: () => 
         </div>
       ) : (
         <div className="space-y-4">
-          <p className="text-3xl font-bold text-zinc-900">
-            $9<span className="text-base font-medium text-zinc-500">/month</span>
-          </p>
+          <div className="flex items-baseline justify-between">
+            <p className="text-3xl font-bold text-zinc-900">
+              $9<span className="text-base font-medium text-zinc-500">/month</span>
+            </p>
+            <Link
+              href="/about?plan=vip"
+              onClick={onClose}
+              className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-primary hover:border-primary/40 hover:bg-primary/5 transition shadow-2xs"
+            >
+              See About →
+            </Link>
+          </div>
           <ul className="space-y-2 text-sm text-zinc-700">
             <li>✓ Unlock VIP mastermind calls</li>
             <li>✓ Full classroom across all courses</li>

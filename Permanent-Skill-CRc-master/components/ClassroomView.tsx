@@ -13,16 +13,19 @@ import {
   Flame,
   Lock,
   MessageSquare,
+  Pencil,
   Play,
   ShieldCheck,
   Sparkles,
   Unlock,
+  Upload,
+  X,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import { WordDocumentNotes } from "@/components/WordDocumentNotes";
 import { LessonComments } from "@/components/LessonComments";
-import { StaffRoleFavicon } from "@/components/ui";
+import { Card, Field, Modal, PrimaryButton, StaffRoleFavicon, inputClass } from "@/components/ui";
 import { getLevel } from "@/lib/levels";
 import { formatMoney } from "@/lib/format";
 import { getVideoThumbnail, renderNotes, toEmbed } from "@/lib/video";
@@ -34,10 +37,69 @@ interface ClassroomViewProps {
 
 export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
   const router = useRouter();
-  const { courses, progress, user, completeLesson } = useApp();
+  const { courses, progress, user, completeLesson, saveCourse } = useApp();
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [activeBottomTab, setActiveBottomTab] = useState<"overview" | "word-notes" | "comments">("overview");
+
+  const isAdmin = user?.role === "admin" || user?.role === "manager";
+
+  // Cover image modal state for Admin / Manager
+  const [editingCoverCourse, setEditingCoverCourse] = useState<Course | null>(null);
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [coverWatermark, setCoverWatermark] = useState("");
+  const [coverGlow, setCoverGlow] = useState<"yellow" | "green" | "blue" | "orange" | "red" | "purple">("yellow");
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverSaving, setCoverSaving] = useState(false);
+
+  function openEditCoverModal(c: Course) {
+    setEditingCoverCourse(c);
+    setCoverImageUrl(c.thumbnail || "");
+    setCoverWatermark(c.watermark || "");
+    setCoverGlow(c.glowColor || "yellow");
+  }
+
+  async function handleUploadCoverImage(file: File) {
+    setCoverUploading(true);
+    const data = new FormData();
+    data.append("file", file);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: data });
+      const json = await res.json();
+      setCoverUploading(false);
+      if (json.ok && json.url) {
+        setCoverImageUrl(json.url);
+      } else {
+        alert(json.error || "Image upload failed.");
+      }
+    } catch {
+      setCoverUploading(false);
+      alert("Image upload failed.");
+    }
+  }
+
+  async function handleSaveCover() {
+    if (!editingCoverCourse) return;
+    setCoverSaving(true);
+    const res = await saveCourse({
+      id: editingCoverCourse.id,
+      title: editingCoverCourse.title,
+      description: editingCoverCourse.description,
+      unlockLevel: editingCoverCourse.unlockLevel,
+      badge: editingCoverCourse.badge,
+      price: editingCoverCourse.price,
+      isPremiumOnly: editingCoverCourse.isPremiumOnly,
+      thumbnail: coverImageUrl.trim() || undefined,
+      watermark: coverWatermark.trim() || undefined,
+      glowColor: coverGlow,
+    });
+    setCoverSaving(false);
+    if (res.ok) {
+      setEditingCoverCourse(null);
+    } else {
+      alert(res.error || "Failed to update course cover.");
+    }
+  }
 
   // Available courses
   const availableCourses = courses.length > 0 ? courses : [];
@@ -159,7 +221,6 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
   // Helper to render course banner matching original design
   function renderCourseBanner(course: Course) {
-    const isAdmin = user?.role === "admin" || user?.role === "manager";
     const userLevel = user ? Math.min(9, Math.floor((user.points || 0) / 20) + 1) : 1;
     const isPurchased = Boolean(
       isAdmin ||
@@ -172,16 +233,84 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 
+    // 1. Custom Background Image if configured by admin/manager
+    if (course.thumbnail) {
+      return (
+        <div
+          className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden p-4 flex flex-col items-center justify-center select-none bg-cover bg-center group/banner"
+          style={{
+            backgroundImage: `url(${course.thumbnail})`,
+          }}
+        >
+          {/* Subtle contrast overlay */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px]" />
+
+          {/* Admin / Manager Quick Edit Button */}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openEditCoverModal(course);
+              }}
+              className="absolute top-2.5 right-2.5 z-20 inline-flex items-center gap-1 rounded-lg bg-black/80 hover:bg-black px-2 py-1 text-[11px] font-bold text-white backdrop-blur-xs border border-white/20 shadow-md transition cursor-pointer"
+              title="Edit Course Background Cover (Admin/Manager)"
+            >
+              <Pencil size={11} /> Edit Cover
+            </button>
+          )}
+
+          {/* Terminal Watermark behind */}
+          {watermark && (
+            <div className="absolute inset-x-0 bottom-3 sm:bottom-4 text-center font-mono text-xl sm:text-2xl md:text-3xl font-black text-white/25 tracking-tight pointer-events-none select-none">
+              {watermark}
+            </div>
+          )}
+
+          {/* Center Badge */}
+          <div className="relative z-10 flex flex-col items-center justify-center text-center">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/85 text-white shadow-xl border border-white/25">
+              {isPurchased ? (
+                <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+              ) : (
+                <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+              )}
+            </div>
+            {!isPurchased && (
+              <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+                {isPremiumOnly ? "👑 Unlock with VIP" : `Unlock at Level ${course.unlockLevel}`}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (isLevel1 || glow === "yellow") {
       return (
         <div
-          className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none"
+          className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-[#786c12] p-4 flex flex-col items-center justify-center select-none group/banner"
           style={{
             backgroundImage:
               "radial-gradient(circle, rgba(0,0,0,0.22) 1.5px, transparent 1.5px)",
             backgroundSize: "12px 12px",
           }}
         >
+          {/* Admin / Manager Quick Edit Button */}
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openEditCoverModal(course);
+              }}
+              className="absolute top-2.5 right-2.5 z-20 inline-flex items-center gap-1 rounded-lg bg-black/80 hover:bg-black px-2 py-1 text-[11px] font-bold text-white backdrop-blur-xs border border-white/20 shadow-md transition cursor-pointer"
+              title="Edit Course Background Cover (Admin/Manager)"
+            >
+              <Pencil size={11} /> Edit Cover
+            </button>
+          )}
+
           {/* Terminal Watermark behind */}
           <div className="absolute inset-x-0 bottom-3 sm:bottom-4 text-center font-mono text-xl sm:text-2xl md:text-3xl font-black text-black/35 tracking-tight pointer-events-none select-none">
             {watermark}
@@ -228,7 +357,22 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     }
 
     return (
-      <div className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
+      <div className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none group/banner">
+        {/* Admin / Manager Quick Edit Button */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditCoverModal(course);
+            }}
+            className="absolute top-2.5 right-2.5 z-20 inline-flex items-center gap-1 rounded-lg bg-black/80 hover:bg-black px-2 py-1 text-[11px] font-bold text-white backdrop-blur-xs border border-white/20 shadow-md transition cursor-pointer"
+            title="Edit Course Background Cover (Admin/Manager)"
+          >
+            <Pencil size={11} /> Edit Cover
+          </button>
+        )}
+
         {/* Radial Glow */}
         <div className={`absolute h-24 sm:h-28 w-24 sm:w-28 rounded-full ${glowBg} blur-2xl pointer-events-none`} />
 
@@ -271,11 +415,10 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
     );
   }
 
-  // 1. PRIMARY VIEW: Classroom Course / Module Cards Grid (Original Design)
-  if (!activeCourse) {
-    return (
-      <div className="space-y-4 sm:space-y-6">
-        {/* Module Cards Grid */}
+  return (
+    <div className="space-y-4 sm:space-y-6">
+      {/* 1. PRIMARY VIEW: Classroom Course / Module Cards Grid (Original Design) */}
+      {!activeCourse ? (
         <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {availableCourses.map((course) => {
             const cRow = progress.find(
@@ -322,18 +465,31 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
                       </span>
                     </div>
                   </div>
+
+                  <div className="mt-3 flex items-center justify-between border-t border-zinc-100 pt-2 text-[11px]">
+                    <span className="font-semibold text-zinc-500">
+                      {course.isPremiumOnly
+                        ? "👑 VIP Plan"
+                        : course.price
+                        ? formatMoney(course.price)
+                        : `Level ${course.unlockLevel}`}
+                    </span>
+                    <Link
+                      href={`/about?course=${course.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="font-bold text-primary hover:underline inline-flex items-center gap-0.5"
+                    >
+                      See About →
+                    </Link>
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
-      </div>
-    );
-  }
-
-  // 2. DETAILED MODULE / COURSE LESSON VIEW
-  return (
-    <div className="space-y-4 sm:space-y-6">
+      ) : (
+        /* 2. DETAILED MODULE / COURSE LESSON VIEW */
+        <div className="space-y-4 sm:space-y-6">
       {/* Navigation Bar: Back to Classroom & Course Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 border-b border-zinc-200/90 pb-3 sm:pb-4">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -390,12 +546,25 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           <h2 className="text-lg sm:text-xl font-bold text-zinc-900">
             Unlock at Level {activeCourse.unlockLevel} or upgrade to VIP
           </h2>
-          <button
-            onClick={() => setUpgradeOpen(true)}
-            className="mt-4 sm:mt-5 inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 sm:px-5 py-2.5 font-bold text-xs sm:text-sm text-white shadow-md hover:bg-primary-dark transition cursor-pointer"
-          >
-            👑 Upgrade to VIP
-          </button>
+          <p className="mt-1 text-xs text-zinc-500">
+            {activeCourse.isPremiumOnly
+              ? "Requires active VIP subscription ($9/mo)"
+              : `Course Price: ${formatMoney(activeCourse.price || 49)} or Level ${activeCourse.unlockLevel}`}
+          </p>
+          <div className="mt-4 sm:mt-5 flex flex-wrap items-center justify-center gap-2.5">
+            <button
+              onClick={() => setUpgradeOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 sm:px-5 py-2.5 font-bold text-xs sm:text-sm text-white shadow-md hover:bg-primary-dark transition cursor-pointer"
+            >
+              👑 Upgrade to VIP ($9/mo)
+            </button>
+            <Link
+              href={`/about?course=${activeCourse.id}`}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 bg-white px-4 sm:px-5 py-2.5 font-bold text-xs sm:text-sm text-zinc-700 shadow-2xs hover:border-primary/40 hover:text-primary transition"
+            >
+              See About →
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="grid gap-5 sm:gap-7 lg:grid-cols-[280px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -691,6 +860,192 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           </main>
         </div>
       )}
+    </div>
+  )}
+
+      {/* EDIT COURSE BACKGROUND / COVER MODAL (Admin & Manager Only) */}
+      <Modal
+        open={Boolean(editingCoverCourse)}
+        onClose={() => setEditingCoverCourse(null)}
+        title={`Edit Background: ${editingCoverCourse?.title || "Course"}`}
+        wide
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-3.5 sm:p-4 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
+                <Sparkles size={14} className="text-amber-500" /> Course Cover / Background Image
+              </span>
+              <span className="text-[10px] font-bold text-zinc-400">Admin & Manager Only</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Background Image URL">
+                <input
+                  className={inputClass}
+                  placeholder="https://images.unsplash.com/... or CDN link"
+                  value={coverImageUrl}
+                  onChange={(e) => setCoverImageUrl(e.target.value)}
+                />
+              </Field>
+
+              <Field label="Or Upload Direct Image File">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white p-2.5 text-xs font-semibold text-zinc-600 hover:border-primary hover:bg-primary/5 hover:text-primary transition min-h-[42px] shadow-2xs">
+                  <Upload size={14} className="shrink-0" />
+                  {coverUploading ? (
+                    <span className="text-primary font-bold">Uploading Image...</span>
+                  ) : coverImageUrl ? (
+                    <span className="truncate max-w-[200px] text-zinc-700">Change Image File</span>
+                  ) : (
+                    "Upload PNG / JPG / WebP"
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={coverUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleUploadCoverImage(file);
+                    }}
+                  />
+                </label>
+              </Field>
+            </div>
+
+            {coverImageUrl && (
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-emerald-700 font-medium">✓ Custom background cover image active</span>
+                <button
+                  type="button"
+                  onClick={() => setCoverImageUrl("")}
+                  className="text-[11px] font-bold text-red-500 hover:text-red-700 hover:underline cursor-pointer"
+                >
+                  Remove Custom Image
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <Field label="Terminal Watermark (Optional background text)">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. > AI_AUTOMATION_"
+                  value={coverWatermark}
+                  onChange={(e) => setCoverWatermark(e.target.value)}
+                />
+              </Field>
+
+              <Field label="Glow Theme (Fallback or Ambient)">
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  {(["yellow", "green", "blue", "orange", "red", "purple"] as const).map((color) => {
+                    const bgColors: Record<string, string> = {
+                      yellow: "bg-amber-400",
+                      green: "bg-emerald-500",
+                      blue: "bg-sky-500",
+                      orange: "bg-orange-500",
+                      red: "bg-rose-500",
+                      purple: "bg-purple-500",
+                    };
+                    const isSelected = coverGlow === color;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setCoverGlow(color)}
+                        className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-bold capitalize transition shadow-2xs cursor-pointer ${
+                          isSelected
+                            ? "border-zinc-900 bg-zinc-900 text-white shadow-xs"
+                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100"
+                        }`}
+                      >
+                        <span className={`h-2.5 w-2.5 rounded-full ${bgColors[color]}`} />
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+
+            {/* Live Banner Preview */}
+            <div className="pt-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+                Live Card Banner Preview
+              </label>
+              <div className="overflow-hidden rounded-2xl border border-zinc-300 shadow-sm max-w-md mx-auto">
+                {coverImageUrl ? (
+                  <div
+                    className="relative h-36 w-full overflow-hidden p-4 flex flex-col items-center justify-center select-none bg-cover bg-center"
+                    style={{ backgroundImage: `url(${coverImageUrl})` }}
+                  >
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px]" />
+                    {coverWatermark && (
+                      <div className="absolute inset-x-0 bottom-2 text-center font-mono text-xl font-black text-white/30 tracking-tight select-none">
+                        {coverWatermark}
+                      </div>
+                    )}
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/85 text-white shadow-xl border border-white/25">
+                        <Unlock size={16} />
+                      </div>
+                      <span className="mt-1 text-xs font-extrabold text-white drop-shadow-md">
+                        {editingCoverCourse?.title}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative h-36 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
+                    <div
+                      className={`absolute h-24 w-24 rounded-full blur-2xl pointer-events-none ${
+                        coverGlow === "green"
+                          ? "bg-emerald-500/30"
+                          : coverGlow === "blue"
+                          ? "bg-sky-500/30"
+                          : coverGlow === "orange"
+                          ? "bg-orange-500/35"
+                          : coverGlow === "red"
+                          ? "bg-rose-500/30"
+                          : coverGlow === "purple"
+                          ? "bg-purple-500/35"
+                          : "bg-amber-400/25"
+                      }`}
+                    />
+                    <div className="absolute inset-x-0 bottom-2 text-center font-mono text-xl font-black text-white/15 tracking-tight select-none">
+                      {coverWatermark || `> ${editingCoverCourse?.slug || "course"}_`}
+                    </div>
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950/90 border-2 border-white/40 text-white shadow-xl">
+                        <Unlock size={16} />
+                      </div>
+                      <span className="mt-1 text-xs font-extrabold text-white drop-shadow-md">
+                        {editingCoverCourse?.title}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 border-t border-zinc-100 pt-3">
+            <button
+              type="button"
+              onClick={() => setEditingCoverCourse(null)}
+              className="rounded-xl px-4 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-100 transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <PrimaryButton
+              disabled={coverSaving || coverUploading}
+              onClick={handleSaveCover}
+              className="rounded-xl px-5 py-2.5 text-xs font-bold cursor-pointer"
+            >
+              {coverSaving ? "Saving Cover..." : "Save Background Image"}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
 
       <UpgradeModal open={upgradeOpen} onClose={() => setUpgradeOpen(false)} />
     </div>

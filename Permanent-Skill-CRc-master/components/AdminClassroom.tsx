@@ -44,6 +44,7 @@ export function AdminClassroom() {
   // Course creation / edit state
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [isEditingCourse, setIsEditingCourse] = useState(false);
+  const [courseImageUploading, setCourseImageUploading] = useState(false);
   const [courseForm, setCourseForm] = useState<{
     title: string;
     description: string;
@@ -51,6 +52,9 @@ export function AdminClassroom() {
     badge: string;
     price: number | string;
     isPremiumOnly: boolean;
+    thumbnail: string;
+    watermark: string;
+    glowColor: "yellow" | "green" | "blue" | "orange" | "red" | "purple";
   }>({
     title: "",
     description: "",
@@ -58,6 +62,9 @@ export function AdminClassroom() {
     badge: "",
     price: "",
     isPremiumOnly: false,
+    thumbnail: "",
+    watermark: "",
+    glowColor: "yellow",
   });
 
   const [busy, setBusy] = useState(false);
@@ -131,6 +138,9 @@ export function AdminClassroom() {
       badge: "",
       price: "",
       isPremiumOnly: false,
+      thumbnail: "",
+      watermark: "",
+      glowColor: "yellow",
     });
     setShowCourseModal(true);
   }
@@ -145,8 +155,31 @@ export function AdminClassroom() {
       badge: course.badge || "",
       price: course.price !== undefined ? course.price : "",
       isPremiumOnly: Boolean(course.isPremiumOnly),
+      thumbnail: course.thumbnail || "",
+      watermark: course.watermark || "",
+      glowColor: course.glowColor || "yellow",
     });
     setShowCourseModal(true);
+  }
+
+  async function onUploadCourseImage(file: File) {
+    setCourseImageUploading(true);
+    const data = new FormData();
+    data.append("file", file);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: data });
+      const json = await res.json();
+      setCourseImageUploading(false);
+      if (!json.ok) {
+        setMessage({ type: "error", text: json.error || "Image upload failed." });
+        return;
+      }
+      setCourseForm((f) => ({ ...f, thumbnail: json.url }));
+      setMessage({ type: "success", text: "✓ Background image uploaded!" });
+    } catch {
+      setCourseImageUploading(false);
+      setMessage({ type: "error", text: "Upload request failed. Check server connection." });
+    }
   }
 
   async function onUpload(file: File) {
@@ -216,6 +249,9 @@ export function AdminClassroom() {
       badge: courseForm.badge.trim().toUpperCase() || undefined,
       price: courseForm.price !== "" ? Number(courseForm.price) : 0,
       isPremiumOnly: courseForm.isPremiumOnly,
+      thumbnail: courseForm.thumbnail.trim() || undefined,
+      watermark: courseForm.watermark.trim() || undefined,
+      glowColor: courseForm.glowColor,
     });
     setBusy(false);
     if (result.ok) {
@@ -657,6 +693,168 @@ export function AdminClassroom() {
             </Field>
           </div>
 
+          {/* Background / Cover Image & Theme Customization */}
+          <div className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-3.5 sm:p-4 space-y-3.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase tracking-wider text-zinc-900 flex items-center gap-1.5">
+                <Sparkles size={14} className="text-amber-500" /> Course Cover / Background Image
+              </span>
+              <span className="text-[10px] font-bold text-zinc-400">Admin & Manager Only</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Background Image URL">
+                <input
+                  className={inputClass}
+                  placeholder="https://images.unsplash.com/... or CDN link"
+                  value={courseForm.thumbnail}
+                  onChange={(e) => setCourseForm((f) => ({ ...f, thumbnail: e.target.value }))}
+                />
+              </Field>
+
+              <Field label="Or Upload Image Directly">
+                <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-white p-2.5 text-xs font-semibold text-zinc-600 hover:border-primary hover:bg-primary/5 hover:text-primary transition min-h-[42px] shadow-2xs">
+                  <Upload size={14} className="shrink-0" />
+                  {courseImageUploading ? (
+                    <span className="text-primary font-bold">Uploading Image...</span>
+                  ) : courseForm.thumbnail ? (
+                    <span className="truncate max-w-[200px] text-zinc-700">Change Image File</span>
+                  ) : (
+                    "Upload PNG / JPG / WebP"
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={courseImageUploading}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) onUploadCourseImage(file);
+                    }}
+                  />
+                </label>
+              </Field>
+            </div>
+
+            {courseForm.thumbnail && (
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[11px] text-emerald-700 font-medium">✓ Custom background cover image active</span>
+                <button
+                  type="button"
+                  onClick={() => setCourseForm((f) => ({ ...f, thumbnail: "" }))}
+                  className="text-[11px] font-bold text-red-500 hover:text-red-700 hover:underline"
+                >
+                  Remove Custom Image
+                </button>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <Field label="Terminal Watermark (Optional background text)">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. > AI_AUTOMATION_"
+                  value={courseForm.watermark}
+                  onChange={(e) => setCourseForm((f) => ({ ...f, watermark: e.target.value }))}
+                />
+              </Field>
+
+              <Field label="Glow Theme (Fallback or Ambient)">
+                <div className="flex items-center gap-2 pt-1 flex-wrap">
+                  {(["yellow", "green", "blue", "orange", "red", "purple"] as const).map((color) => {
+                    const bgColors: Record<string, string> = {
+                      yellow: "bg-amber-400",
+                      green: "bg-emerald-500",
+                      blue: "bg-sky-500",
+                      orange: "bg-orange-500",
+                      red: "bg-rose-500",
+                      purple: "bg-purple-500",
+                    };
+                    const isSelected = courseForm.glowColor === color;
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setCourseForm((f) => ({ ...f, glowColor: color }))}
+                        className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1.5 text-xs font-bold capitalize transition shadow-2xs cursor-pointer ${
+                          isSelected
+                            ? "border-zinc-900 bg-zinc-900 text-white shadow-xs"
+                            : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-100"
+                        }`}
+                      >
+                        <span className={`h-2.5 w-2.5 rounded-full ${bgColors[color]}`} />
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Field>
+            </div>
+
+            {/* Live Banner Preview */}
+            <div className="pt-2">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1.5">
+                Live Card Banner Preview
+              </label>
+              <div className="overflow-hidden rounded-2xl border border-zinc-300 shadow-sm max-w-md mx-auto">
+                {courseForm.thumbnail ? (
+                  <div
+                    className="relative h-36 w-full overflow-hidden p-4 flex flex-col items-center justify-center select-none bg-cover bg-center"
+                    style={{ backgroundImage: `url(${courseForm.thumbnail})` }}
+                  >
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px]" />
+                    {courseForm.watermark && (
+                      <div className="absolute inset-x-0 bottom-2 text-center font-mono text-xl font-black text-white/30 tracking-tight select-none">
+                        {courseForm.watermark}
+                      </div>
+                    )}
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-black/85 text-white shadow-xl border border-white/25">
+                        <Lock size={16} />
+                      </div>
+                      <span className="mt-1 text-xs font-extrabold text-white drop-shadow-md">
+                        {courseForm.isPremiumOnly
+                          ? "👑 Unlock with VIP"
+                          : `Unlock at Level ${courseForm.unlockLevel || 1}`}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative h-36 w-full overflow-hidden bg-black p-4 flex flex-col items-center justify-center select-none">
+                    <div
+                      className={`absolute h-24 w-24 rounded-full blur-2xl pointer-events-none ${
+                        courseForm.glowColor === "green"
+                          ? "bg-emerald-500/30"
+                          : courseForm.glowColor === "blue"
+                          ? "bg-sky-500/30"
+                          : courseForm.glowColor === "orange"
+                          ? "bg-orange-500/35"
+                          : courseForm.glowColor === "red"
+                          ? "bg-rose-500/30"
+                          : courseForm.glowColor === "purple"
+                          ? "bg-purple-500/35"
+                          : "bg-amber-400/25"
+                      }`}
+                    />
+                    <div className="absolute inset-x-0 bottom-2 text-center font-mono text-xl font-black text-white/15 tracking-tight select-none">
+                      {courseForm.watermark || `> ${courseForm.title ? courseForm.title.toLowerCase().replace(/\\s+/g, "-") : "course"}_`}
+                    </div>
+                    <div className="relative z-10 flex flex-col items-center justify-center text-center">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-zinc-950/90 border-2 border-white/40 text-white shadow-xl">
+                        <Lock size={16} />
+                      </div>
+                      <span className="mt-1 text-xs font-extrabold text-white drop-shadow-md">
+                        {courseForm.isPremiumOnly
+                          ? "👑 Unlock with VIP"
+                          : `Unlock at Level ${courseForm.unlockLevel || 1}`}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-3">
             <label className="flex items-center gap-2.5 cursor-pointer">
               <input
@@ -683,7 +881,7 @@ export function AdminClassroom() {
             >
               Cancel
             </button>
-            <PrimaryButton disabled={busy} onClick={onSaveCourse} className="rounded-xl px-5 py-2.5 text-xs font-bold">
+            <PrimaryButton disabled={busy || courseImageUploading} onClick={onSaveCourse} className="rounded-xl px-5 py-2.5 text-xs font-bold">
               {busy ? "Saving..." : isEditingCourse ? "Save Course Changes" : "Create Course"}
             </PrimaryButton>
           </div>

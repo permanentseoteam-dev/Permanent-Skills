@@ -1529,6 +1529,9 @@ export async function saveCourse(input: {
   badge?: string;
   price?: number;
   isPremiumOnly?: boolean;
+  thumbnail?: string;
+  watermark?: string;
+  glowColor?: "yellow" | "green" | "blue" | "orange" | "red" | "purple";
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
@@ -1543,6 +1546,9 @@ export async function saveCourse(input: {
       if (input.badge !== undefined) existing.badge = input.badge.trim().toUpperCase();
       if (input.price !== undefined) existing.price = input.price;
       if (input.isPremiumOnly !== undefined) existing.isPremiumOnly = input.isPremiumOnly;
+      if (input.thumbnail !== undefined) existing.thumbnail = input.thumbnail.trim();
+      if (input.watermark !== undefined) existing.watermark = input.watermark.trim();
+      if (input.glowColor !== undefined) existing.glowColor = input.glowColor;
       return;
     }
     db.courses.push({
@@ -1555,6 +1561,9 @@ export async function saveCourse(input: {
       unlockLevel: input.unlockLevel || 1,
       price: input.price !== undefined ? input.price : 0,
       isPremiumOnly: Boolean(input.isPremiumOnly),
+      thumbnail: input.thumbnail?.trim() || undefined,
+      watermark: input.watermark?.trim() || undefined,
+      glowColor: input.glowColor || "yellow",
       lessons: [],
     });
   });

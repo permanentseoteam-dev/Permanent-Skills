@@ -147,7 +147,18 @@ type AppContextValue = AppState & {
   deleteComment: (commentId: string) => Promise<ActionResult>;
   togglePin: (postId: string) => Promise<ActionResult>;
   completeLesson: (courseId: string, lessonId: string) => Promise<ActionResult>;
-  saveCourse: (input: { id?: string; title: string; description: string; unlockLevel?: number; badge?: string; price?: number; isPremiumOnly?: boolean }) => Promise<ActionResult>;
+  saveCourse: (input: {
+    id?: string;
+    title: string;
+    description: string;
+    unlockLevel?: number;
+    badge?: string;
+    price?: number;
+    isPremiumOnly?: boolean;
+    thumbnail?: string;
+    watermark?: string;
+    glowColor?: "yellow" | "green" | "blue" | "orange" | "red" | "purple";
+  }) => Promise<ActionResult>;
   deleteCourse: (courseId: string) => Promise<ActionResult>;
   saveLesson: (input: {
     courseId: string;
@@ -496,8 +507,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const saveCourseFn = useCallback(
-    (input: { id?: string; title: string; description: string; unlockLevel?: number; badge?: string; price?: number; isPremiumOnly?: boolean }) =>
-      run(() => saveCourseAction(input)),
+    (input: {
+      id?: string;
+      title: string;
+      description: string;
+      unlockLevel?: number;
+      badge?: string;
+      price?: number;
+      isPremiumOnly?: boolean;
+      thumbnail?: string;
+      watermark?: string;
+      glowColor?: "yellow" | "green" | "blue" | "orange" | "red" | "purple";
+    }) => run(() => saveCourseAction(input)),
     [run],
   );
   const deleteCourseFn = useCallback((courseId: string) => run(() => deleteCourseAction(courseId)), [run]);

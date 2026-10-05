@@ -200,6 +200,44 @@ export default function AllCoursesPage() {
     const glow = course.glowColor || "yellow";
     const watermark = course.watermark || `> ${course.slug}_`;
 
+    // 1. Custom Background Image if configured by admin/manager
+    if (course.thumbnail) {
+      return (
+        <div
+          className="relative h-40 sm:h-44 md:h-48 w-full overflow-hidden p-4 flex flex-col items-center justify-center select-none bg-cover bg-center"
+          style={{
+            backgroundImage: `url(${course.thumbnail})`,
+          }}
+        >
+          {/* Subtle contrast overlay */}
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-[0.5px]" />
+
+          {/* Terminal Watermark behind */}
+          {watermark && (
+            <div className="absolute inset-x-0 bottom-3 sm:bottom-4 text-center font-mono text-xl sm:text-2xl md:text-3xl font-black text-white/25 tracking-tight pointer-events-none select-none">
+              {watermark}
+            </div>
+          )}
+
+          {/* Center Badge */}
+          <div className="relative z-10 flex flex-col items-center justify-center text-center">
+            <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-full bg-black/85 text-white shadow-xl border border-white/25">
+              {isPurchased ? (
+                <Unlock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+              ) : (
+                <Lock size={18} className="sm:w-5 sm:h-5 stroke-[2.5]" />
+              )}
+            </div>
+            {!isPurchased && (
+              <span className="mt-1.5 sm:mt-2 text-xs sm:text-[13px] font-extrabold text-white drop-shadow-md">
+                {isPremiumOnly ? "👑 Unlock with VIP" : `Unlock at Level ${course.unlockLevel}`}
+              </span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     if (isLevel1 || glow === "yellow") {
       return (
         <div
@@ -701,10 +739,23 @@ export default function AllCoursesPage() {
                           <div className="text-[10.5px] sm:text-[11px] text-zinc-500 mt-0.5">
                             {course.isPremiumOnly
                               ? "Requires active VIP subscription ($9/mo)"
-                              : `You are Level ${userLevel} (${userLevelData.name})`}
+                              : `Price: ${formatMoney(course.price || 49)} or Level ${course.unlockLevel}`}
                           </div>
                         </div>
                         <Lock size={15} className="text-zinc-400 shrink-0" />
+                      </div>
+
+                      <div className="mt-3 flex items-center justify-between gap-2 border-t border-zinc-100 pt-2.5">
+                        <span className="text-xs font-bold text-zinc-900">
+                          {course.isPremiumOnly ? "$9/mo (VIP)" : formatMoney(course.price || 49)}
+                        </span>
+                        <Link
+                          href={`/about?course=${course.id}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-semibold text-primary shadow-2xs hover:border-primary/40 hover:bg-primary/5 transition"
+                        >
+                          See About →
+                        </Link>
                       </div>
                     </div>
                   </div>
@@ -829,6 +880,13 @@ export default function AllCoursesPage() {
               </button>
 
               <div className="flex items-center gap-2">
+                <Link
+                  href={`/about?course=${previewCourse.id}`}
+                  onClick={() => setPreviewCourse(null)}
+                  className="rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:border-primary/40 hover:text-primary transition shadow-2xs"
+                >
+                  See About →
+                </Link>
                 {user?.role === "admin" ||
                 user?.role === "manager" ||
                 user?.isPremium ||
@@ -879,11 +937,20 @@ export default function AllCoursesPage() {
               <div className="text-xs sm:text-sm font-bold text-zinc-900">{purchasingCourse.title}</div>
               <p className="text-xs text-zinc-500 mt-1">{purchasingCourse.description}</p>
               
-              <div className="mt-3 flex flex-wrap items-baseline gap-2">
-                <span className="text-xl sm:text-2xl font-black text-zinc-900">
-                  {formatMoney(purchasingCourse.price || 49)}
-                </span>
-                <span className="text-[11px] sm:text-xs font-semibold text-zinc-500">One-time payment • Lifetime Access</span>
+              <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2">
+                <div>
+                  <span className="text-xl sm:text-2xl font-black text-zinc-900">
+                    {formatMoney(purchasingCourse.price || 49)}
+                  </span>
+                  <span className="text-[11px] sm:text-xs font-semibold text-zinc-500 ml-2">One-time payment • Lifetime Access</span>
+                </div>
+                <Link
+                  href={`/about?course=${purchasingCourse.id}`}
+                  onClick={() => setPurchasingCourse(null)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-white px-2.5 py-1 text-xs font-bold text-primary hover:border-primary/40 hover:bg-primary/5 transition shadow-2xs"
+                >
+                  See About →
+                </Link>
               </div>
             </div>
 
