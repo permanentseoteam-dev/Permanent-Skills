@@ -182,7 +182,13 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
   );
 }
 
-export function Feed({ category }: { category: "all" | PostCategory }) {
+export function Feed({
+  category,
+  targetPostId,
+}: {
+  category: "all" | PostCategory;
+  targetPostId?: string | null;
+}) {
   const {
     posts,
     comments,
@@ -200,6 +206,31 @@ export function Feed({ category }: { category: "all" | PostCategory }) {
   const [openComments, setOpenComments] = useState<Record<string, boolean>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [feedback, setFeedback] = useState<Record<string, { text: string; isError?: boolean }>>({});
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+
+  // Auto-scroll and highlight target post from notification deep link
+  useEffect(() => {
+    if (targetPostId) {
+      setHighlightedId(targetPostId);
+      setOpenComments((s) => ({ ...s, [targetPostId]: true }));
+
+      const timer = setTimeout(() => {
+        const el = document.getElementById(`post-${targetPostId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }, 200);
+
+      const clearTimer = setTimeout(() => {
+        setHighlightedId(null);
+      }, 4500);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(clearTimer);
+      };
+    }
+  }, [targetPostId]);
 
   const list = useMemo(() => {
     const communityId = activeCommunity?.id || "comm-students";
@@ -238,6 +269,7 @@ export function Feed({ category }: { category: "all" | PostCategory }) {
         <PostCard
           key={post.id}
           post={post}
+          isHighlighted={highlightedId === post.id}
           commentsOpen={!!openComments[post.id]}
           onToggleComments={() => setOpenComments((s) => ({ ...s, [post.id]: !s[post.id] }))}
           draft={drafts[post.id] || ""}
@@ -322,6 +354,7 @@ function PostCard({
   currentUserId,
   liked,
   userById,
+  isHighlighted,
 }: {
   post: Post;
   author: ReturnType<ReturnType<typeof useApp>["userById"]>;
@@ -343,6 +376,7 @@ function PostCard({
   currentUserId?: string;
   liked: boolean;
   userById: ReturnType<typeof useApp>["userById"];
+  isHighlighted?: boolean;
 }) {
   const visibleComments = comments.filter(
     (c) => c.status === "approved" || !c.status || c.authorId === currentUserId || isStaff
@@ -360,7 +394,14 @@ function PostCard({
       : "Review";
 
   return (
-    <Card className="p-5">
+    <Card
+      id={`post-${post.id}`}
+      className={`p-5 transition-all duration-500 ${
+        isHighlighted
+          ? "ring-2 ring-[#5051F9] ring-offset-2 shadow-lg bg-indigo-50/15"
+          : ""
+      }`}
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
           <Link href={`/profile/${author?.id || ""}`}>

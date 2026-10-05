@@ -150,6 +150,20 @@ function migrate(db: Database) {
         u.role = "member";
         changed = true;
       }
+      if (!u.joinedCommunityIds || u.joinedCommunityIds.length === 0) {
+        if (u.role === "team_member") {
+          u.joinedCommunityIds = ["comm-ai-architects", "comm-team"];
+        } else if (u.role === "admin" || u.role === "manager") {
+          u.joinedCommunityIds = ["comm-ai-architects", "comm-students", "comm-team"];
+        } else {
+          u.joinedCommunityIds = ["comm-ai-architects"];
+        }
+        changed = true;
+      }
+      if (!u.purchasedCommunityIds) {
+        u.purchasedCommunityIds = [];
+        changed = true;
+      }
     }
   }
   if (!db.comments || db.comments.length === 0) {
@@ -218,6 +232,22 @@ function migrate(db: Database) {
           s.plan = "Make.com Course + Templates ($129)";
           changed = true;
         }
+      }
+    }
+  }
+  if (!db.notifications || db.notifications.length === 0) {
+    db.notifications = createSeed().notifications;
+    changed = true;
+  } else {
+    const seedNotifs = createSeed().notifications;
+    for (const sn of seedNotifs) {
+      const existing = db.notifications.find((n) => n.id === sn.id);
+      if (!existing) {
+        db.notifications.push(sn);
+        changed = true;
+      } else if (existing.link === "/community" && sn.link !== "/community") {
+        existing.link = sn.link;
+        changed = true;
       }
     }
   }

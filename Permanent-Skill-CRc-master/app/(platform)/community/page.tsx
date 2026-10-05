@@ -9,8 +9,10 @@ import type { PostCategory } from "@/lib/types";
 function CommunityContent() {
   const searchParams = useSearchParams();
   const tabParam = searchParams?.get("tab") || searchParams?.get("category");
+  const postParam = searchParams?.get("post") || searchParams?.get("postId");
 
   const [category, setCategory] = useState<"all" | PostCategory>(() => {
+    if (postParam) return "all";
     if (tabParam && ["all", "chat", "wins", "recorded", "reviews", "team"].includes(tabParam)) {
       return tabParam as "all" | PostCategory;
     }
@@ -19,10 +21,12 @@ function CommunityContent() {
   const [showReview, setShowReview] = useState(false);
 
   useEffect(() => {
-    if (tabParam && ["all", "chat", "wins", "recorded", "reviews", "team"].includes(tabParam)) {
+    if (postParam) {
+      setCategory("all");
+    } else if (tabParam && ["all", "chat", "wins", "recorded", "reviews", "team"].includes(tabParam)) {
       setCategory(tabParam as "all" | PostCategory);
     }
-  }, [tabParam]);
+  }, [tabParam, postParam]);
 
   useEffect(() => {
     // Check if review prompt was dismissed previously
@@ -56,7 +60,7 @@ function CommunityContent() {
             onSelect={handleSelectReviews}
           />
         )}
-        <Feed category={category} />
+        <Feed category={category} targetPostId={postParam} />
       </div>
       <Sidebar />
     </div>

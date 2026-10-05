@@ -201,12 +201,15 @@ export function PasswordInput({
 export function Card({
   children,
   className = "",
+  id,
+  ...props
 }: {
   children: React.ReactNode;
   className?: string;
-}) {
+  id?: string;
+} & React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={`rounded-2xl border border-zinc-200/80 bg-white shadow-sm ${className}`}>
+    <div id={id} {...props} className={`rounded-2xl border border-zinc-200/80 bg-white shadow-sm ${className}`}>
       {children}
     </div>
   );

@@ -39,6 +39,8 @@ export interface User {
   language: string;
   ipAddress?: string;
   purchasedCourseIds?: string[];
+  joinedCommunityIds?: string[];
+  purchasedCommunityIds?: string[];
   phone?: string;
   notes?: string;
   application?: Application;
@@ -71,6 +73,8 @@ export interface PublicUser {
   language?: string;
   ipAddress?: string;
   purchasedCourseIds?: string[];
+  joinedCommunityIds?: string[];
+  purchasedCommunityIds?: string[];
   phone?: string;
   notes?: string;
   loginCount?: number;
@@ -229,6 +233,7 @@ export interface Community {
   onlineCount?: number;
   adminCount?: number;
   type?: "students" | "team" | "general";
+  price?: number;
   createdAt: string;
   createdBy: string;
 }

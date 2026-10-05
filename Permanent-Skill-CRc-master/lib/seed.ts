@@ -1157,10 +1157,10 @@ export function createSeed(): Database {
   ];
 
   const notifications: Notification[] = [
-    { id: "n1", userId: "u-admin", actorId: "u-admin", title: "PSS Admin (you) new post", body: "Replay: Skill vs. Shortcut?", link: "/community", read: false, createdAt: hoursAgo(16) },
-    { id: "n2", userId: "u-admin", actorId: "u-priya", title: "Priya Sharma new post", body: "How many pages before you promote?", link: "/community", read: false, createdAt: hoursAgo(20) },
-    { id: "n3", userId: "u-admin", actorId: "u-james", title: "James Carter posted a win", body: "First inbound clients from the method", link: "/community", read: false, createdAt: daysAgo(13) },
-    { id: "n4", userId: "u-admin", actorId: "u-omar", title: "New application pending", body: "Omar Farooq requested to join Permanent Skill Strategy", link: "/admin", read: false, createdAt: hoursAgo(6) },
+    { id: "n1", userId: "u-admin", actorId: "u-admin", title: "PSS Admin (you) new post", body: "Replay: Skill vs. Shortcut?", link: "/community?post=p-replay", read: false, createdAt: hoursAgo(16) },
+    { id: "n2", userId: "u-admin", actorId: "u-priya", title: "Priya Sharma new post", body: "How many pages before you promote?", link: "/community?post=p-chat-1", read: false, createdAt: hoursAgo(20) },
+    { id: "n3", userId: "u-admin", actorId: "u-james", title: "James Carter posted a win", body: "First inbound clients from the method", link: "/community?post=p-win", read: false, createdAt: daysAgo(13) },
+    { id: "n4", userId: "u-admin", actorId: "u-omar", title: "New application pending", body: "Omar Farooq requested to join Permanent Skill Strategy", link: "/admin?tab=approvals", read: false, createdAt: hoursAgo(6) },
     { id: "n5", userId: "u-ayaan", actorId: "u-admin", title: "Room is now open", body: "Weekly live call reminder", link: "/calendar", read: true, createdAt: hoursAgo(30) },
   ];
 

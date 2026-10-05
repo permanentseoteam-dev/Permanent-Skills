@@ -18,6 +18,8 @@ import {
   changePassword as changePasswordAction,
   completeLesson as completeLessonAction,
   createCommunity as createCommunityAction,
+  joinCommunity as joinCommunityAction,
+  purchaseCommunity as purchaseCommunityAction,
   createMember as createMemberAction,
   createPost as createPostAction,
   deletePost as deletePostAction,
@@ -26,6 +28,7 @@ import {
   getAppState,
   heartbeat,
   inviteMember as inviteMemberAction,
+  markNotificationRead as markNotificationReadAction,
   markNotificationsRead as markNotificationsReadAction,
   markThreadRead as markThreadReadAction,
   purchaseCourse as purchaseCourseAction,
@@ -180,6 +183,7 @@ type AppContextValue = AppState & {
   addProjectTask: (projectId: string, title: string) => Promise<ActionResult>;
   sendMessage: (receiverId: string, body: string) => Promise<ActionResult>;
   markThreadRead: (otherId: string) => Promise<ActionResult>;
+  markNotificationRead: (notificationId: string) => Promise<ActionResult>;
   markNotificationsRead: () => Promise<ActionResult>;
   addReview: (rating: number, body: string) => Promise<ActionResult>;
   updateProfile: (input: { name?: string; bio?: string; location?: string; language?: string }) => Promise<ActionResult>;
@@ -193,8 +197,11 @@ type AppContextValue = AppState & {
   upgrade: () => Promise<ActionResult>;
   inviteMember: (email: string) => Promise<ActionResult>;
   createCommunity: (input: { name: string; description: string; isPrivate?: boolean }) => Promise<ActionResult>;
+  joinCommunity: (communityId: string) => Promise<ActionResult>;
+  purchaseCommunity: (communityId: string) => Promise<ActionResult>;
   switchCommunity: (communityId: string) => void;
   activeCommunity?: Community;
+  allCommunities: Community[];
   purchaseCourse: (courseId: string) => Promise<ActionResult>;
   saveVideoResource: (data: Partial<VideoResource>) => Promise<ActionResult & { resource?: VideoResource }>;
   deleteVideoResource: (id: string) => Promise<ActionResult>;
@@ -389,7 +396,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (r.ok) refresh();
     return r;
   }), [refresh]);
-  const markNotificationsReadFn = useCallback(() => run(() => markNotificationsReadAction()), [run]);
+  const markNotificationReadFn = useCallback(
+    (notificationId: string) => {
+      setState((prev) => ({
+        ...prev,
+        notifications: prev.notifications.map((n) =>
+          n.id === notificationId ? { ...n, read: true } : n
+        ),
+      }));
+      return run(() => markNotificationReadAction(notificationId));
+    },
+    [run]
+  );
+  const markNotificationsReadFn = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      notifications: prev.notifications.map((n) => ({ ...n, read: true })),
+    }));
+    return run(() => markNotificationsReadAction());
+  }, [run]);
   const addReviewFn = useCallback((rating: number, body: string) => run(() => addReviewAction(rating, body)), [run]);
   const updateProfileFn = useCallback(
     (input: { name?: string; bio?: string; location?: string; language?: string }) =>
@@ -452,9 +477,68 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const switchCommunity = useCallback((communityId: string) => {
     setState((prev) => ({ ...prev, activeCommunityId: communityId }));
   }, []);
+
+  const joinCommunityFn = useCallback(
+    (communityId: string) =>
+      run(async () => {
+        const result = await joinCommunityAction(communityId);
+        if (result.ok) {
+          await refresh();
+          switchCommunity(communityId);
+        }
+        return result;
+      }),
+    [run, refresh, switchCommunity],
+  );
+
+  const purchaseCommunityFn = useCallback(
+    (communityId: string) =>
+      run(async () => {
+        const result = await purchaseCommunityAction(communityId);
+        if (result.ok) {
+          await refresh();
+          switchCommunity(communityId);
+        }
+        return result;
+      }),
+    [run, refresh, switchCommunity],
+  );
+
+  const accessibleCommunities = useMemo(() => {
+    const list = state.communities || [];
+    if (!state.user) {
+      return list.filter((c) => {
+        const isTeam = c.type === "team" || c.slug === "team-members" || c.id === "comm-team" || c.name.toLowerCase().includes("team");
+        return !isTeam && (c.id === "comm-ai-architects" || !c.isPrivate);
+      });
+    }
+    const isStaff = state.user.role === "admin" || state.user.role === "manager";
+    const isTeamMember = state.user.role === "team_member";
+    const canSeeTeam = isStaff || isTeamMember;
+
+    return list.filter((c) => {
+      const isTeam = c.type === "team" || c.slug === "team-members" || c.id === "comm-team" || c.name.toLowerCase().includes("team");
+      if (isTeam && !canSeeTeam) return false;
+
+      if (isStaff) return true;
+      if (isTeamMember && isTeam) return true;
+
+      // Regular user / student / premium user
+      // ONLY the communities that the user purchased or joined for free (or created)
+      const joined = state.user?.joinedCommunityIds && state.user.joinedCommunityIds.length > 0
+        ? state.user.joinedCommunityIds
+        : ["comm-ai-architects"];
+      const purchased = state.user?.purchasedCommunityIds || [];
+      const isJoined = joined.includes(c.id) || purchased.includes(c.id) || c.createdBy === state.user?.id;
+      return isJoined;
+    });
+  }, [state.communities, state.user]);
+
   const activeCommunity = useMemo(() => {
-    return state.communities?.find((c) => c.id === state.activeCommunityId) || state.communities?.[0];
-  }, [state.communities, state.activeCommunityId]);
+    const available = accessibleCommunities.length > 0 ? accessibleCommunities : state.communities || [];
+    return available.find((c) => c.id === state.activeCommunityId) || available[0];
+  }, [accessibleCommunities, state.communities, state.activeCommunityId]);
+
   const userById = useCallback(
     (id: string) => state.users.find((u) => u.id === id) || (state.user?.id === id ? state.user : undefined),
     [state.users, state.user],
@@ -463,6 +547,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AppContextValue>(
     () => ({
       ...state,
+      communities: accessibleCommunities,
+      allCommunities: state.communities || [],
       loading,
       refresh,
       login,
@@ -493,6 +579,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addProjectTask: addProjectTaskFn,
       sendMessage: sendMessageFn,
       markThreadRead: markThreadReadFn,
+      markNotificationRead: markNotificationReadFn,
       markNotificationsRead: markNotificationsReadFn,
       addReview: addReviewFn,
       updateProfile: updateProfileFn,
@@ -507,6 +594,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteMember: inviteMemberFn,
       purchaseCourse: purchaseCourseFn,
       createCommunity: createCommunityFn,
+      joinCommunity: joinCommunityFn,
+      purchaseCommunity: purchaseCommunityFn,
       saveVideoResource: saveVideoResourceFn,
       deleteVideoResource: deleteVideoResourceFn,
       switchCommunity,
@@ -545,6 +634,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addProjectTaskFn,
       sendMessageFn,
       markThreadReadFn,
+      markNotificationReadFn,
       markNotificationsReadFn,
       addReviewFn,
       updateProfileFn,
@@ -559,6 +649,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       inviteMemberFn,
       purchaseCourseFn,
       createCommunityFn,
+      joinCommunityFn,
+      purchaseCommunityFn,
       saveVideoResourceFn,
       deleteVideoResourceFn,
       switchCommunity,

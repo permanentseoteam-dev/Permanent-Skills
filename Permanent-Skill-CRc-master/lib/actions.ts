@@ -88,6 +88,8 @@ function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string
     base.affiliateEarnings = user.affiliateEarnings;
     base.ipAddress = user.ipAddress || "127.0.0.1";
     base.purchasedCourseIds = user.purchasedCourseIds || [];
+    base.joinedCommunityIds = user.joinedCommunityIds || ["comm-ai-architects"];
+    base.purchasedCommunityIds = user.purchasedCommunityIds || [];
   }
   if (viewer?.role === "admin" || viewer?.role === "manager") {
     base.hasActiveSession = activeUserIds?.has(user.id) ?? false;
@@ -842,6 +844,7 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
     });
 
     const post = db.posts.find((p) => p.id === postId);
+    const postLink = post ? `/community?post=${postId}` : `/community`;
     if (isPrivileged && post && post.authorId !== me.id) {
       db.notifications.unshift({
         id: `n-${token().slice(0, 8)}`,
@@ -849,7 +852,7 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
         actorId: me.id,
         title: `${me.name} commented`,
         body: body.trim().slice(0, 80),
-        link: "/community",
+        link: postLink,
         read: false,
         createdAt: now,
       });
@@ -862,7 +865,7 @@ export async function addComment(postId: string, body: string): Promise<ActionRe
           actorId: me.id,
           title: "Comment pending approval",
           body: `${me.name}: "${body.trim().slice(0, 60)}"`,
-          link: "/admin",
+          link: "/admin?tab=comments",
           read: false,
           createdAt: now,
         });
@@ -885,18 +888,20 @@ export async function approveComment(commentId: string): Promise<ActionResult> {
     const author = db.users.find((u) => u.id === comment.authorId);
     if (author) award(author, 2);
 
+    const post = db.posts.find((p) => p.id === comment.postId);
+    const postLink = post ? `/community?post=${comment.postId}` : `/community`;
+
     db.notifications.unshift({
       id: `n-${token().slice(0, 8)}`,
       userId: comment.authorId,
       actorId: me.id,
       title: "Comment approved",
       body: "Your comment was approved and is now visible to the community.",
-      link: "/community",
+      link: postLink,
       read: false,
       createdAt: now,
     });
 
-    const post = db.posts.find((p) => p.id === comment.postId);
     if (post && post.authorId !== comment.authorId) {
       db.notifications.unshift({
         id: `n-${token().slice(0, 8)}`,
@@ -904,7 +909,7 @@ export async function approveComment(commentId: string): Promise<ActionResult> {
         actorId: comment.authorId,
         title: `${author?.name || "A member"} commented`,
         body: comment.body.slice(0, 80),
-        link: "/community",
+        link: postLink,
         read: false,
         createdAt: now,
       });
@@ -1007,6 +1012,18 @@ export async function markThreadRead(otherId: string): Promise<ActionResult> {
   await updateDb((db) => {
     for (const m of db.messages) {
       if (m.receiverId === me.id && m.senderId === otherId) m.read = true;
+    }
+  });
+  return { ok: true };
+}
+
+export async function markNotificationRead(notificationId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false };
+  await updateDb((db) => {
+    const n = db.notifications.find((notif) => notif.id === notificationId && notif.userId === me.id);
+    if (n) {
+      n.read = true;
     }
   });
   return { ok: true };
@@ -1290,8 +1307,75 @@ export async function createCommunity(input: {
   await updateDb((d) => {
     d.communities = d.communities || [];
     d.communities.push(newCommunity);
+    const u = d.users.find((x) => x.id === me.id);
+    if (u) {
+      u.joinedCommunityIds = u.joinedCommunityIds || ["comm-ai-architects"];
+      if (!u.joinedCommunityIds.includes(id)) {
+        u.joinedCommunityIds.push(id);
+      }
+    }
   });
   return { ok: true, id };
+}
+
+export async function joinCommunity(communityId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  const db = readDb();
+  const comm = db.communities?.find((c) => c.id === communityId);
+  if (!comm) return { ok: false, error: "Community not found." };
+
+  if (comm.type === "team" || comm.slug === "team-members" || comm.id === "comm-team") {
+    if (me.role !== "admin" && me.role !== "manager" && me.role !== "team_member") {
+      return { ok: false, error: "Access to Team Members is restricted to staff." };
+    }
+  }
+
+  await updateDb((d) => {
+    const u = d.users.find((x) => x.id === me.id);
+    if (!u) return;
+    u.joinedCommunityIds = u.joinedCommunityIds || ["comm-ai-architects"];
+    if (!u.joinedCommunityIds.includes(communityId)) {
+      u.joinedCommunityIds.push(communityId);
+    }
+    const c = d.communities?.find((x) => x.id === communityId);
+    if (c) {
+      c.memberCount = (c.memberCount || 0) + 1;
+    }
+  });
+  return { ok: true, id: communityId };
+}
+
+export async function purchaseCommunity(communityId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  const db = readDb();
+  const comm = db.communities?.find((c) => c.id === communityId);
+  if (!comm) return { ok: false, error: "Community not found." };
+
+  if (comm.type === "team" || comm.slug === "team-members" || comm.id === "comm-team") {
+    if (me.role !== "admin" && me.role !== "manager" && me.role !== "team_member") {
+      return { ok: false, error: "Access to Team Members is restricted to staff." };
+    }
+  }
+
+  await updateDb((d) => {
+    const u = d.users.find((x) => x.id === me.id);
+    if (!u) return;
+    u.purchasedCommunityIds = u.purchasedCommunityIds || [];
+    if (!u.purchasedCommunityIds.includes(communityId)) {
+      u.purchasedCommunityIds.push(communityId);
+    }
+    u.joinedCommunityIds = u.joinedCommunityIds || ["comm-ai-architects"];
+    if (!u.joinedCommunityIds.includes(communityId)) {
+      u.joinedCommunityIds.push(communityId);
+    }
+    const c = d.communities?.find((x) => x.id === communityId);
+    if (c) {
+      c.memberCount = (c.memberCount || 0) + 1;
+    }
+  });
+  return { ok: true, id: communityId };
 }
 
 export async function purchaseCourse(courseId: string): Promise<ActionResult> {

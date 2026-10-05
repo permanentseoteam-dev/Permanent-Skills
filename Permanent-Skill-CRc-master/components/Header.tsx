@@ -48,6 +48,7 @@ export function Header() {
     messages,
     courses,
     logout,
+    markNotificationRead,
     markNotificationsRead,
     markThreadRead,
     communities,
@@ -162,16 +163,7 @@ export function Header() {
 
   const filteredCommunities = useMemo(() => {
     const q = communitySearch.trim().toLowerCase();
-    const list = communities && communities.length > 0 ? communities : [
-      {
-        id: "comm-pss",
-        name: "Permanent Skill Strategy",
-        slug: "permanent-skill-strategy",
-        description: "Private community",
-        createdAt: "",
-        createdBy: "u-admin",
-      },
-    ];
+    const list = communities || [];
     if (!q) return list;
     return list.filter((c) => c.name.toLowerCase().includes(q) || c.description.toLowerCase().includes(q));
   }, [communities, communitySearch]);
@@ -548,7 +540,9 @@ export function Header() {
                         href={n.link || "/community"}
                         onClick={async () => {
                           setOpen(null);
-                          await markNotificationsRead();
+                          if (!n.read) {
+                            await markNotificationRead(n.id);
+                          }
                         }}
                         className={`flex items-start gap-3 px-4 py-3 transition ${
                           !n.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
