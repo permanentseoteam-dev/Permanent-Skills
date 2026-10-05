@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   BookOpen,
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Crown,
   DollarSign,
@@ -500,6 +502,31 @@ export default function AdminPage() {
     }
   }
 
+  // Horizontal Slider for Admin Subtabs
+  const adminTabsRef = useRef<HTMLDivElement>(null);
+  const [showAdminLeftArrow, setShowAdminLeftArrow] = useState(false);
+  const [showAdminRightArrow, setShowAdminRightArrow] = useState(false);
+
+  function checkAdminTabsScroll() {
+    if (!adminTabsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = adminTabsRef.current;
+    setShowAdminLeftArrow(scrollLeft > 8);
+    setShowAdminRightArrow(scrollLeft < scrollWidth - clientWidth - 8);
+  }
+
+  function scrollAdminTabs(dir: "left" | "right") {
+    if (!adminTabsRef.current) return;
+    const delta = dir === "left" ? -220 : 220;
+    adminTabsRef.current.scrollBy({ left: delta, behavior: "smooth" });
+  }
+
+  useEffect(() => {
+    checkAdminTabsScroll();
+    const handleResize = () => checkAdminTabsScroll();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [tab]);
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* SECTION 1: HEADER & KPI STATS STRIP */}
@@ -609,12 +636,32 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* SECTION 2: SUBTAB NAVIGATION BAR */}
-      <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
-        <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+      {/* SECTION 2: SUBTAB NAVIGATION BAR - Responsive Horizontal Slider */}
+      <div className="relative w-full -mx-4 px-4 sm:mx-0 sm:px-0">
+        {showAdminLeftArrow && (
+          <button
+            type="button"
+            onClick={() => scrollAdminTabs("left")}
+            className="absolute left-0 sm:-left-3 top-0 bottom-2 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-r from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
+            aria-label="Scroll subtabs left"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+              <ChevronLeft size={16} />
+            </span>
+          </button>
+        )}
+
+        <div
+          ref={adminTabsRef}
+          onScroll={checkAdminTabsScroll}
+          className="flex items-center gap-2 overflow-x-auto pb-2 scroll-smooth scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0"
+        >
           <TabButton
             active={tab === "pending"}
-            onClick={() => setTab("pending")}
+            onClick={(e) => {
+              setTab("pending");
+              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             label="Pending Requests"
             count={pending.length}
             icon={Clock}
@@ -622,14 +669,20 @@ export default function AdminPage() {
           />
           <TabButton
             active={tab === "members"}
-            onClick={() => setTab("members")}
+            onClick={(e) => {
+              setTab("members");
+              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             label="Members Directory"
             count={users.filter((u) => u.role !== "admin").length}
             icon={Users}
           />
           <TabButton
             active={tab === "manager"}
-            onClick={() => setTab("manager")}
+            onClick={(e) => {
+              setTab("manager");
+              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             label="Manager Setup"
             count={managerUsers.length}
             icon={Key}
@@ -637,7 +690,10 @@ export default function AdminPage() {
           />
           <TabButton
             active={tab === "posts"}
-            onClick={() => setTab("posts")}
+            onClick={(e) => {
+              setTab("posts");
+              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             label="Posts Moderation"
             count={pendingPosts.length}
             icon={MessageSquare}
@@ -645,7 +701,10 @@ export default function AdminPage() {
           />
           <TabButton
             active={tab === "comments"}
-            onClick={() => setTab("comments")}
+            onClick={(e) => {
+              setTab("comments");
+              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             label="Comments Moderation"
             count={pendingComments.length}
             icon={MessageCircle}
@@ -653,19 +712,38 @@ export default function AdminPage() {
           />
           <TabButton
             active={tab === "sales"}
-            onClick={() => setTab("sales")}
+            onClick={(e) => {
+              setTab("sales");
+              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             label="Sales & Revenue"
             count={sales.length}
             icon={DollarSign}
           />
           <TabButton
             active={tab === "classroom"}
-            onClick={() => setTab("classroom")}
+            onClick={(e) => {
+              setTab("classroom");
+              e?.currentTarget?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+            }}
             label="Classroom Curriculum"
             count={courses.length}
             icon={BookOpen}
           />
         </div>
+
+        {showAdminRightArrow && (
+          <button
+            type="button"
+            onClick={() => scrollAdminTabs("right")}
+            className="absolute right-0 sm:-right-3 top-0 bottom-2 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
+            aria-label="Scroll subtabs right"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+              <ChevronRight size={16} />
+            </span>
+          </button>
+        )}
       </div>
 
       {/* SECTION 3: SUBTAB 1 - PENDING APPLICATIONS */}
@@ -2062,7 +2140,7 @@ function TabButton({
   badgeVariant,
 }: {
   active: boolean;
-  onClick: () => void;
+  onClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   label: string;
   count?: number;
   icon?: React.ComponentType<{ size?: number; className?: string }>;

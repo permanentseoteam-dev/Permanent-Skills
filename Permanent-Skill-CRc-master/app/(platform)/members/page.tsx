@@ -48,7 +48,7 @@ function PillButton({
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer ${
+      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition cursor-pointer shrink-0 whitespace-nowrap ${
         active
           ? "bg-zinc-900 text-white shadow-sm ring-1 ring-zinc-900"
           : "bg-white text-zinc-600 ring-1 ring-zinc-200 hover:bg-zinc-50 hover:text-zinc-900"
@@ -173,8 +173,8 @@ export default function MembersPage() {
       <div className="min-w-0 flex-1 space-y-4">
         {/* Top Control Bar: Pills & Invite Button */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          {/* Pills Tabs */}
-          <div className="flex flex-wrap items-center gap-1.5">
+          {/* Pills Tabs - Horizontal Slider */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0">
             <PillButton
               label="All Members"
               count={approvedUsers.length}

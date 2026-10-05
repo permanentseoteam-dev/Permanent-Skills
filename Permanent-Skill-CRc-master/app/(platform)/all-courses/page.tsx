@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Check,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   ExternalLink,
   Flame,
@@ -48,6 +50,31 @@ export default function AllCoursesPage() {
   const [upgradeOpen, setUpgradeOpen] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Horizontal Slider for Filter Tabs
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [showTabsLeftArrow, setShowTabsLeftArrow] = useState(false);
+  const [showTabsRightArrow, setShowTabsRightArrow] = useState(false);
+
+  function checkTabsScroll() {
+    if (!tabsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+    setShowTabsLeftArrow(scrollLeft > 8);
+    setShowTabsRightArrow(scrollLeft < scrollWidth - clientWidth - 8);
+  }
+
+  function scrollTabs(dir: "left" | "right") {
+    if (!tabsRef.current) return;
+    const delta = dir === "left" ? -200 : 200;
+    tabsRef.current.scrollBy({ left: delta, behavior: "smooth" });
+  }
+
+  useEffect(() => {
+    checkTabsScroll();
+    const handleResize = () => checkTabsScroll();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [selectedFilter]);
 
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
   const canViewTeam = user?.role === "admin" || user?.role === "manager" || user?.role === "team_member";
@@ -125,9 +152,7 @@ export default function AllCoursesPage() {
       const row = progress.find((p) => p.courseId === c.id && p.userId === user?.id);
       const doneCount = row?.completedLessonIds.length || 0;
       const totalCount = c.lessons.length;
-      const isPurchased = user?.purchasedCourseIds?.includes(c.id);
-      const isLevelUnlocked = !c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel);
-      const isAccessible = user?.role === "admin" || user?.role === "manager" || user?.isPremium || isPurchased || isLevelUnlocked;
+      const isAccessible = isCourseAccessible(c, user);
 
       if (selectedFilter === "in_progress") {
         return doneCount > 0 && doneCount < totalCount;
@@ -491,69 +516,104 @@ export default function AllCoursesPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1.5 border-b border-zinc-200/80 text-xs scrollbar-none">
-        {[
-          { id: "all" as const, label: "All Courses", count: courses.filter((c) => canViewTeam || !(c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team"))).length },
-          { id: "unlocked" as const, label: "Unlocked", count: courses.filter((c) => {
-            const isTeam = c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team");
-            if (isTeam && !canViewTeam) return false;
-            return user?.role === "admin" || user?.role === "manager" || user?.isPremium || user?.purchasedCourseIds?.includes(c.id) || (!c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel));
-          }).length },
-          { id: "in_progress" as const, label: "In Progress", count: stats.inProgressCourses },
-          { id: "completed" as const, label: "Completed", count: stats.completedCourses },
-          { id: "vip" as const, label: "VIP Masterminds", count: courses.filter((c) => {
-            const isTeam = c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team");
-            if (isTeam && !canViewTeam) return false;
-            return c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP";
-          }).length },
-          ...(canViewTeam
-            ? [
-                {
-                  id: "team" as const,
-                  label: "Team",
-                  icon: "/team-icon.png",
-                  count: courses.filter(
-                    (c) =>
-                      c.badge?.toLowerCase().includes("team") ||
-                      c.title.toLowerCase().includes("team") ||
-                      c.slug.toLowerCase().includes("team") ||
-                      c.id.toLowerCase().includes("team") ||
-                      c.description.toLowerCase().includes("team")
-                  ).length,
-                },
-              ]
-            : []),
-        ].map((tab) => {
-          const isActive = selectedFilter === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setSelectedFilter(tab.id as FilterTab)}
-              className={`inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer shrink-0 ${
-                isActive
-                  ? "bg-primary text-white shadow-xs"
-                  : "bg-white text-zinc-600 border border-zinc-200 hover:border-primary/40 hover:text-primary"
-              }`}
-            >
-              {"icon" in tab && tab.icon && (
-                <img
-                  src={tab.icon}
-                  alt=""
-                  className="h-3.5 w-3.5 rounded object-cover shrink-0"
-                />
-              )}
-              <span>{tab.label}</span>
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[9px] sm:text-[10px] font-extrabold ${
-                  isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
+      {/* Filter Tabs - Responsive Horizontal Slider */}
+      <div className="relative w-full border-b border-zinc-200/80 pb-1.5">
+        {showTabsLeftArrow && (
+          <button
+            type="button"
+            onClick={() => scrollTabs("left")}
+            className="absolute left-0 top-0 bottom-1.5 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-r from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
+            aria-label="Scroll tabs left"
+          >
+            <span className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+              <ChevronLeft size={15} />
+            </span>
+          </button>
+        )}
+
+        <div
+          ref={tabsRef}
+          onScroll={checkTabsScroll}
+          className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs scroll-smooth scrollbar-none [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden shrink-0"
+        >
+          {[
+            { id: "all" as const, label: "All Courses", count: courses.filter((c) => canViewTeam || !(c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team"))).length },
+            { id: "unlocked" as const, label: "Unlocked", count: courses.filter((c) => {
+              const isTeam = c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team");
+              if (isTeam && !canViewTeam) return false;
+              return isCourseAccessible(c, user);
+            }).length },
+            { id: "in_progress" as const, label: "In Progress", count: stats.inProgressCourses },
+            { id: "completed" as const, label: "Completed", count: stats.completedCourses },
+            { id: "vip" as const, label: "VIP Masterminds", count: courses.filter((c) => {
+              const isTeam = c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team");
+              if (isTeam && !canViewTeam) return false;
+              return c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP";
+            }).length },
+            ...(canViewTeam
+              ? [
+                  {
+                    id: "team" as const,
+                    label: "Team",
+                    icon: "/team-icon.png",
+                    count: courses.filter(
+                      (c) =>
+                        c.badge?.toLowerCase().includes("team") ||
+                        c.title.toLowerCase().includes("team") ||
+                        c.slug.toLowerCase().includes("team") ||
+                        c.id.toLowerCase().includes("team") ||
+                        c.description.toLowerCase().includes("team")
+                    ).length,
+                  },
+                ]
+              : []),
+          ].map((tab) => {
+            const isActive = selectedFilter === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={(e) => {
+                  setSelectedFilter(tab.id as FilterTab);
+                  e.currentTarget.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-xl px-3 sm:px-3.5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold transition cursor-pointer shrink-0 ${
+                  isActive
+                    ? "bg-primary text-white shadow-xs"
+                    : "bg-white text-zinc-600 border border-zinc-200 hover:border-primary/40 hover:text-primary"
                 }`}
               >
-                {tab.count}
-              </span>
-            </button>
-          );
-        })}
+                {"icon" in tab && tab.icon && (
+                  <img
+                    src={tab.icon}
+                    alt=""
+                    className="h-3.5 w-3.5 rounded object-cover shrink-0"
+                  />
+                )}
+                <span>{tab.label}</span>
+                <span
+                  className={`rounded-full px-1.5 py-0.2 text-[9px] sm:text-[10px] font-extrabold ${
+                    isActive ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-500"
+                  }`}
+                >
+                  {tab.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {showTabsRightArrow && (
+          <button
+            type="button"
+            onClick={() => scrollTabs("right")}
+            className="absolute right-0 top-0 bottom-1.5 z-20 flex w-8 sm:w-9 items-center justify-center bg-gradient-to-l from-[#fbfbfb] via-[#fbfbfb]/95 to-transparent text-zinc-600 hover:text-zinc-950 transition cursor-pointer"
+            aria-label="Scroll tabs right"
+          >
+            <span className="flex h-6.5 w-6.5 items-center justify-center rounded-full bg-white shadow-md border border-zinc-200">
+              <ChevronRight size={15} />
+            </span>
+          </button>
+        )}
       </div>
 
       {/* 3. Course Cards Grid */}
@@ -582,9 +642,7 @@ export default function AllCoursesPage() {
             const completedCount = row?.completedLessonIds.length || 0;
             const pct = total ? Math.round((completedCount / total) * 100) : 0;
 
-            const isPurchased = user?.purchasedCourseIds?.includes(course.id);
-            const isLevelUnlocked = !course.isPremiumOnly && (course.unlockLevel <= 1 || userLevel >= course.unlockLevel);
-            const isAccessible = user?.role === "admin" || user?.role === "manager" || user?.isPremium || isPurchased || isLevelUnlocked;
+            const isAccessible = isCourseAccessible(course, user);
             const isAdmin = user?.role === "admin";
             const price = course.price || 49;
             const duration = getCourseDuration(course);
