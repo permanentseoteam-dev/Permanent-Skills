@@ -305,7 +305,9 @@ export function Feed({
     });
 
     return [...filtered].sort((a, b) => {
-      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      const aPinned = Boolean(a.pinned);
+      const bPinned = Boolean(b.pinned);
+      if (aPinned !== bPinned) return aPinned ? -1 : 1;
       return +new Date(b.createdAt) - +new Date(a.createdAt);
     });
   }, [posts, category, activeCommunity?.id, user?.id, isStaff, user?.role]);
