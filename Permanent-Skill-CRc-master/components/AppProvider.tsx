@@ -42,6 +42,7 @@ import {
   saveCalendarEvent as saveCalendarEventAction,
   deleteCalendarEvent as deleteCalendarEventAction,
   updateProjectStatus as updateProjectStatusAction,
+  selectMeetProject as selectMeetProjectAction,
   updateProjectMeetSync as updateProjectMeetSyncAction,
   updateProjectProgress as updateProjectProgressAction,
   toggleProjectTask as toggleProjectTaskAction,
@@ -177,6 +178,7 @@ type AppContextValue = AppState & {
   }) => Promise<ActionResult>;
   deleteCalendarEvent: (id: string) => Promise<ActionResult>;
   updateProjectStatus: (projectId: string, status: "active" | "completed" | "paused") => Promise<ActionResult>;
+  selectMeetProject: (projectId: string) => Promise<ActionResult>;
   updateProjectMeetSync: (projectId: string, meetSyncTime: string, meetRoom: string, meetUrl: string) => Promise<ActionResult>;
   updateProjectProgress: (projectId: string, progress: number) => Promise<ActionResult>;
   toggleProjectTask: (projectId: string, taskId: string) => Promise<ActionResult>;
@@ -369,6 +371,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateProjectStatusFn = useCallback(
     (projectId: string, status: "active" | "completed" | "paused") =>
       run(() => updateProjectStatusAction(projectId, status)),
+    [run],
+  );
+  const selectMeetProjectFn = useCallback(
+    (projectId: string) => run(() => selectMeetProjectAction(projectId)),
     [run],
   );
   const updateProjectMeetSyncFn = useCallback(
@@ -573,6 +579,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveCalendarEvent: saveCalendarEventFn,
       deleteCalendarEvent: deleteCalendarEventFn,
       updateProjectStatus: updateProjectStatusFn,
+      selectMeetProject: selectMeetProjectFn,
       updateProjectMeetSync: updateProjectMeetSyncFn,
       updateProjectProgress: updateProjectProgressFn,
       toggleProjectTask: toggleProjectTaskFn,
@@ -628,6 +635,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveCalendarEventFn,
       deleteCalendarEventFn,
       updateProjectStatusFn,
+      selectMeetProjectFn,
       updateProjectMeetSyncFn,
       updateProjectProgressFn,
       toggleProjectTaskFn,

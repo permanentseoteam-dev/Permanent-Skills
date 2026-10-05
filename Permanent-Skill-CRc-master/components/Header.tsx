@@ -7,10 +7,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Bell,
   BookOpen,
+  Calendar,
   Check,
   ChevronDown,
   ChevronsUpDown,
   Compass,
+  Download,
   Globe,
   HelpCircle,
   LogOut,
@@ -26,6 +28,7 @@ import { useApp } from "./AppProvider";
 import { Avatar, UserRoleBadge } from "./ui";
 import { timeAgo } from "@/lib/format";
 import { getLevel } from "@/lib/levels";
+import { createGoogleCalendarUrl, downloadIcsCalendarFile } from "@/lib/calendar-utils";
 import { ChatDrawer } from "./ChatDrawer";
 
 const NAV = [
@@ -54,6 +57,8 @@ export function Header() {
     communities,
     activeCommunity,
     switchCommunity,
+    events,
+    projects,
   } = useApp();
   const [open, setOpen] = useState<null | "community" | "user" | "chat" | "bell" | "search">(null);
   const [query, setQuery] = useState("");
@@ -534,31 +539,114 @@ export function Header() {
                         You are all caught up
                       </div>
                     )}
-                    {notifications.map((n) => (
-                      <Link
-                        key={n.id}
-                        href={n.link || "/community"}
-                        onClick={async () => {
-                          setOpen(null);
-                          if (!n.read) {
-                            await markNotificationRead(n.id);
-                          }
-                        }}
-                        className={`flex items-start gap-3 px-4 py-3 transition ${
-                          !n.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
-                        }`}
-                      >
-                        <Avatar user={users.find((u) => u.id === n.actorId) || user} size={36} />
-                        <div className="min-w-0 flex-1">
-                          <p className={`text-sm ${!n.read ? "font-semibold text-zinc-900" : "font-medium text-zinc-800"}`}>
-                            {n.title}
-                          </p>
-                          <p className="truncate text-xs text-zinc-500 mt-0.5">{n.body}</p>
-                          <p className="text-[10px] text-zinc-400 mt-1">{timeAgo(n.createdAt)}</p>
+                    {notifications.map((n) => {
+                      const isMeetingNotif =
+                        Boolean(n.link?.includes("/calendar")) ||
+                        n.title.toLowerCase().includes("meet") ||
+                        n.title.toLowerCase().includes("calendar") ||
+                        n.body.toLowerCase().includes("scheduled");
+
+                      const eventIdMatch = n.link?.match(/event=([^&]+)/)?.[1];
+                      const matchedEvent = (events || []).find(
+                        (e) => e.id === eventIdMatch || n.body.includes(e.title) || n.title.includes(e.title)
+                      );
+                      const matchedProject = (projects || []).find(
+                        (p) => n.body.includes(p.title) || n.title.includes(p.title)
+                      );
+
+                      const meetTitle =
+                        matchedEvent?.title ||
+                        matchedProject?.title ||
+                        n.body.match(/"([^"]+)"/)?.[1] ||
+                        "Community Live Meeting";
+                      const meetStart =
+                        matchedEvent?.start ||
+                        matchedProject?.meetSyncTime ||
+                        new Date(Date.now() + 60 * 60 * 1000).toISOString();
+                      const meetEnd = matchedEvent?.end;
+                      const meetUrl = matchedProject?.meetUrl || "https://meet.google.com/new";
+                      const meetDesc = matchedEvent?.description || matchedProject?.description || n.body;
+
+                      const gcalUrl = isMeetingNotif
+                        ? createGoogleCalendarUrl({
+                            title: meetTitle,
+                            start: meetStart,
+                            end: meetEnd,
+                            description: `${meetDesc}\n\nJoin: ${meetUrl}`,
+                            location: meetUrl,
+                          })
+                        : "";
+
+                      return (
+                        <div
+                          key={n.id}
+                          className={`flex flex-col gap-2 px-4 py-3 transition ${
+                            !n.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
+                          }`}
+                        >
+                          <div
+                            className="flex items-start gap-3 cursor-pointer"
+                            onClick={async () => {
+                              setOpen(null);
+                              if (!n.read) {
+                                await markNotificationRead(n.id);
+                              }
+                              router.push(n.link || "/calendar");
+                            }}
+                          >
+                            <Avatar user={users.find((u) => u.id === n.actorId) || user} size={36} />
+                            <div className="min-w-0 flex-1">
+                              <p
+                                className={`text-sm ${
+                                  !n.read ? "font-semibold text-zinc-900" : "font-medium text-zinc-800"
+                                }`}
+                              >
+                                {n.title}
+                              </p>
+                              <p className="text-xs text-zinc-600 mt-0.5 leading-relaxed">{n.body}</p>
+                              <p className="text-[10px] text-zinc-400 mt-1">{timeAgo(n.createdAt)}</p>
+                            </div>
+                            {!n.read && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
+                          </div>
+
+                          {/* Instant Add to Calendar Options for Meeting Notifications */}
+                          {isMeetingNotif && (
+                            <div className="ml-12 flex flex-wrap items-center gap-2 pt-0.5">
+                              <a
+                                href={gcalUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200/70 transition shadow-2xs cursor-pointer"
+                                title="Add to Google Calendar"
+                              >
+                                <Calendar size={13} className="text-emerald-600" />
+                                <span>Add to Google Cal</span>
+                              </a>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  downloadIcsCalendarFile({
+                                    title: meetTitle,
+                                    description: `${meetDesc}\n\nJoin: ${meetUrl}`,
+                                    start: meetStart,
+                                    end: meetEnd,
+                                    url: meetUrl,
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 hover:bg-zinc-200 px-2.5 py-1 text-xs font-semibold text-zinc-700 border border-zinc-200 transition shadow-2xs cursor-pointer"
+                                title="Download .ICS for Apple / Outlook Calendar"
+                              >
+                                <Download size={13} className="text-zinc-600" />
+                                <span>.ICS</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        {!n.read && <span className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-primary" />}
-                      </Link>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

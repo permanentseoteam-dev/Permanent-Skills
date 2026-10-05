@@ -187,24 +187,37 @@ export default function AdminPage() {
 
   // Filtered Members Table
   const filteredMembers = useMemo(() => {
-    return users.filter((u) => {
-      // Role filter
-      if (memberRoleFilter !== "all" && u.role !== memberRoleFilter) return false;
-      // Status filter
-      if (memberStatusFilter !== "all" && u.status !== memberStatusFilter) return false;
-      // Search query
-      if (memberSearch.trim()) {
-        const q = memberSearch.trim().toLowerCase();
-        const nameMatch = u.name.toLowerCase().includes(q);
-        const emailMatch = u.email?.toLowerCase().includes(q);
-        const userMatch = u.username.toLowerCase().includes(q);
-        const ipMatch = u.ipAddress?.includes(q);
-        const locMatch = u.location?.toLowerCase().includes(q);
-        const profMatch = u.application?.profession?.toLowerCase().includes(q);
-        return nameMatch || emailMatch || userMatch || ipMatch || locMatch || profMatch;
-      }
-      return true;
-    });
+    return users
+      .filter((u) => {
+        // Exclude admin cards from Members Directory
+        if (u.role === "admin") return false;
+        // Role filter
+        if (memberRoleFilter !== "all" && u.role !== memberRoleFilter) return false;
+        // Status filter
+        if (memberStatusFilter !== "all" && u.status !== memberStatusFilter) return false;
+        // Search query
+        if (memberSearch.trim()) {
+          const q = memberSearch.trim().toLowerCase();
+          const nameMatch = u.name.toLowerCase().includes(q);
+          const emailMatch = u.email?.toLowerCase().includes(q);
+          const userMatch = u.username.toLowerCase().includes(q);
+          const ipMatch = u.ipAddress?.includes(q);
+          const locMatch = u.location?.toLowerCase().includes(q);
+          const profMatch = u.application?.profession?.toLowerCase().includes(q);
+          return nameMatch || emailMatch || userMatch || ipMatch || locMatch || profMatch;
+        }
+        return true;
+      })
+      .sort((a, b) => {
+        // 1. Manager stays intact at the very top
+        if (a.role === "manager" && b.role !== "manager") return -1;
+        if (b.role === "manager" && a.role !== "manager") return 1;
+
+        // 2. New joiny members come below the manager (newest to oldest)
+        const timeA = a.joinedAt ? new Date(a.joinedAt).getTime() : 0;
+        const timeB = b.joinedAt ? new Date(b.joinedAt).getTime() : 0;
+        return timeB - timeA;
+      });
   }, [users, memberRoleFilter, memberStatusFilter, memberSearch]);
 
   // Filtered Approved Comments
@@ -543,7 +556,7 @@ export default function AdminPage() {
         <TabButton
           active={tab === "members"}
           onClick={() => setTab("members")}
-          label={`Members Directory (${users.length})`}
+          label={`Members Directory (${users.filter((u) => u.role !== "admin").length})`}
         />
         <TabButton
           active={tab === "manager"}
@@ -666,7 +679,6 @@ export default function AdminPage() {
                 onChange={(e) => setMemberRoleFilter(e.target.value)}
               >
                 <option value="all">All Roles</option>
-                <option value="admin">Admins</option>
                 <option value="manager">Managers</option>
                 <option value="team_member">Team Specialists</option>
                 <option value="member">Members</option>

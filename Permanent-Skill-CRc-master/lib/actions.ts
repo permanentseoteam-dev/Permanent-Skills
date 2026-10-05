@@ -5,7 +5,7 @@ import { randomBytes } from "crypto";
 import { readDb, updateDb, upsertUser } from "./db";
 import { hashPassword, verifyPassword } from "./password";
 import { nextPathFor, signPayload, verifyPayload } from "./session";
-import { slugify } from "./format";
+import { slugify, formatDateTime } from "./format";
 import { getLevel } from "./levels";
 import type {
   ActionResult,
@@ -1748,6 +1748,7 @@ export async function saveCalendarEvent(input: {
   if (!input.start || !input.end) return { ok: false, error: "Please specify start and end dates/times." };
 
   const id = input.id || `ev-${token().slice(0, 8)}`;
+  const now = new Date().toISOString();
 
   await updateDb((db) => {
     db.events = db.events || [];
@@ -1766,9 +1767,43 @@ export async function saveCalendarEvent(input: {
     } else {
       db.events.push(newEvent);
     }
+
+    // Broadcast notification to every user
+    const roleLabel = me.role === "admin" ? "Administrator" : "Manager";
+    const eventTimeStr = formatDateTime(input.start);
+    db.notifications = db.notifications || [];
+    for (const u of db.users) {
+      if (u.id === me.id) continue;
+      db.notifications.unshift({
+        id: `n-${token().slice(0, 8)}`,
+        userId: u.id,
+        actorId: me.id,
+        title: "📅 New Meeting Scheduled",
+        body: `${me.name} (${roleLabel}) scheduled "${title}" for ${eventTimeStr}`,
+        link: `/calendar?event=${id}`,
+        read: false,
+        createdAt: now,
+      });
+    }
   });
 
   return { ok: true, id };
+}
+
+export async function selectMeetProject(projectId: string): Promise<ActionResult> {
+  const me = await currentUser();
+  if (!me) return { ok: false, error: "Please log in first." };
+  if (me.role !== "admin" && me.role !== "manager") {
+    return { ok: false, error: "Only admins and managers can select the active project for meet." };
+  }
+
+  await updateDb((db) => {
+    db.projects = db.projects || [];
+    for (const p of db.projects) {
+      p.isMeetActive = p.id === projectId;
+    }
+  });
+  return { ok: true };
 }
 
 export async function deleteCalendarEvent(id: string): Promise<ActionResult> {

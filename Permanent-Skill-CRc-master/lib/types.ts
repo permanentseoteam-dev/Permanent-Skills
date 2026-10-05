@@ -165,6 +165,7 @@ export interface Project {
   meetSyncTime?: string;
   meetRoom?: string;
   meetUrl?: string;
+  isMeetActive?: boolean;
   createdAt: string;
   createdBy: string;
 }
