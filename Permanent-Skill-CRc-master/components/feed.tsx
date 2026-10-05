@@ -133,6 +133,11 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
     );
   }
 
+  const canSeeTeam = user?.role === "admin" || user?.role === "manager" || user?.role === "team_member";
+  const postCategories: PostCategory[] = canSeeTeam
+    ? ["chat", "wins", "recorded", "reviews", "team"]
+    : ["chat", "wins", "recorded", "reviews"];
+
   return (
     <Card className="p-4">
       {error && (
@@ -141,7 +146,7 @@ export function PostComposer({ defaultCategory }: { defaultCategory?: PostCatego
         </div>
       )}
       <div className="mb-3 flex gap-2 flex-wrap">
-        {(["chat", "wins", "recorded", "reviews", "team"] as PostCategory[]).map((c) => (
+        {postCategories.map((c) => (
           <button
             key={c}
             onClick={() => setCategory(c)}
@@ -688,6 +693,9 @@ export function CategoryPills({
   value: "all" | PostCategory;
   onChange: (v: "all" | PostCategory) => void;
 }) {
+  const { user } = useApp();
+  const canSeeTeam = user?.role === "admin" || user?.role === "manager" || user?.role === "team_member";
+
   return (
     <div className="flex items-center justify-between gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -741,17 +749,19 @@ export function CategoryPills({
         >
           Reviews
         </button>
-        <button
-          onClick={() => onChange("team")}
-          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
-            value === "team"
-              ? "bg-zinc-900 text-white shadow-xs"
-              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
-          }`}
-        >
-          <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
-          <span>Team</span>
-        </button>
+        {canSeeTeam && (
+          <button
+            onClick={() => onChange("team")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+              value === "team"
+                ? "bg-zinc-900 text-white shadow-xs"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+            }`}
+          >
+            <img src="/team-icon.png" alt="" className="h-3.5 w-3.5 rounded object-cover shrink-0" />
+            <span>Team</span>
+          </button>
+        )}
       </div>
 
       <button

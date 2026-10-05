@@ -273,10 +273,19 @@ function loadFromDisk(): Database | null {
 export async function refreshFromSupabase(): Promise<Database> {
   const remoteDb = await fetchDatabaseFromSupabase();
   if (remoteDb && remoteDb.users.length > 0) {
+    const prevCommentIds = new Set(remoteDb.comments.map((c) => c.id));
     migrate(remoteDb);
     cache = remoteDb;
     persist(remoteDb);
     isInitialFetchDone = true;
+
+    // Sync newly migrated comments to Supabase in background
+    for (const comment of remoteDb.comments) {
+      if (!prevCommentIds.has(comment.id)) {
+        syncCommentToSupabase(comment).catch(() => {});
+      }
+    }
+
     return remoteDb;
   }
   return readDb();

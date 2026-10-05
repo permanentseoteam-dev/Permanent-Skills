@@ -44,6 +44,7 @@ export default function AllCoursesPage() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
+  const canViewTeam = user?.role === "admin" || user?.role === "manager" || user?.role === "team_member";
   const userLevelData = getLevel(user?.points || 0);
   const userLevel = userLevelData.level;
 
@@ -55,6 +56,9 @@ export default function AllCoursesPage() {
     let completedCoursesCount = 0;
 
     courses.forEach((c) => {
+      const isTeam = c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team");
+      if (isTeam && !canViewTeam) return;
+
       const cTotal = c.lessons.length;
       totalLessonsCount += cTotal;
       const row = progress.find((p) => p.courseId === c.id && p.userId === user?.id);
@@ -78,11 +82,23 @@ export default function AllCoursesPage() {
       completedCourses: completedCoursesCount,
       overallPct,
     };
-  }, [courses, progress, user]);
+  }, [courses, progress, user, canViewTeam]);
 
   // Filter & sort logic
   const filteredCourses = useMemo(() => {
     let list = [...courses];
+
+    // Hide team courses from non-staff/non-team users
+    list = list.filter((c) => {
+      const isTeamCourse =
+        c.badge?.toLowerCase().includes("team") ||
+        c.title.toLowerCase().includes("team") ||
+        c.slug.toLowerCase().includes("team") ||
+        c.id.toLowerCase().includes("team") ||
+        c.description.toLowerCase().includes("team");
+      if (isTeamCourse && !canViewTeam) return false;
+      return true;
+    });
 
     // Search filter
     if (searchQuery.trim()) {
@@ -120,6 +136,7 @@ export default function AllCoursesPage() {
         return c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP";
       }
       if (selectedFilter === "team") {
+        if (!canViewTeam) return false;
         return (
           c.badge?.toLowerCase().includes("team") ||
           c.title.toLowerCase().includes("team") ||
@@ -416,12 +433,36 @@ export default function AllCoursesPage() {
       {/* Filter Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 border-b border-zinc-200/80 text-xs scrollbar-none">
         {[
-          { id: "all", label: "All Courses", count: courses.length },
-          { id: "unlocked", label: "Unlocked", count: courses.filter((c) => user?.role === "admin" || user?.role === "manager" || user?.isPremium || user?.purchasedCourseIds?.includes(c.id) || (!c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel))).length },
-          { id: "in_progress", label: "In Progress", count: stats.inProgressCourses },
-          { id: "completed", label: "Completed", count: stats.completedCourses },
-          { id: "vip", label: "VIP Masterminds", count: courses.filter((c) => c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP").length },
-          { id: "team", label: "Team", icon: "/team-icon.png", count: courses.filter((c) => c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team")).length },
+          { id: "all" as const, label: "All Courses", count: courses.filter((c) => canViewTeam || !(c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team"))).length },
+          { id: "unlocked" as const, label: "Unlocked", count: courses.filter((c) => {
+            const isTeam = c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team");
+            if (isTeam && !canViewTeam) return false;
+            return user?.role === "admin" || user?.role === "manager" || user?.isPremium || user?.purchasedCourseIds?.includes(c.id) || (!c.isPremiumOnly && (c.unlockLevel <= 1 || userLevel >= c.unlockLevel));
+          }).length },
+          { id: "in_progress" as const, label: "In Progress", count: stats.inProgressCourses },
+          { id: "completed" as const, label: "Completed", count: stats.completedCourses },
+          { id: "vip" as const, label: "VIP Masterminds", count: courses.filter((c) => {
+            const isTeam = c.badge?.toLowerCase().includes("team") || c.title.toLowerCase().includes("team") || c.slug.toLowerCase().includes("team") || c.id.toLowerCase().includes("team") || c.description.toLowerCase().includes("team");
+            if (isTeam && !canViewTeam) return false;
+            return c.isPremiumOnly || c.badge === "PREMIUM" || c.badge === "VIP";
+          }).length },
+          ...(canViewTeam
+            ? [
+                {
+                  id: "team" as const,
+                  label: "Team",
+                  icon: "/team-icon.png",
+                  count: courses.filter(
+                    (c) =>
+                      c.badge?.toLowerCase().includes("team") ||
+                      c.title.toLowerCase().includes("team") ||
+                      c.slug.toLowerCase().includes("team") ||
+                      c.id.toLowerCase().includes("team") ||
+                      c.description.toLowerCase().includes("team")
+                  ).length,
+                },
+              ]
+            : []),
         ].map((tab) => {
           const isActive = selectedFilter === tab.id;
           return (

@@ -147,9 +147,12 @@ async function seed() {
     if (postErr) console.error("Error seeding posts:", postErr.message);
   }
 
-  // 6. Comments (filter to valid posts)
-  const validPostIds = new Set(data.posts.map((p) => p.id));
-  const validComments = data.comments.filter((c) => validPostIds.has(c.postId));
+  // 6. Comments (filter to valid posts or lessons)
+  const validPostAndLessonIds = new Set([
+    ...data.posts.map((p) => p.id),
+    ...data.courses.flatMap((c) => c.lessons.map((l) => l.id)),
+  ]);
+  const validComments = data.comments.filter((c) => validPostAndLessonIds.has(c.postId));
   if (validComments.length > 0) {
     console.log(`Seeding ${validComments.length} comments...`);
     const commentsToInsert = validComments.map((c) => ({
