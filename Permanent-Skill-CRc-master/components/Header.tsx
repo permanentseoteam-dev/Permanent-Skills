@@ -770,17 +770,35 @@ export function Header() {
                           {/* Instant Add to Calendar Options for Meeting Notifications */}
                           {isMeetingNotif && (
                             <div className="ml-12 flex flex-wrap items-center gap-2 pt-0.5">
-                              <a
-                                href={gcalUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
+                              {/* Add to Meet Calendar (Default for User and Team roles) */}
+                              <button
+                                type="button"
+                                onClick={async (e) => {
+                                  e.stopPropagation();
+                                  if (!n.read) {
+                                    await markNotificationRead(n.id);
+                                  }
+                                  if (matchedEvent?.id) {
+                                    try {
+                                      const saved = JSON.parse(localStorage.getItem("ps_calendar_rsvps") || "[]");
+                                      if (!saved.includes(matchedEvent.id)) {
+                                        saved.push(matchedEvent.id);
+                                        localStorage.setItem("ps_calendar_rsvps", JSON.stringify(saved));
+                                      }
+                                    } catch {}
+                                  }
+                                  setOpen(null);
+                                  const targetUrl = matchedEvent?.id
+                                    ? `/calendar?event=${matchedEvent.id}&added=1`
+                                    : `/calendar?event=${encodeURIComponent(meetTitle)}&added=1`;
+                                  router.push(targetUrl);
+                                }}
                                 className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 border border-emerald-200/70 transition shadow-2xs cursor-pointer"
-                                title="Add to Google Calendar"
+                                title="Add directly to your Meet tab calendar"
                               >
                                 <Calendar size={13} className="text-emerald-600" />
-                                <span>Add to Google Cal</span>
-                              </a>
+                                <span>Add to Meet Cal</span>
+                              </button>
 
                               {meetUrl && (
                                 <button

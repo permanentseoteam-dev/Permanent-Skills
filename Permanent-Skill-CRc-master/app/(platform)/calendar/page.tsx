@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Bell,
@@ -293,6 +294,13 @@ export default function MeetPage() {
   } = useApp();
 
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
+  const searchParams = useSearchParams();
+
+  // Remove older/past meetings completely for user and team_member roles (admins/managers can still see full history)
+  const visibleEvents = useMemo(() => {
+    if (isAdminOrManager) return events || [];
+    return (events || []).filter((e) => !isMeetingOlder(e));
+  }, [events, isAdminOrManager]);
 
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -341,6 +349,35 @@ export default function MeetPage() {
       }
     } catch (e) {}
   }, []);
+
+  // Handle direct navigation / RSVP from "Add to Meet Calendar" button
+  useEffect(() => {
+    const eventParam = searchParams.get("event") || searchParams.get("eventId");
+    if (eventParam && events && events.length > 0) {
+      const match = events.find(
+        (e) => e.id === eventParam || e.title.toLowerCase().includes(eventParam.toLowerCase())
+      );
+      if (match) {
+        setSelectedEvent(match);
+        setEventModalMode("view");
+        setEventModalOpen(true);
+        setRsvpEventIds((prev) => {
+          if (!prev.includes(match.id)) {
+            const updated = [...prev, match.id];
+            try {
+              localStorage.setItem("ps_calendar_rsvps", JSON.stringify(updated));
+            } catch {}
+            return updated;
+          }
+          return prev;
+        });
+        const matchDate = new Date(match.start || match.end);
+        if (!isNaN(matchDate.getTime())) {
+          setCursor(new Date(matchDate.getFullYear(), matchDate.getMonth(), 1));
+        }
+      }
+    }
+  }, [searchParams, events]);
 
   // Close calendar dropdown when clicking outside
   useEffect(() => {
@@ -1536,7 +1573,7 @@ export default function MeetPage() {
             const inMonth = date.getMonth() === cursor.getMonth();
             const isToday = date.toDateString() === today.toDateString();
             
-            const dayEvents = events.filter((e) => {
+            const dayEvents = visibleEvents.filter((e) => {
               if (!e) return false;
               if (e.start) {
                 const sDate = new Date(e.start);
