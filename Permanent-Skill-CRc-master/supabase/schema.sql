@@ -136,8 +136,30 @@ CREATE TABLE IF NOT EXISTS public.events (
   start_time TIMESTAMPTZ NOT NULL,
   end_time TIMESTAMPTZ NOT NULL,
   type TEXT DEFAULT 'live',
-  description TEXT DEFAULT ''
+  description TEXT DEFAULT '',
+  banner_text TEXT DEFAULT 'Q & A',
+  banner_subtitle TEXT,
+  banner_image TEXT,
+  meet_url TEXT DEFAULT 'https://meet.google.com/new',
+  is_locked BOOLEAN DEFAULT FALSE,
+  host_name TEXT
 );
+-- Migration helper for existing databases:
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS price NUMERIC;
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS price_note TEXT;
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS headline TEXT;
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS about_headline TEXT;
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS about_description TEXT;
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS about_features JSONB;
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS about_pain_points JSONB;
+ALTER TABLE public.communities ADD COLUMN IF NOT EXISTS about_closing_text TEXT;
+
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS banner_text TEXT DEFAULT 'Q & A';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS banner_subtitle TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS banner_image TEXT;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS meet_url TEXT DEFAULT 'https://meet.google.com/new';
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.events ADD COLUMN IF NOT EXISTS host_name TEXT;
 
 -- 9. DIRECT MESSAGES TABLE
 CREATE TABLE IF NOT EXISTS public.messages (

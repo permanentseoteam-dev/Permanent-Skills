@@ -623,22 +623,23 @@ export async function syncProgressToSupabase(p: Progress) {
       completed_lesson_ids: p.completedLessonIds || [],
     };
 
-    // 1. Try updating existing record first
-    const { data: updated, error: updateErr } = await supabase
+    // 1. Direct upsert using composite primary key (user_id, course_id)
+    const { error: upsertErr } = await supabase
       .from("progress")
-      .update(payload)
-      .eq("user_id", p.userId)
-      .eq("course_id", p.courseId)
-      .select("id");
+      .upsert(payload, { onConflict: "user_id,course_id" });
 
-    if (updated && updated.length > 0) {
-      return;
-    }
-
-    // 2. If row wasn't present, upsert / insert
-    const { error: upsertErr } = await supabase.from("progress").upsert(payload, { onConflict: "user_id,course_id" });
     if (upsertErr) {
-      await supabase.from("progress").insert(payload);
+      // 2. If composite key constraint name differs, direct update by user_id and course_id
+      const updateRes = await supabase
+        .from("progress")
+        .update({ completed_lesson_ids: payload.completed_lesson_ids })
+        .eq("user_id", p.userId)
+        .eq("course_id", p.courseId)
+        .select("user_id");
+
+      if (!updateRes.data || updateRes.data.length === 0) {
+        await supabase.from("progress").insert(payload);
+      }
     }
   } catch (err) {
     console.error("Error syncing progress to Supabase:", err);
@@ -799,8 +800,33 @@ export async function deleteVideoResourceFromSupabase(id: string) {
 export async function syncCommunityToSupabase(c: Community) {
   try {
     const supabase = getAdminSupabase();
-    await supabase.from("communities").upsert(
-      {
+    const fullPayload = {
+      id: c.id,
+      name: c.name,
+      description: c.description,
+      slug: c.slug,
+      icon: c.icon || null,
+      banner: c.banner || null,
+      is_private: Boolean(c.isPrivate),
+      member_count: c.memberCount || 0,
+      online_count: c.onlineCount || 0,
+      admin_count: c.adminCount || 1,
+      type: c.type || "general",
+      price: c.price || null,
+      price_note: c.priceNote || null,
+      headline: c.headline || null,
+      about_headline: c.aboutHeadline || c.headline || null,
+      about_description: c.aboutDescription || c.description || null,
+      about_features: c.aboutFeatures ? JSON.stringify(c.aboutFeatures) : null,
+      about_pain_points: c.aboutPainPoints ? JSON.stringify(c.aboutPainPoints) : null,
+      about_closing_text: c.aboutClosingText || null,
+      created_at: c.createdAt,
+      created_by: c.createdBy || "u-admin",
+    };
+
+    const { error } = await supabase.from("communities").upsert(fullPayload, { onConflict: "id" });
+    if (error) {
+      const basePayload = {
         id: c.id,
         name: c.name,
         description: c.description,
@@ -812,19 +838,11 @@ export async function syncCommunityToSupabase(c: Community) {
         online_count: c.onlineCount || 0,
         admin_count: c.adminCount || 1,
         type: c.type || "general",
-        price: c.price || null,
-        price_note: c.priceNote || null,
-        headline: c.headline || null,
-        about_headline: c.aboutHeadline || c.headline || null,
-        about_description: c.aboutDescription || c.description || null,
-        about_features: c.aboutFeatures ? JSON.stringify(c.aboutFeatures) : null,
-        about_pain_points: c.aboutPainPoints ? JSON.stringify(c.aboutPainPoints) : null,
-        about_closing_text: c.aboutClosingText || null,
         created_at: c.createdAt,
         created_by: c.createdBy || "u-admin",
-      },
-      { onConflict: "id" }
-    );
+      };
+      await supabase.from("communities").upsert(basePayload, { onConflict: "id" });
+    }
   } catch (err) {
     console.error("Error syncing community to Supabase:", err);
   }
@@ -856,7 +874,18 @@ export async function syncCalendarEventToSupabase(ev: CalendarEvent) {
       is_locked: ev.isLocked ?? (ev.type === "premium"),
       host_name: ev.hostName || null,
     };
-    await supabase.from("events").upsert(payload, { onConflict: "id" });
+    const { error } = await supabase.from("events").upsert(payload, { onConflict: "id" });
+    if (error) {
+      const basePayload = {
+        id: ev.id,
+        title: ev.title,
+        start_time: ev.start,
+        end_time: ev.end,
+        type: ev.type || "live",
+        description: ev.description || "",
+      };
+      await supabase.from("events").upsert(basePayload, { onConflict: "id" });
+    }
   } catch (err) {
     console.error("Error syncing calendar event to Supabase:", err);
   }
