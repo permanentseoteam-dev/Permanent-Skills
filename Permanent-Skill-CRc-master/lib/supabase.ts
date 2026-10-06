@@ -38,15 +38,49 @@ function getCredentials() {
   return { url, anonKey, serviceKey };
 }
 
+// Resilient fetch wrapper with automatic retry for transient network drops / pool reconnects
+const resilientFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  let attempts = 0;
+  const maxAttempts = 3;
+  while (attempts < maxAttempts) {
+    try {
+      const res = await fetch(input, init);
+      // If server returned a 502/503/504 temporary gateway/restart error, retry once or twice
+      if ((res.status === 502 || res.status === 503 || res.status === 504) && attempts < maxAttempts - 1) {
+        attempts++;
+        await new Promise((r) => setTimeout(r, attempts * 500));
+        continue;
+      }
+      return res;
+    } catch (err: any) {
+      attempts++;
+      if (attempts >= maxAttempts) {
+        throw err;
+      }
+      await new Promise((r) => setTimeout(r, attempts * 500));
+    }
+  }
+  return fetch(input, init);
+};
+
 // Client for public / frontend browser usage
 export const getSupabase = () => {
   const { url, anonKey } = getCredentials();
-  return createClient(url, anonKey);
+  return createClient(url, anonKey, {
+    global: {
+      fetch: resilientFetch,
+    },
+  });
 };
 
 export const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_ANON_KEY
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_ANON_KEY,
+  {
+    global: {
+      fetch: resilientFetch,
+    },
+  }
 );
 
 // Admin client with service_role key for backend server actions & full database access
@@ -57,5 +91,9 @@ export const getAdminSupabase = () => {
       persistSession: false,
       autoRefreshToken: false,
     },
+    global: {
+      fetch: resilientFetch,
+    },
   });
 };
+
