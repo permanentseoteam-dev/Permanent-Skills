@@ -623,24 +623,20 @@ export async function syncProgressToSupabase(p: Progress) {
       completed_lesson_ids: p.completedLessonIds || [],
     };
 
-    // 1. Direct upsert using composite primary key (user_id, course_id)
-    const { error: upsertErr } = await supabase
+    // 1. Direct update by user_id and course_id (never triggers PostgREST onConflict 'id' check)
+    const { data: updated } = await supabase
       .from("progress")
-      .upsert(payload, { onConflict: "user_id,course_id" });
+      .update({ completed_lesson_ids: payload.completed_lesson_ids })
+      .eq("user_id", p.userId)
+      .eq("course_id", p.courseId)
+      .select("user_id, course_id");
 
-    if (upsertErr) {
-      // 2. If composite key constraint name differs, direct update by user_id and course_id
-      const updateRes = await supabase
-        .from("progress")
-        .update({ completed_lesson_ids: payload.completed_lesson_ids })
-        .eq("user_id", p.userId)
-        .eq("course_id", p.courseId)
-        .select("user_id");
-
-      if (!updateRes.data || updateRes.data.length === 0) {
-        await supabase.from("progress").insert(payload);
-      }
+    if (updated && updated.length > 0) {
+      return;
     }
+
+    // 2. If row did not exist yet, insert directly
+    await supabase.from("progress").insert(payload);
   } catch (err) {
     console.error("Error syncing progress to Supabase:", err);
   }
@@ -734,15 +730,23 @@ export async function syncSaleToSupabase(s: Sale) {
 export async function syncSessionToSupabase(s: Session) {
   try {
     const supabase = getAdminSupabase();
-    await supabase.from("sessions").upsert(
-      {
-        token: s.token,
-        user_id: s.userId,
-        device_id: s.deviceId || null,
-        created_at: s.createdAt || new Date().toISOString(),
-      },
-      { onConflict: "token" }
-    );
+    const payload = {
+      token: s.token,
+      user_id: s.userId,
+      device_id: s.deviceId || null,
+      created_at: s.createdAt || new Date().toISOString(),
+    };
+    const { data: updated } = await supabase
+      .from("sessions")
+      .update(payload)
+      .eq("token", s.token)
+      .select("token");
+
+    if (updated && updated.length > 0) {
+      return;
+    }
+
+    await supabase.from("sessions").insert(payload);
   } catch (err) {
     console.error("Error syncing session to Supabase:", err);
   }
