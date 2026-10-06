@@ -439,16 +439,28 @@ export default function MeetPage() {
     }
     setEventBusy(true);
     setEventError("");
+
+    const startDateObj = new Date(eventForm.start);
+    const endDateObj = new Date(eventForm.end);
+    const isoStart = !isNaN(startDateObj.getTime()) ? startDateObj.toISOString() : eventForm.start;
+    const isoEnd = !isNaN(endDateObj.getTime()) ? endDateObj.toISOString() : eventForm.end;
+
     const res = await saveCalendarEvent({
       ...eventForm,
-      start: new Date(eventForm.start).toISOString(),
-      end: new Date(eventForm.end).toISOString(),
+      start: isoStart,
+      end: isoEnd,
     });
     setEventBusy(false);
     if (!res.ok) {
       setEventError(res.error || "Could not save meeting.");
       return;
     }
+
+    // Auto-navigate calendar view to the month of the newly scheduled meeting
+    if (!isNaN(startDateObj.getTime())) {
+      setCursor(new Date(startDateObj.getFullYear(), startDateObj.getMonth(), 1));
+    }
+
     setEventModalOpen(false);
     setSelectedEvent(null);
   }
@@ -1523,25 +1535,66 @@ export default function MeetPage() {
             const key = date.toDateString();
             const inMonth = date.getMonth() === cursor.getMonth();
             const isToday = date.toDateString() === today.toDateString();
-            const dayEvents = events.filter((e) => new Date(e.start).toDateString() === key);
+            
+            const dayEvents = events.filter((e) => {
+              if (!e) return false;
+              if (e.start) {
+                const sDate = new Date(e.start);
+                if (!isNaN(sDate.getTime()) && sDate.toDateString() === key) {
+                  return true;
+                }
+                const parsed = parseMeetingStartTime(undefined, e.start);
+                if (!isNaN(parsed.getTime()) && parsed.toDateString() === key) {
+                  return true;
+                }
+              }
+              if (e.end) {
+                const eDate = new Date(e.end);
+                if (!isNaN(eDate.getTime()) && eDate.toDateString() === key) {
+                  return true;
+                }
+              }
+              return false;
+            });
 
             return (
               <div
                 key={key}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget && isAdminOrManager) {
+                    openCreateMeeting(date);
+                  }
+                }}
                 className={`min-h-[80px] sm:min-h-[110px] border-b border-r border-zinc-100 p-1 sm:p-2 transition ${
                   inMonth ? "bg-white" : "bg-zinc-50/50"
-                }`}
+                } ${isAdminOrManager ? "cursor-pointer hover:bg-zinc-50/80" : ""}`}
+                title={isAdminOrManager ? `Click to schedule meeting on ${date.toLocaleDateString()}` : undefined}
               >
-                <div
-                  className={`mb-1 inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[10px] sm:text-xs font-semibold ${
-                    isToday
-                      ? "bg-red-500 text-white"
-                      : inMonth
-                        ? "text-zinc-800"
-                        : "text-zinc-400"
-                  }`}
-                >
-                  {date.getDate()}
+                <div className="flex items-center justify-between mb-1">
+                  <div
+                    className={`inline-flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full text-[10px] sm:text-xs font-semibold ${
+                      isToday
+                        ? "bg-red-500 text-white"
+                        : inMonth
+                          ? "text-zinc-800"
+                          : "text-zinc-400"
+                    }`}
+                  >
+                    {date.getDate()}
+                  </div>
+                  {isAdminOrManager && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openCreateMeeting(date);
+                      }}
+                      className="opacity-0 hover:opacity-100 focus:opacity-100 group-hover:opacity-100 text-zinc-400 hover:text-primary transition p-0.5"
+                      title="Schedule meeting on this day"
+                    >
+                      <Plus size={12} />
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-1">
                   {dayEvents.map((e) => {
@@ -1556,7 +1609,10 @@ export default function MeetPage() {
                     return (
                       <button
                         key={e.id}
-                        onClick={() => openViewMeeting(e)}
+                        onClick={(ev) => {
+                          ev.stopPropagation();
+                          openViewMeeting(e);
+                        }}
                         className={`block w-full truncate rounded px-1 sm:px-1.5 py-0.5 text-left text-[10px] sm:text-[11px] font-medium transition cursor-pointer ${
                           isPrem
                             ? "bg-[#f3f0ff] text-[#6d28d9] hover:bg-[#eae5ff]"

@@ -649,7 +649,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const deleteProjectFn = useCallback((projectId: string) => run(() => deleteProjectAction(projectId)), [run]);
   const saveCalendarEventFn = useCallback(
-    (input: {
+    async (input: {
       id?: string;
       title: string;
       start: string;
@@ -662,12 +662,54 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       meetUrl?: string;
       isLocked?: boolean;
       hostName?: string;
-    }) => run(() => saveCalendarEventAction(input)),
-    [run],
+    }) => {
+      const generatedId = input.id || `ev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+      const optimisticEv: CalendarEvent = {
+        id: generatedId,
+        title: input.title,
+        start: input.start,
+        end: input.end,
+        type: input.type || "live",
+        description: input.description || "",
+        bannerText: input.bannerText || "Q & A",
+        bannerSubtitle: input.bannerSubtitle,
+        bannerImage: input.bannerImage,
+        meetUrl: input.meetUrl || "https://meet.google.com/new",
+        isLocked: input.isLocked ?? (input.type === "premium"),
+        hostName: input.hostName,
+      };
+
+      setState((prev) => {
+        const existingIdx = prev.events.findIndex((e) => e.id === (input.id || generatedId));
+        const nextEvents = [...prev.events];
+        if (existingIdx >= 0) {
+          nextEvents[existingIdx] = optimisticEv;
+        } else {
+          nextEvents.push(optimisticEv);
+        }
+        return {
+          ...prev,
+          events: nextEvents,
+        };
+      });
+
+      const res = await run(() => saveCalendarEventAction({ ...input, id: input.id || generatedId }));
+      await refresh();
+      return res;
+    },
+    [run, refresh],
   );
   const deleteCalendarEventFn = useCallback(
-    (id: string) => run(() => deleteCalendarEventAction(id)),
-    [run],
+    async (id: string) => {
+      setState((prev) => ({
+        ...prev,
+        events: prev.events.filter((e) => e.id !== id),
+      }));
+      const res = await run(() => deleteCalendarEventAction(id));
+      await refresh();
+      return res;
+    },
+    [run, refresh],
   );
   const updateProjectStatusFn = useCallback(
     (projectId: string, status: "active" | "completed" | "paused") =>
