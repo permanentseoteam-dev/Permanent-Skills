@@ -1539,21 +1539,14 @@ export default function MeetPage() {
             </button>
           </div>
 
-          {/* Right Toolbar Actions: + Add Meeting & + Add Project */}
+          {/* Right Toolbar Actions: + Add Meeting */}
           {isAdminOrManager && (
             <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => openCreateMeeting()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 sm:px-3 py-1.5 text-xs font-semibold text-zinc-800 shadow-2xs transition cursor-pointer"
-              >
-                <Plus size={13} className="text-primary sm:w-3.5 sm:h-3.5" /> <span>Add Meeting</span>
-              </button>
               <PrimaryButton
-                onClick={openCreateProject}
+                onClick={() => openCreateMeeting()}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold py-1.5 px-3 sm:px-3.5 shadow-sm cursor-pointer"
               >
-                <Plus size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Add Project</span>
+                <Plus size={13} className="sm:w-3.5 sm:h-3.5" /> <span>Add Meeting</span>
               </PrimaryButton>
             </div>
           )}
