@@ -427,6 +427,7 @@ export default function MeetPage() {
     const endBase = new Date(baseDate.getTime() + 60 * 60 * 1000);
 
     setEventForm({
+      id: undefined,
       title: "Q&A w/ Nate",
       start: toLocalDatetimeInputString(baseDate),
       end: toLocalDatetimeInputString(endBase),
@@ -492,6 +493,7 @@ export default function MeetPage() {
 
     const res = await saveCalendarEvent({
       ...eventForm,
+      id: eventModalMode === "create" ? undefined : eventForm.id,
       start: isoStart,
       end: isoEnd,
     });
@@ -508,6 +510,20 @@ export default function MeetPage() {
 
     setEventModalOpen(false);
     setSelectedEvent(null);
+    setEventForm({
+      id: undefined,
+      title: "",
+      start: "",
+      end: "",
+      type: "live",
+      description: "",
+      bannerText: "Q & A",
+      bannerSubtitle: "AI Automation Society Plus",
+      bannerImage: "",
+      meetUrl: "https://meet.google.com/new",
+      isLocked: true,
+      hostName: "",
+    });
   }
 
   async function onDeleteMeeting(id: string) {
