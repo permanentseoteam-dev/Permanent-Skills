@@ -1135,18 +1135,7 @@ export function createSeed(): Database {
   ];
 
   const courses: Course[] = createClassroomCourses();
-  const progress: Database["progress"] = [
-    {
-      userId: "u-admin",
-      courseId: "course-eem-1",
-      completedLessonIds: ["l-eem-1-1"],
-    },
-    {
-      userId: "u-member",
-      courseId: "course-eem-1",
-      completedLessonIds: ["l-eem-1-1"],
-    },
-  ];
+  const progress: Database["progress"] = [];
 
   // Calendar meetings cleared
   const events: CalendarEvent[] = [];

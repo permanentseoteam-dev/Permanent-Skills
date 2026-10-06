@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { randomBytes } from "crypto";
 import { ensureDbLoaded, readDb, refreshFromSupabase, updateDb, upsertUser } from "./db";
-import { syncUserToSupabase, deleteUserFromSupabase } from "./supabase-db";
+import { syncUserToSupabase, deleteUserFromSupabase, syncProgressToSupabase } from "./supabase-db";
 import { hashPassword, verifyPassword } from "./password";
 import { nextPathFor, signPayload, verifyPayload } from "./session";
 import { slugify, formatDateTime } from "./format";
@@ -20,6 +20,7 @@ import type {
   EventType,
   Lesson,
   PostCategory,
+  Progress,
   Project,
   PublicUser,
   Role,
@@ -233,7 +234,7 @@ export async function getAppState(): Promise<AppState> {
     posts: visiblePosts,
     comments: visibleComments,
     courses: db.courses,
-    progress: db.progress.filter((p) => p.userId === me.id || isStaff),
+    progress: db.progress.filter((p) => p.userId === me.id),
     events: db.events,
     projects: db.projects || [],
     messages: (db.messages || [])
@@ -1282,6 +1283,7 @@ export async function togglePin(postId: string): Promise<ActionResult> {
 export async function completeLesson(courseId: string, lessonId: string): Promise<ActionResult> {
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in." };
+  let updatedRow: Progress | null = null;
   await updateDb((db) => {
     const course = db.courses.find((c) => c.id === courseId);
     if (!course) return;
@@ -1299,7 +1301,16 @@ export async function completeLesson(courseId: string, lessonId: string): Promis
       row.completedLessonIds.push(lessonId);
       award(user, 3);
     }
+    updatedRow = {
+      userId: row.userId,
+      courseId: row.courseId,
+      completedLessonIds: [...row.completedLessonIds],
+    };
   });
+
+  if (updatedRow) {
+    await syncProgressToSupabase(updatedRow).catch(() => {});
+  }
   return { ok: true };
 }
 

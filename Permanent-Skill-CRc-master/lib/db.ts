@@ -346,6 +346,14 @@ function migrate(db: Database) {
       }
     }
   }
+  if (db.progress && db.progress.length > 0) {
+    for (const prog of db.progress) {
+      if (prog.completedLessonIds && prog.completedLessonIds.length === 1 && prog.completedLessonIds[0] === "l-eem-1-1") {
+        prog.completedLessonIds = [];
+        changed = true;
+      }
+    }
+  }
   if (changed) persist(db);
 }
 

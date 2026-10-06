@@ -148,11 +148,16 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       glowColor: c.glow_color || "yellow",
     }));
 
-    const mappedProgress: Progress[] = (progress || []).map((p) => ({
-      userId: p.user_id,
-      courseId: p.course_id,
-      completedLessonIds: p.completed_lesson_ids || [],
-    }));
+    const progressMap = new Map<string, Progress>();
+    for (const p of progress || []) {
+      const key = `${p.user_id}:${p.course_id}`;
+      progressMap.set(key, {
+        userId: p.user_id,
+        courseId: p.course_id,
+        completedLessonIds: Array.isArray(p.completed_lesson_ids) ? p.completed_lesson_ids : [],
+      });
+    }
+    const mappedProgress: Progress[] = Array.from(progressMap.values());
 
     const mappedPosts: Post[] = (posts || [])
       .filter((p) => p.category !== "lesson_anchor" && p.category !== "lesson" && !p.id.startsWith("l-"))
@@ -606,14 +611,29 @@ export async function deleteProjectFromSupabase(projectId: string) {
 export async function syncProgressToSupabase(p: Progress) {
   try {
     const supabase = getAdminSupabase();
-    await supabase.from("progress").upsert(
-      {
-        user_id: p.userId,
-        course_id: p.courseId,
-        completed_lesson_ids: p.completedLessonIds || [],
-      },
-      { onConflict: "user_id,course_id" }
-    );
+    const payload = {
+      user_id: p.userId,
+      course_id: p.courseId,
+      completed_lesson_ids: p.completedLessonIds || [],
+    };
+
+    // 1. Try updating existing record first
+    const { data: updated, error: updateErr } = await supabase
+      .from("progress")
+      .update(payload)
+      .eq("user_id", p.userId)
+      .eq("course_id", p.courseId)
+      .select("id");
+
+    if (updated && updated.length > 0) {
+      return;
+    }
+
+    // 2. If row wasn't present, upsert / insert
+    const { error: upsertErr } = await supabase.from("progress").upsert(payload, { onConflict: "user_id,course_id" });
+    if (upsertErr) {
+      await supabase.from("progress").insert(payload);
+    }
   } catch (err) {
     console.error("Error syncing progress to Supabase:", err);
   }
