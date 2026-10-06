@@ -373,6 +373,18 @@ function loadFromDisk(): Database | null {
   }
 }
 
+function mergeDbProgress(targetDb: Database, existingDb: Database | null) {
+  if (!existingDb?.progress?.length) return;
+  const targetMap = new Map(targetDb.progress.map((p) => [`${p.userId}:${p.courseId}`, p]));
+  for (const p of existingDb.progress) {
+    const key = `${p.userId}:${p.courseId}`;
+    if (!targetMap.has(key)) {
+      targetDb.progress.push(p);
+      targetMap.set(key, p);
+    }
+  }
+}
+
 let inFlightFetch: Promise<Database | null> | null = null;
 
 export async function ensureDbLoaded(): Promise<Database> {
@@ -381,6 +393,7 @@ export async function ensureDbLoaded(): Promise<Database> {
     inFlightFetch = fetchDatabaseFromSupabase()
       .then((remoteDb) => {
         if (remoteDb && remoteDb.users.length > 0) {
+          if (cache) mergeDbProgress(remoteDb, cache);
           migrate(remoteDb);
           cache = remoteDb;
           persist(remoteDb);
@@ -406,6 +419,7 @@ export async function ensureDbLoaded(): Promise<Database> {
 export async function refreshFromSupabase(): Promise<Database> {
   const remoteDb = await fetchDatabaseFromSupabase();
   if (remoteDb && remoteDb.users.length > 0) {
+    if (cache) mergeDbProgress(remoteDb, cache);
     const prevCommentIds = new Set(remoteDb.comments.map((c) => c.id));
     migrate(remoteDb);
     cache = remoteDb;

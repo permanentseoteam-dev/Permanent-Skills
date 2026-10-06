@@ -409,7 +409,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
 
   // Progress calculations for active course
   const row = progress.find(
-    (p) => p.courseId === activeCourse?.id && p.userId === user?.id
+    (p) => p.courseId === activeCourse?.id && (!user?.id || !p.userId || p.userId === user?.id)
   );
   const completedIds = row?.completedLessonIds || [];
   const totalLessons = activeCourse?.lessons.length || 0;
@@ -949,7 +949,7 @@ export function ClassroomView({ initialCourseSlug }: ClassroomViewProps) {
           <div className="grid grid-cols-1 gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-3 transition-all">
             {localCourseOrder.map((course) => {
               const cRow = progress.find(
-                (p) => p.courseId === course.id && p.userId === user?.id
+                (p) => p.courseId === course.id && (!user?.id || !p.userId || p.userId === user?.id)
               );
               const cCompleted = cRow?.completedLessonIds || [];
               const cTotal = course.lessons.length;
