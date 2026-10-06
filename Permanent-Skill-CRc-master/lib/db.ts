@@ -397,6 +397,24 @@ function mergeDbProgress(targetDb: Database, existingDb: Database | null) {
   }
 }
 
+function mergeDbEvents(targetDb: Database, existingDb: Database | null) {
+  if (!existingDb?.events?.length) return;
+  targetDb.events = targetDb.events || [];
+  const targetMap = new Map(targetDb.events.map((e) => [e.id, e]));
+  for (const e of existingDb.events) {
+    if (
+      !targetMap.has(e.id) &&
+      e.status !== "cancelled" &&
+      !e.isCancelled &&
+      (e.type as string) !== "cancelled" &&
+      !(typeof e.description === "string" && e.description.startsWith("[CANCELLED]"))
+    ) {
+      targetDb.events.push(e);
+      targetMap.set(e.id, e);
+    }
+  }
+}
+
 let inFlightFetch: Promise<Database | null> | null = null;
 
 export async function ensureDbLoaded(): Promise<Database> {
@@ -405,7 +423,10 @@ export async function ensureDbLoaded(): Promise<Database> {
     inFlightFetch = fetchDatabaseFromSupabase()
       .then((remoteDb) => {
         if (remoteDb && remoteDb.users.length > 0) {
-          if (cache) mergeDbProgress(remoteDb, cache);
+          if (cache) {
+            mergeDbProgress(remoteDb, cache);
+            mergeDbEvents(remoteDb, cache);
+          }
           migrate(remoteDb);
           cache = remoteDb;
           persist(remoteDb);
@@ -431,7 +452,10 @@ export async function ensureDbLoaded(): Promise<Database> {
 export async function refreshFromSupabase(): Promise<Database> {
   const remoteDb = await fetchDatabaseFromSupabase();
   if (remoteDb && remoteDb.users.length > 0) {
-    if (cache) mergeDbProgress(remoteDb, cache);
+    if (cache) {
+      mergeDbProgress(remoteDb, cache);
+      mergeDbEvents(remoteDb, cache);
+    }
     const prevCommentIds = new Set(remoteDb.comments.map((c) => c.id));
     migrate(remoteDb);
     cache = remoteDb;

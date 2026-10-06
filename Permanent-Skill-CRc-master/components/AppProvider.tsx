@@ -295,6 +295,7 @@ function isServerActionMismatch(err: unknown): boolean {
 const ACTIVE_COMMUNITY_KEY = "pss_active_community_id";
 const recentProgressLocks = new Map<string, number>();
 const recentDeletedEventLocks = new Map<string, number>();
+const recentSavedEventLocks = new Map<string, { event: CalendarEvent; time: number }>();
 
 function applyNextState(next: AppState, prev: AppState): AppState {
   let activeId = prev.activeCommunityId;
@@ -325,7 +326,7 @@ function applyNextState(next: AppState, prev: AppState): AppState {
   }
 
   // Guard recently deleted calendar events against stale in-flight background polling
-  const mergedEvents = (next.events || []).filter((e) => {
+  const filteredNextEvents = (next.events || []).filter((e) => {
     const lockTime = recentDeletedEventLocks.get(e.id);
     if (lockTime && now - lockTime < 15000) {
       return false;
@@ -337,6 +338,19 @@ function applyNextState(next: AppState, prev: AppState): AppState {
       !(typeof e.description === "string" && e.description.startsWith("[CANCELLED]"))
     );
   });
+
+  // Merge recently saved events so in-flight refreshes don't drop newly created meetings
+  const eventMap = new Map(filteredNextEvents.map((e) => [e.id, e]));
+  for (const [savedId, item] of recentSavedEventLocks.entries()) {
+    if (now - item.time < 10000) {
+      if (!recentDeletedEventLocks.has(savedId)) {
+        eventMap.set(savedId, item.event);
+      }
+    } else {
+      recentSavedEventLocks.delete(savedId);
+    }
+  }
+  const mergedEvents = Array.from(eventMap.values());
 
   return {
     ...next,
@@ -747,6 +761,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const targetId = input.id || generatedId;
       recentDeletedEventLocks.delete(targetId);
+      recentSavedEventLocks.set(targetId, { event: optimisticEv, time: Date.now() });
 
       setState((prev) => {
         const existingIdx = prev.events.findIndex((e) => e.id === targetId);
@@ -762,12 +777,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       });
 
-      return run(() => saveCalendarEventAction({ ...input, id: targetId }));
+      const res = await run(() => saveCalendarEventAction({ ...input, id: targetId }));
+      if (!res.ok) {
+        recentSavedEventLocks.delete(targetId);
+        await refresh();
+      }
+      return res;
     },
-    [run],
+    [run, refresh],
   );
   const deleteCalendarEventFn = useCallback(
     async (id: string) => {
+      recentSavedEventLocks.delete(id);
       recentDeletedEventLocks.set(id, Date.now());
       setState((prev) => ({
         ...prev,

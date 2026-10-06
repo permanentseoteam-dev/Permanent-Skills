@@ -905,7 +905,7 @@ export async function syncCalendarEventToSupabase(ev: CalendarEvent): Promise<bo
     if (isCancelled) {
       return deleteCalendarEventFromSupabase(ev.id);
     }
-    const basePayload = {
+    const fullPayload = {
       id: ev.id,
       title: ev.title,
       start_time: ev.start,
@@ -920,10 +920,22 @@ export async function syncCalendarEventToSupabase(ev: CalendarEvent): Promise<bo
       host_name: ev.hostName || null,
     };
 
-    const { error } = await supabase.from("events").upsert(basePayload, { onConflict: "id" });
+    const { error } = await supabase.from("events").upsert(fullPayload, { onConflict: "id" });
     if (error) {
-      console.error(`Error syncing calendar event (${ev.id}) to Supabase:`, error);
-      return false;
+      console.warn(`Full payload sync for event (${ev.id}) encountered error: ${error.message}. Attempting core payload fallback.`);
+      const corePayload = {
+        id: ev.id,
+        title: ev.title,
+        start_time: ev.start,
+        end_time: ev.end,
+        type: ev.type || "live",
+        description: ev.description || "",
+      };
+      const { error: fallbackError } = await supabase.from("events").upsert(corePayload, { onConflict: "id" });
+      if (fallbackError) {
+        console.error(`Fallback error syncing calendar event (${ev.id}) to Supabase:`, fallbackError.message);
+        return false;
+      }
     }
     return true;
   } catch (err) {
