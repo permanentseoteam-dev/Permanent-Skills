@@ -1577,228 +1577,209 @@ export default function MeetPage() {
         </div>
       </Card>
 
-      {/* 3. Comprehensive Meeting Modal (View Details / Edit / Create) with Back Navigation */}
-      <Modal
-        open={eventModalOpen}
-        onClose={() => {
-          setEventModalOpen(false);
-          setSelectedEvent(null);
-        }}
-        title={
-          eventModalMode === "create"
-            ? "Schedule New Meeting"
-            : eventModalMode === "edit"
-              ? "Edit Meeting"
-              : selectedEvent?.title || "Meeting Details"
-        }
-        wide={eventModalMode !== "view"}
-      >
-        {eventModalMode === "view" && selectedEvent && (() => {
-          const timing = checkMeetingStatus(selectedEvent.start, selectedEvent.end);
-          const isEventOver = timing.status === "ended";
-          const isWaiting = timing.status === "waiting";
-          const canJoinLive = timing.status === "can_join";
-          const isRsvpd = rsvpEventIds.includes(selectedEvent.id);
-          const isPrem =
-            selectedEvent.type === "premium" ||
-            selectedEvent.title.toLowerCase().includes("premium") ||
-            selectedEvent.title.toLowerCase().includes("vip");
+      {/* 3. Skool-Style Meeting View Modal & Admin/Manager Edit Modal */}
+      {eventModalOpen && eventModalMode === "view" && selectedEvent && (() => {
+        const timing = checkMeetingStatus(selectedEvent.start, selectedEvent.end);
+        const isEventOver = timing.status === "ended";
+        const canJoinLive = timing.status === "can_join";
+        const isRsvpd = rsvpEventIds.includes(selectedEvent.id);
 
-          const endedUrl = `/meeting-ended?title=${encodeURIComponent(
-            selectedEvent.title
-          )}&start=${encodeURIComponent(
-            selectedEvent.start
-          )}&end=${encodeURIComponent(
-            selectedEvent.end
-          )}&type=${selectedEvent.type}&desc=${encodeURIComponent(
-            selectedEvent.description
-          )}`;
+        const gcalUrl = createGoogleCalendarUrl({
+          title: selectedEvent.title,
+          start: selectedEvent.start,
+          end: selectedEvent.end,
+          description: selectedEvent.description,
+          location: selectedEvent.meetUrl || "https://meet.google.com/new",
+        });
 
-          const waitingUrl = `/meeting-waiting?title=${encodeURIComponent(
-            selectedEvent.title
-          )}&start=${encodeURIComponent(
-            selectedEvent.start
-          )}&end=${encodeURIComponent(
-            selectedEvent.end
-          )}&url=${encodeURIComponent(
-            "https://meet.google.com/new"
-          )}&type=${selectedEvent.type}&desc=${encodeURIComponent(
-            selectedEvent.description
-          )}`;
+        return (
+          <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+            <button
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs cursor-pointer transition-opacity"
+              onClick={() => {
+                setEventModalOpen(false);
+                setSelectedEvent(null);
+              }}
+              aria-label="Close"
+            />
+            
+            {/* Modal Card matching exact Skool UI */}
+            <div className="relative z-10 w-full max-w-md rounded-2xl sm:rounded-3xl bg-white shadow-2xl overflow-hidden my-auto border border-zinc-200/80 animate-in fade-in zoom-in-95 duration-150">
+              {/* Close Button on top right */}
+              <button
+                onClick={() => {
+                  setEventModalOpen(false);
+                  setSelectedEvent(null);
+                }}
+                className="absolute top-3.5 right-3.5 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-black/50 text-white/90 hover:bg-black/80 hover:text-white transition backdrop-blur-xs cursor-pointer active:scale-95"
+                aria-label="Close modal"
+              >
+                <X size={15} />
+              </button>
 
-          const gcalUrl = createGoogleCalendarUrl({
-            title: selectedEvent.title,
-            start: selectedEvent.start,
-            end: selectedEvent.end,
-            description: selectedEvent.description,
-            location: "https://meet.google.com/new",
-          });
+              {/* Top Wave Contour Header */}
+              <SkoolMeetingWaveBanner
+                bannerText={selectedEvent.bannerText || "Q & A"}
+                bannerSubtitle={selectedEvent.bannerSubtitle || "AI Automation Society Plus"}
+                bannerImage={selectedEvent.bannerImage}
+              />
 
-          return (
-            <div className="space-y-4 pt-1">
-              {/* Meeting Header Info */}
-              <div className="rounded-xl border border-zinc-200/80 bg-zinc-50/60 p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                      isPrem
-                        ? "bg-purple-100 text-purple-700 border border-purple-200"
-                        : "bg-blue-100 text-blue-700 border border-blue-200"
-                    }`}
-                  >
-                    {isPrem ? "💎 VIP Mastermind" : "⚡ Live Stream Session"}
-                  </span>
-
-                  <span
-                    className={`text-[11px] font-semibold px-2 py-0.5 rounded-md ${
-                      isEventOver
-                        ? "bg-amber-100 text-amber-800"
-                        : canJoinLive
-                          ? "bg-emerald-100 text-emerald-800 animate-pulse"
-                          : "bg-blue-100 text-blue-800"
-                    }`}
-                  >
-                    {isEventOver ? "Concluded Session" : canJoinLive ? "🟢 Live Now" : "Upcoming Session"}
-                  </span>
+              {/* Card Body matching screenshot */}
+              <div className="p-5 sm:p-6 space-y-4">
+                {/* 1. Lock Icon + Title */}
+                <div className="flex items-center gap-2.5 text-base sm:text-lg font-bold text-zinc-900 leading-snug">
+                  {selectedEvent.isLocked !== false && (
+                    <span className="text-xl shrink-0 leading-none">🔒</span>
+                  )}
+                  <span className="truncate">{selectedEvent.title || "Q&A w/ Nate"}</span>
                 </div>
 
-                <div className="flex items-center gap-2 text-xs font-medium text-zinc-700">
-                  <CalendarIcon size={14} className="text-primary shrink-0" />
-                  <span>
-                    {formatDateTime(selectedEvent.start)} – {formatDateTime(selectedEvent.end)}
-                  </span>
-                  <span className="text-zinc-400">({userTz})</span>
+                {/* 2. Calendar Date & Time + Timezone Subtitle */}
+                <div className="flex items-start gap-2.5">
+                  <CalendarIcon size={18} className="text-zinc-900 shrink-0 mt-0.5 stroke-[2.2]" />
+                  <div>
+                    <p className="text-xs sm:text-sm font-semibold text-zinc-900 leading-tight">
+                      {formatSkoolMeetingTime(selectedEvent.start, selectedEvent.end)}
+                    </p>
+                    <p className="text-[11px] sm:text-xs text-zinc-400 font-normal mt-0.5">
+                      {getTimezoneCityName()}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Description & Agenda */}
-              <div>
-                <label className="block text-xs font-bold text-zinc-700 uppercase tracking-wider mb-1">
-                  Description & Agenda
-                </label>
-                <div className="rounded-xl border border-zinc-200 bg-white p-3 text-xs text-zinc-600 leading-relaxed min-h-[60px]">
-                  {selectedEvent.description || "Interactive community working session and Q&A."}
-                </div>
-              </div>
-
-              {/* Primary Action Button */}
-              <div className="space-y-2.5 pt-1">
-                {isEventOver ? (
+                {/* 3. Link Icon + Meeting URL */}
+                <div className="flex items-center gap-2.5 text-xs sm:text-sm">
+                  <Link2 size={18} className="text-zinc-900 shrink-0 stroke-[2.2]" />
                   <a
-                    href={endedUrl}
-                    onClick={() => {
-                      setEventModalOpen(false);
-                      setSelectedEvent(null);
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
-                  >
-                    <VideoOff size={16} className="text-amber-400" />
-                    <span>Meeting Ended — View Session Recap</span>
-                  </a>
-                ) : canJoinLive ? (
-                  <a
-                    href="https://meet.google.com/new"
+                    href={selectedEvent.meetUrl || "https://meet.google.com/new"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-3 font-bold text-white shadow-lg transition text-sm cursor-pointer"
+                    className="text-[#2563eb] hover:underline font-medium truncate max-w-[280px] sm:max-w-[320px]"
+                    title={selectedEvent.meetUrl || "https://meet.google.com/new"}
                   >
-                    <Video size={16} />
-                    <span>Join Video Room (Live Now)</span>
+                    {selectedEvent.meetUrl || "https://meet.google.com/new"}
                   </a>
-                ) : (
-                  <a
-                    href={waitingUrl}
-                    onClick={() => {
-                      setEventModalOpen(false);
-                      setSelectedEvent(null);
-                    }}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#5051F9] hover:bg-[#4041d8] px-4 py-3 font-bold text-white shadow-md transition text-sm cursor-pointer"
-                  >
-                    <Clock size={16} />
-                    <span>Join Meet (Opens in Waiting Room)</span>
-                  </a>
-                )}
+                </div>
 
-                {/* Add to Calendar Options Row */}
-                <div className="grid grid-cols-1 xs:grid-cols-2 gap-2 pt-0.5">
-                  <a
-                    href={gcalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
-                  >
-                    <CalendarIcon size={14} className="text-blue-600" />
-                    <span>Google Calendar</span>
-                  </a>
+                {/* 4. Description */}
+                <p className="text-xs sm:text-sm text-zinc-800 leading-relaxed pt-1">
+                  {selectedEvent.description || "Become a plus member to unlock weekly calls with Nate! (always recorded)"}
+                </p>
+
+                {/* 5. ADD TO CALENDAR ⌄ Button with Dropdown */}
+                <div ref={calDropdownRef} className="relative pt-2">
                   <button
                     type="button"
-                    onClick={() =>
-                      downloadIcsCalendarFile({
-                        title: selectedEvent.title,
-                        description: selectedEvent.description,
-                        start: selectedEvent.start,
-                        end: selectedEvent.end,
-                      })
-                    }
-                    className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-2 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
+                    onClick={() => setCalDropdownOpen((prev) => !prev)}
+                    className="w-full rounded-xl bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold py-3.5 px-4 flex items-center justify-center gap-2 text-xs sm:text-sm uppercase tracking-wider shadow-md transition active:scale-[0.99] cursor-pointer"
                   >
-                    <Download size={14} className="text-zinc-600" />
-                    <span>Download .ICS</span>
+                    <CalendarIcon size={16} className="stroke-[2.5]" />
+                    <span>ADD TO CALENDAR</span>
+                    <ChevronDown size={16} className={`transition-transform duration-200 ${calDropdownOpen ? "rotate-180" : ""}`} />
                   </button>
+
+                  {/* Dropdown Menu */}
+                  {calDropdownOpen && (
+                    <div className="absolute left-0 right-0 bottom-full mb-2 z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                      <a
+                        href={gcalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setCalDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-blue-50 transition"
+                      >
+                        <CalendarIcon size={14} className="text-blue-600" />
+                        <span>Google Calendar</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          downloadIcsCalendarFile({
+                            title: selectedEvent.title,
+                            description: selectedEvent.description,
+                            start: selectedEvent.start,
+                            end: selectedEvent.end,
+                          });
+                          setCalDropdownOpen(false);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-zinc-100 transition text-left cursor-pointer"
+                      >
+                        <Download size={14} className="text-zinc-600" />
+                        <span>Apple / .ICS File</span>
+                      </button>
+                      <a
+                        href={`https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(
+                          selectedEvent.title
+                        )}&startdt=${encodeURIComponent(selectedEvent.start)}&enddt=${encodeURIComponent(
+                          selectedEvent.end
+                        )}&body=${encodeURIComponent(selectedEvent.description || "")}&location=${encodeURIComponent(
+                          selectedEvent.meetUrl || ""
+                        )}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setCalDropdownOpen(false)}
+                        className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-blue-50 transition"
+                      >
+                        <CalendarIcon size={14} className="text-sky-600" />
+                        <span>Outlook Calendar</span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleCopyMeetingLink(selectedEvent.meetUrl || window.location.href);
+                          setCalDropdownOpen(false);
+                        }}
+                        className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-zinc-800 hover:bg-zinc-100 transition text-left cursor-pointer"
+                      >
+                        {copyLinkSuccess ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} className="text-zinc-500" />}
+                        <span>{copyLinkSuccess ? "Meeting URL Copied!" : "Copy Meeting URL"}</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => toggleRsvp(selectedEvent.id)}
-                  className={`flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition cursor-pointer ${
-                    isRsvpd
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : "border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-700"
-                  }`}
-                >
-                  {isRsvpd ? <CheckCircle2 size={14} /> : <CalendarIcon size={14} />}
-                  <span>{isRsvpd ? "Added to My Schedule (RSVP'd)" : "Add to My Schedule / RSVP"}</span>
-                </button>
-              </div>
-
-              {/* Modal Footer with "← Back" and Admin/Manager CRUD actions */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-zinc-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEventModalOpen(false);
-                    setSelectedEvent(null);
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-600 hover:bg-zinc-100 transition cursor-pointer"
-                >
-                  <ArrowLeft size={14} /> Back
-                </button>
-
+                {/* 6. Admin & Manager Management Toolbar */}
                 {isAdminOrManager && (
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => openEditMeeting(selectedEvent)}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
-                    >
-                      <Pencil size={13} /> Edit Meeting
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDeleteMeeting(selectedEvent.id)}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition cursor-pointer"
-                      title="Delete Meeting"
-                    >
-                      <Trash2 size={13} /> Delete
-                    </button>
+                  <div className="pt-3.5 border-t border-zinc-100 flex items-center justify-between gap-2 flex-wrap text-xs">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">
+                      Staff Controls (Admin / Manager)
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditMeeting(selectedEvent)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 bg-white hover:bg-zinc-50 px-2.5 py-1 text-xs font-semibold text-zinc-700 shadow-2xs transition cursor-pointer"
+                      >
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteMeeting(selectedEvent.id)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50/50 hover:bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-600 transition cursor-pointer"
+                        title="Delete Meeting"
+                      >
+                        <Trash2 size={12} /> Delete
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-          );
-        })()}
+          </div>
+        );
+      })()}
 
-        {(eventModalMode === "create" || eventModalMode === "edit") && (
+      {/* Admin/Manager Create & Edit Meeting Modal */}
+      {isAdminOrManager && (eventModalMode === "create" || eventModalMode === "edit") && (
+        <Modal
+          open={eventModalOpen}
+          onClose={() => {
+            setEventModalOpen(false);
+            setSelectedEvent(null);
+          }}
+          title={eventModalMode === "create" ? "Schedule Upcoming Meeting" : "Edit Meeting Settings"}
+          wide
+        >
           <div className="space-y-4 pt-1">
             {eventError && (
               <div className="rounded-lg bg-red-50 p-3 text-xs font-medium text-red-700 border border-red-200">
@@ -1810,21 +1791,42 @@ export default function MeetPage() {
               <Field label="Meeting Title *">
                 <input
                   className={inputClass}
-                  placeholder="e.g. Weekly Live Strategy Mastermind"
+                  placeholder="e.g. Q&A w/ Nate"
                   value={eventForm.title}
                   onChange={(e) => setEventForm((f) => ({ ...f, title: e.target.value }))}
                 />
               </Field>
 
-              <Field label="Session Type">
-                <select
+              <Field label="Lock for Members / VIP">
+                <label className="flex items-center gap-2.5 rounded-xl border border-zinc-200 p-2.5 bg-zinc-50/50 cursor-pointer h-[42px] mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={eventForm.isLocked ?? true}
+                    onChange={(e) => setEventForm((f) => ({ ...f, isLocked: e.target.checked }))}
+                    className="h-4 w-4 rounded text-primary focus:ring-primary"
+                  />
+                  <span className="text-xs font-semibold text-zinc-800">
+                    🔒 Show Lock Icon (Members Only / Plus)
+                  </span>
+                </label>
+              </Field>
+
+              <Field label="Header Banner Big Text (e.g. Q & A)">
+                <input
                   className={inputClass}
-                  value={eventForm.type}
-                  onChange={(e) => setEventForm((f) => ({ ...f, type: e.target.value as EventType }))}
-                >
-                  <option value="live">⚡ Live Stream Session (All Members)</option>
-                  <option value="premium">💎 VIP Mastermind (VIP Members)</option>
-                </select>
+                  placeholder="e.g. Q & A"
+                  value={eventForm.bannerText || ""}
+                  onChange={(e) => setEventForm((f) => ({ ...f, bannerText: e.target.value }))}
+                />
+              </Field>
+
+              <Field label="Header Banner Pill Badge Subtitle">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. AI Automation Society Plus"
+                  value={eventForm.bannerSubtitle || ""}
+                  onChange={(e) => setEventForm((f) => ({ ...f, bannerSubtitle: e.target.value }))}
+                />
               </Field>
 
               <Field label="Start Date & Time *">
@@ -1846,11 +1848,22 @@ export default function MeetPage() {
               </Field>
 
               <div className="sm:col-span-2">
-                <Field label="Description & Agenda *">
+                <Field label="Meeting Link URL (Google Meet / Zoom / Skool) *">
+                  <input
+                    className={inputClass}
+                    placeholder="https://www.skool.com/ai-automation-society-plus/... or Google Meet"
+                    value={eventForm.meetUrl || ""}
+                    onChange={(e) => setEventForm((f) => ({ ...f, meetUrl: e.target.value }))}
+                  />
+                </Field>
+              </div>
+
+              <div className="sm:col-span-2">
+                <Field label="Description & Notes *">
                   <textarea
                     rows={3}
                     className="w-full rounded-lg border border-zinc-200 p-2.5 text-xs sm:text-sm outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    placeholder="Describe agenda, topics covered, links, or guest speakers..."
+                    placeholder="Become a plus member to unlock weekly calls with Nate! (always recorded)"
                     value={eventForm.description}
                     onChange={(e) => setEventForm((f) => ({ ...f, description: e.target.value }))}
                   />
@@ -1891,8 +1904,8 @@ export default function MeetPage() {
               </div>
             </div>
           </div>
-        )}
-      </Modal>
+        </Modal>
+      )}
 
       {/* 4. Add / Edit Project Modal with Tasks Builder & @ Mentions Autocomplete */}
       <Modal
