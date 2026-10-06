@@ -185,7 +185,11 @@ export interface CalendarEvent {
   meetUrl?: string;
   isLocked?: boolean;
   hostName?: string;
+  status?: "scheduled" | "cancelled";
+  isCancelled?: boolean;
+  deletedAt?: string;
 }
+
 
 export interface Message {
   id: string;

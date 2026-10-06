@@ -296,11 +296,13 @@ export default function MeetPage() {
   const isAdminOrManager = user?.role === "admin" || user?.role === "manager";
   const searchParams = useSearchParams();
 
-  // Remove older/past meetings completely for user and team_member roles (admins/managers can still see full history)
+  // Filter out cancelled/soft-deleted events and remove older/past meetings for non-staff roles
   const visibleEvents = useMemo(() => {
-    if (isAdminOrManager) return events || [];
-    return (events || []).filter((e) => !isMeetingOlder(e));
+    const nonCancelled = (events || []).filter((e) => e.status !== "cancelled" && !e.isCancelled);
+    if (isAdminOrManager) return nonCancelled;
+    return nonCancelled.filter((e) => !isMeetingOlder(e));
   }, [events, isAdminOrManager]);
+
 
   const [cursor, setCursor] = useState(() => new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
