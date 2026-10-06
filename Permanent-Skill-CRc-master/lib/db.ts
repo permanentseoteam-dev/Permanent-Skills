@@ -291,8 +291,7 @@ function migrate(db: Database) {
       }
     }
   }
-  // Clear all calendar meetings
-  if (db.events && db.events.length > 0) {
+  if (!db.events) {
     db.events = [];
     changed = true;
   }

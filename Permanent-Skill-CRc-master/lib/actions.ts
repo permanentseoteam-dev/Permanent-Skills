@@ -3,7 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { randomBytes } from "crypto";
 import { ensureDbLoaded, readDb, refreshFromSupabase, updateDb, upsertUser } from "./db";
-import { syncUserToSupabase, deleteUserFromSupabase, syncProgressToSupabase } from "./supabase-db";
+import { syncUserToSupabase, deleteUserFromSupabase, syncProgressToSupabase, syncCalendarEventToSupabase, deleteCalendarEventFromSupabase } from "./supabase-db";
 import { hashPassword, verifyPassword } from "./password";
 import { nextPathFor, signPayload, verifyPayload } from "./session";
 import { slugify, formatDateTime } from "./format";
@@ -2202,6 +2202,8 @@ export async function saveCalendarEvent(input: {
   const id = input.id || `ev-${token().slice(0, 8)}`;
   const now = new Date().toISOString();
 
+  let savedEvent: CalendarEvent | null = null;
+
   await updateDb((db) => {
     db.events = db.events || [];
     const eventIndex = db.events.findIndex((e) => e.id === id);
@@ -2219,6 +2221,8 @@ export async function saveCalendarEvent(input: {
       isLocked: input.isLocked ?? (input.type === "premium"),
       hostName: input.hostName?.trim() || undefined,
     };
+
+    savedEvent = newEvent;
 
     if (eventIndex >= 0) {
       db.events[eventIndex] = newEvent;
@@ -2244,6 +2248,10 @@ export async function saveCalendarEvent(input: {
       });
     }
   });
+
+  if (savedEvent) {
+    await syncCalendarEventToSupabase(savedEvent).catch(() => {});
+  }
 
   return { ok: true, id };
 }
@@ -2321,6 +2329,8 @@ export async function deleteCalendarEvent(id: string): Promise<ActionResult> {
   await updateDb((db) => {
     db.events = (db.events || []).filter((e) => e.id !== id);
   });
+
+  await deleteCalendarEventFromSupabase(id).catch(() => {});
 
   return { ok: true };
 }

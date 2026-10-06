@@ -207,10 +207,16 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
     const mappedEvents: CalendarEvent[] = (events || []).map((e) => ({
       id: e.id,
       title: e.title,
-      start: e.start_time,
-      end: e.end_time,
+      start: e.start_time || e.start,
+      end: e.end_time || e.end,
       type: e.type || "live",
       description: e.description || "",
+      bannerText: e.banner_text || e.bannerText || "Q & A",
+      bannerSubtitle: e.banner_subtitle || e.bannerSubtitle || undefined,
+      bannerImage: e.banner_image || e.bannerImage || undefined,
+      meetUrl: e.meet_url || e.meetUrl || "https://meet.google.com/new",
+      isLocked: e.is_locked !== undefined ? !!e.is_locked : (e.isLocked !== undefined ? !!e.isLocked : (e.type === "premium")),
+      hostName: e.host_name || e.hostName || undefined,
     }));
 
     const mappedMessages: Message[] = (messages || []).map((m) => ({
@@ -832,3 +838,36 @@ export async function deleteCommunityFromSupabase(id: string) {
     console.error("Error deleting community from Supabase:", err);
   }
 }
+
+export async function syncCalendarEventToSupabase(ev: CalendarEvent) {
+  try {
+    const supabase = getAdminSupabase();
+    const payload = {
+      id: ev.id,
+      title: ev.title,
+      start_time: ev.start,
+      end_time: ev.end,
+      type: ev.type || "live",
+      description: ev.description || "",
+      banner_text: ev.bannerText || "Q & A",
+      banner_subtitle: ev.bannerSubtitle || null,
+      banner_image: ev.bannerImage || null,
+      meet_url: ev.meetUrl || "https://meet.google.com/new",
+      is_locked: ev.isLocked ?? (ev.type === "premium"),
+      host_name: ev.hostName || null,
+    };
+    await supabase.from("events").upsert(payload, { onConflict: "id" });
+  } catch (err) {
+    console.error("Error syncing calendar event to Supabase:", err);
+  }
+}
+
+export async function deleteCalendarEventFromSupabase(id: string) {
+  try {
+    const supabase = getAdminSupabase();
+    await supabase.from("events").delete().eq("id", id);
+  } catch (err) {
+    console.error("Error deleting calendar event from Supabase:", err);
+  }
+}
+
