@@ -378,9 +378,12 @@ function mergeDbProgress(targetDb: Database, existingDb: Database | null) {
   const targetMap = new Map(targetDb.progress.map((p) => [`${p.userId}:${p.courseId}`, p]));
   for (const p of existingDb.progress) {
     const key = `${p.userId}:${p.courseId}`;
-    if (!targetMap.has(key)) {
+    const remote = targetMap.get(key);
+    if (!remote) {
       targetDb.progress.push(p);
       targetMap.set(key, p);
+    } else if (p.completedLessonIds.length > remote.completedLessonIds.length) {
+      remote.completedLessonIds = p.completedLessonIds;
     }
   }
 }

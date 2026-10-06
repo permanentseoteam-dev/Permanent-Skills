@@ -17,6 +17,30 @@ import type {
   VideoResource,
 } from "./types";
 
+function parsePgArray(raw: any): string[] {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.filter(Boolean).map(String);
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed || trimmed === "{}" || trimmed === "[]") return [];
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) return parsed.filter(Boolean).map(String);
+      } catch {}
+    }
+    if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+      return trimmed
+        .slice(1, -1)
+        .split(",")
+        .map((s) => s.trim().replace(/^["']|["']$/g, ""))
+        .filter(Boolean);
+    }
+    return [trimmed].filter(Boolean);
+  }
+  return [];
+}
+
 export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
   try {
     const supabase = getAdminSupabase();
@@ -82,7 +106,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       isPremium: !!u.is_premium,
       language: u.language || "en",
       ipAddress: u.ip_address || undefined,
-      purchasedCourseIds: u.purchased_course_ids || [],
+      purchasedCourseIds: parsePgArray(u.purchased_course_ids),
       phone: u.phone || undefined,
       notes: u.notes || undefined,
       application: u.application || undefined,
@@ -154,7 +178,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       progressMap.set(key, {
         userId: p.user_id,
         courseId: p.course_id,
-        completedLessonIds: Array.isArray(p.completed_lesson_ids) ? p.completed_lesson_ids : [],
+        completedLessonIds: parsePgArray(p.completed_lesson_ids),
       });
     }
     const mappedProgress: Progress[] = Array.from(progressMap.values());
