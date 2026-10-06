@@ -888,13 +888,17 @@ export async function deleteCommunityFromSupabase(id: string) {
 export async function syncCalendarEventToSupabase(ev: CalendarEvent) {
   try {
     const supabase = getAdminSupabase();
-    const payload = {
+    const basePayload = {
       id: ev.id,
       title: ev.title,
       start_time: ev.start,
       end_time: ev.end,
       type: ev.type || "live",
       description: ev.description || "",
+    };
+
+    const fullPayload = {
+      ...basePayload,
       banner_text: ev.bannerText || "Q & A",
       banner_subtitle: ev.bannerSubtitle || null,
       banner_image: ev.bannerImage || null,
@@ -902,17 +906,13 @@ export async function syncCalendarEventToSupabase(ev: CalendarEvent) {
       is_locked: ev.isLocked ?? (ev.type === "premium"),
       host_name: ev.hostName || null,
     };
-    const { error } = await supabase.from("events").upsert(payload, { onConflict: "id" });
-    if (error) {
-      const basePayload = {
-        id: ev.id,
-        title: ev.title,
-        start_time: ev.start,
-        end_time: ev.end,
-        type: ev.type || "live",
-        description: ev.description || "",
-      };
-      await supabase.from("events").upsert(basePayload, { onConflict: "id" });
+
+    const { error: fullErr } = await supabase.from("events").upsert(fullPayload, { onConflict: "id" });
+    if (fullErr) {
+      const { error: baseErr } = await supabase.from("events").upsert(basePayload, { onConflict: "id" });
+      if (baseErr) {
+        console.error("Error syncing calendar event to Supabase:", baseErr);
+      }
     }
   } catch (err) {
     console.error("Error syncing calendar event to Supabase:", err);

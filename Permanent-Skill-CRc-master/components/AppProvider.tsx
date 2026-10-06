@@ -743,11 +743,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       });
 
-      const res = await run(() => saveCalendarEventAction({ ...input, id: input.id || generatedId }));
-      await refresh();
-      return res;
+      return run(() => saveCalendarEventAction({ ...input, id: input.id || generatedId }));
     },
-    [run, refresh],
+    [run],
   );
   const deleteCalendarEventFn = useCallback(
     async (id: string) => {
@@ -755,11 +753,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ...prev,
         events: prev.events.filter((e) => e.id !== id),
       }));
-      const res = await run(() => deleteCalendarEventAction(id));
-      await refresh();
-      return res;
+      return run(() => deleteCalendarEventAction(id));
     },
-    [run, refresh],
+    [run],
   );
   const updateProjectStatusFn = useCallback(
     (projectId: string, status: "active" | "completed" | "paused") =>
