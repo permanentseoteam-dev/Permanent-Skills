@@ -20,6 +20,7 @@ import {
   Globe,
   GraduationCap,
   HelpCircle,
+  Lock,
   LogOut,
   MessageCircle,
   Plus,
@@ -35,7 +36,7 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "./AppProvider";
-import { Avatar, UserRoleBadge } from "./ui";
+import { Avatar, Modal, UserRoleBadge } from "./ui";
 import { timeAgo } from "@/lib/format";
 import { getLevel } from "@/lib/levels";
 import { createGoogleCalendarUrl, downloadIcsCalendarFile } from "@/lib/calendar-utils";
@@ -76,6 +77,7 @@ export function Header() {
   const [chatSearch, setChatSearch] = useState("");
   const [chatUserId, setChatUserId] = useState<string | null>(null);
   const [copiedNotifId, setCopiedNotifId] = useState<string | null>(null);
+  const [lockedChatModalOpen, setLockedChatModalOpen] = useState(false);
 
   const communityRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -521,6 +523,19 @@ export function Header() {
                     </Link>
                   </div>
 
+                  {/* Lock Notice for Members & Team Members */}
+                  {!isAdminOrManager && (
+                    <div className="mx-3 mt-2.5 rounded-xl bg-amber-50/90 border border-amber-200/90 p-2.5 flex items-start gap-2 text-left">
+                      <Lock size={14} className="text-amber-700 shrink-0 mt-0.5" />
+                      <div className="text-[11px] text-amber-900">
+                        <p className="font-bold">Direct Messaging Locked</p>
+                        <p className="text-[10px] text-amber-700 mt-0.5 leading-tight">
+                          Direct messaging is locked for members. Only Managers and Admins can start chats.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Quick Search Contacts */}
                   <div className="p-2 border-b border-zinc-100">
                     <div className="relative">
@@ -553,7 +568,7 @@ export function Header() {
                                 void markThreadRead(otherId);
                                 setOpen(null);
                               }}
-                              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${
+                              className={`flex w-full items-start gap-3 px-4 py-3 text-left transition cursor-pointer ${
                                 unread ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-zinc-50"
                               }`}
                             >
@@ -589,20 +604,39 @@ export function Header() {
                           <button
                             key={member.id}
                             onClick={() => {
-                              setChatUserId(member.id);
-                              void markThreadRead(member.id);
-                              setOpen(null);
+                              if (isAdminOrManager) {
+                                setChatUserId(member.id);
+                                void markThreadRead(member.id);
+                                setOpen(null);
+                              } else {
+                                setOpen(null);
+                                setLockedChatModalOpen(true);
+                              }
                             }}
-                            className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-zinc-50"
+                            className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-zinc-50 cursor-pointer ${
+                              !isAdminOrManager ? "opacity-90" : ""
+                            }`}
+                            title={
+                              !isAdminOrManager
+                                ? "Direct messaging is locked for members and team members. Only Managers and Admins can start chats."
+                                : `Chat with ${member.name}`
+                            }
                           >
                             <Avatar user={member} size={34} />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium text-zinc-900">{member.name}</p>
                               <p className="truncate text-xs text-zinc-400">@{member.username}</p>
                             </div>
-                            <span className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
-                              Chat
-                            </span>
+                            {isAdminOrManager ? (
+                              <span className="rounded bg-zinc-100 px-2 py-0.5 text-[11px] font-semibold text-zinc-600">
+                                Chat
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded bg-[#e4e6eb] px-2 py-0.5 text-[11px] font-semibold text-zinc-400 shadow-2xs">
+                                <Lock size={10} />
+                                <span>Locked</span>
+                              </span>
+                            )}
                           </button>
                         ))}
                       </div>
@@ -911,6 +945,46 @@ export function Header() {
         </div>
       </header>
       <ChatDrawer userId={chatUserId} onClose={() => setChatUserId(null)} />
+
+      {/* Locked Direct Chat Modal for Members & Team Members */}
+      <Modal
+        open={lockedChatModalOpen}
+        onClose={() => setLockedChatModalOpen(false)}
+        title="Direct Messaging Locked"
+      >
+        <div className="space-y-4 text-center py-2">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 shadow-xs">
+            <Lock size={22} />
+          </div>
+
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-zinc-900">
+              Chat Access is Restricted
+            </h3>
+            <p className="mt-1.5 text-xs text-zinc-600 leading-relaxed max-w-sm mx-auto">
+              Direct messaging is currently locked for members and team members. Only <strong>Managers</strong> and <strong>Admins</strong> can initiate direct chats.
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-zinc-50 p-3.5 border border-zinc-200 text-xs text-zinc-600 text-left space-y-1.5">
+            <div className="font-bold text-zinc-900">How to connect with peers:</div>
+            <p className="text-[11px] text-zinc-500 leading-normal">
+              • Post your questions or wins in the <strong>Community</strong> feed to discuss with peers & coaches.<br />
+              • Reach out to an Admin or Community Manager if you need dedicated support.
+            </p>
+          </div>
+
+          <div className="pt-2 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => setLockedChatModalOpen(false)}
+              className="w-full sm:w-auto rounded-xl bg-zinc-900 px-6 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition cursor-pointer shadow-sm"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

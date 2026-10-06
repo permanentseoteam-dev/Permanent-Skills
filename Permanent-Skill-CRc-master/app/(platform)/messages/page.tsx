@@ -9,6 +9,7 @@ import {
   CheckCheck,
   Crown,
   ExternalLink,
+  Lock,
   MessageCircle,
   MessageSquare,
   Plus,
@@ -22,7 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Avatar, Card, StaffRoleFavicon, UserRoleBadge } from "@/components/ui";
+import { Avatar, Card, Modal, StaffRoleFavicon, UserRoleBadge } from "@/components/ui";
 import { timeAgo } from "@/lib/format";
 import type { PublicUser } from "@/lib/types";
 
@@ -33,6 +34,8 @@ function MessagesContent() {
   const searchParams = useSearchParams();
   const userParam = searchParams.get("user");
 
+  const canChat = user?.role === "admin" || user?.role === "manager";
+  const [lockedChatModalOpen, setLockedChatModalOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(userParam || null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterUnreadOnly, setFilterUnreadOnly] = useState(false);
@@ -166,16 +169,27 @@ function MessagesContent() {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => {
-              setNewMemberSearch("");
-              setShowNewModal(true);
-            }}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90 shadow-sm transition active:scale-95 cursor-pointer"
-          >
-            <Plus size={14} /> New Message
-          </button>
+          {canChat ? (
+            <button
+              type="button"
+              onClick={() => {
+                setNewMemberSearch("");
+                setShowNewModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white hover:bg-primary/90 shadow-sm transition active:scale-95 cursor-pointer"
+            >
+              <Plus size={14} /> New Message
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setLockedChatModalOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-[#e4e6eb] border border-zinc-200/60 px-4 py-2 text-xs font-bold text-zinc-400 cursor-not-allowed select-none shadow-2xs hover:opacity-90 transition"
+              title="Direct messaging is locked for members and team members. Only Managers and Admins can start chats."
+            >
+              <Lock size={14} /> New Message (Locked)
+            </button>
+          )}
         </div>
       </div>
 
@@ -525,16 +539,26 @@ function MessagesContent() {
                 Select an existing conversation from the left menu or start a new direct chat with any student or staff member.
               </p>
               <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewMemberSearch("");
-                    setShowNewModal(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition shadow-sm cursor-pointer"
-                >
-                  <Plus size={13} /> Start New Conversation
-                </button>
+                {canChat ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewMemberSearch("");
+                      setShowNewModal(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition shadow-sm cursor-pointer"
+                  >
+                    <Plus size={13} /> Start New Conversation
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setLockedChatModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-[#e4e6eb] border border-zinc-200/60 px-4 py-2 text-xs font-bold text-zinc-400 cursor-not-allowed select-none shadow-2xs hover:opacity-90 transition"
+                  >
+                    <Lock size={13} /> Direct Chat Locked
+                  </button>
+                )}
               </div>
             </div>
           )}
@@ -542,7 +566,7 @@ function MessagesContent() {
       </Card>
 
       {/* NEW CONVERSATION MEMBER SELECTOR MODAL */}
-      {showNewModal && (
+      {showNewModal && canChat && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-150"
           onClick={() => setShowNewModal(false)}
@@ -620,6 +644,46 @@ function MessagesContent() {
           </div>
         </div>
       )}
+
+      {/* Locked Direct Chat Modal for Members & Team Members */}
+      <Modal
+        open={lockedChatModalOpen}
+        onClose={() => setLockedChatModalOpen(false)}
+        title="Direct Messaging Locked"
+      >
+        <div className="space-y-4 text-center py-2">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-zinc-100 text-zinc-700 border border-zinc-200 shadow-xs">
+            <Lock size={22} />
+          </div>
+
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-zinc-900">
+              Chat Access is Restricted
+            </h3>
+            <p className="mt-1.5 text-xs text-zinc-600 leading-relaxed max-w-sm mx-auto">
+              Direct messaging is currently locked for members and team members. Only <strong>Managers</strong> and <strong>Admins</strong> can initiate direct chats.
+            </p>
+          </div>
+
+          <div className="rounded-xl bg-zinc-50 p-3.5 border border-zinc-200 text-xs text-zinc-600 text-left space-y-1.5">
+            <div className="font-bold text-zinc-900">How to connect with peers:</div>
+            <p className="text-[11px] text-zinc-500 leading-normal">
+              • Post your questions or wins in the <strong>Community</strong> feed to discuss with peers & coaches.<br />
+              • Reach out to an Admin or Community Manager if you need dedicated support.
+            </p>
+          </div>
+
+          <div className="pt-2 flex items-center justify-center">
+            <button
+              type="button"
+              onClick={() => setLockedChatModalOpen(false)}
+              className="w-full sm:w-auto rounded-xl bg-zinc-900 px-6 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition cursor-pointer shadow-sm"
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

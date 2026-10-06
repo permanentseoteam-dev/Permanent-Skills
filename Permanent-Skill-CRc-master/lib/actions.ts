@@ -16,6 +16,7 @@ import type {
   Application,
   CalendarEvent,
   Community,
+  Course,
   EventType,
   Lesson,
   PostCategory,
@@ -1569,13 +1570,35 @@ export async function saveCourse(input: {
 
 export async function deleteCourse(courseId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   await updateDb((db) => {
     db.courses = db.courses.filter((c) => c.id !== courseId);
     db.progress = db.progress.filter((p) => p.courseId !== courseId);
   });
   return { ok: true };
 }
+
+export async function reorderCourses(courseIds: string[]): Promise<ActionResult> {
+  const me = await currentUser();
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
+  await updateDb((db) => {
+    const courseMap = new Map(db.courses.map((c) => [c.id, c]));
+    const reordered: Course[] = [];
+    for (const id of courseIds) {
+      const c = courseMap.get(id);
+      if (c) {
+        reordered.push(c);
+        courseMap.delete(id);
+      }
+    }
+    for (const c of courseMap.values()) {
+      reordered.push(c);
+    }
+    db.courses = reordered;
+  });
+  return { ok: true };
+}
+
 
 
 export async function saveLesson(input: {
@@ -1589,7 +1612,7 @@ export async function saveLesson(input: {
   videoTitle: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   if (!input.title.trim()) return { ok: false, error: "Video title is required." };
   if (!input.courseId) return { ok: false, error: "Choose a course." };
   const id = input.lessonId || `l-${token().slice(0, 8)}`;
@@ -1614,7 +1637,7 @@ export async function saveLesson(input: {
 
 export async function deleteLesson(courseId: string, lessonId: string): Promise<ActionResult> {
   const me = await currentUser();
-  if (me?.role !== "admin") return { ok: false, error: "Admin only." };
+  if (me?.role !== "admin" && me?.role !== "manager") return { ok: false, error: "Admin or Manager only." };
   await updateDb((db) => {
     const course = db.courses.find((c) => c.id === courseId);
     if (!course) return;
@@ -1625,7 +1648,7 @@ export async function deleteLesson(courseId: string, lessonId: string): Promise<
 
 export async function isAdminSession() {
   const me = await currentUser();
-  return me?.role === "admin";
+  return me?.role === "admin" || me?.role === "manager";
 }
 
 export async function createCommunity(input: {

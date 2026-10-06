@@ -41,6 +41,7 @@ import {
   releaseMemberLogin as releaseMemberLoginAction,
   quickSwitchRole as quickSwitchRoleAction,
   saveCourse as saveCourseAction,
+  reorderCourses as reorderCoursesAction,
   saveLesson as saveLessonAction,
   saveProject as saveProjectAction,
   deleteProject as deleteProjectAction,
@@ -159,6 +160,7 @@ type AppContextValue = AppState & {
     watermark?: string;
     glowColor?: "yellow" | "green" | "blue" | "orange" | "red" | "purple";
   }) => Promise<ActionResult>;
+  reorderCourses: (courseIds: string[]) => Promise<ActionResult>;
   deleteCourse: (courseId: string) => Promise<ActionResult>;
   saveLesson: (input: {
     courseId: string;
@@ -575,6 +577,30 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       watermark?: string;
       glowColor?: "yellow" | "green" | "blue" | "orange" | "red" | "purple";
     }) => run(() => saveCourseAction(input)),
+    [run],
+  );
+  const reorderCoursesFn = useCallback(
+    (courseIds: string[]) => {
+      setState((prev) => {
+        const courseMap = new Map(prev.courses.map((c) => [c.id, c]));
+        const reordered: typeof prev.courses = [];
+        for (const id of courseIds) {
+          const c = courseMap.get(id);
+          if (c) {
+            reordered.push(c);
+            courseMap.delete(id);
+          }
+        }
+        for (const c of courseMap.values()) {
+          reordered.push(c);
+        }
+        return {
+          ...prev,
+          courses: reordered,
+        };
+      });
+      return run(() => reorderCoursesAction(courseIds));
+    },
     [run],
   );
   const deleteCourseFn = useCallback((courseId: string) => run(() => deleteCourseAction(courseId)), [run]);
@@ -1032,6 +1058,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       togglePin: togglePinFn,
       completeLesson: completeLessonFn,
       saveCourse: saveCourseFn,
+      reorderCourses: reorderCoursesFn,
       deleteCourse: deleteCourseFn,
       saveLesson: saveLessonFn,
       deleteLesson: deleteLessonFn,
@@ -1094,6 +1121,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       togglePinFn,
       completeLessonFn,
       saveCourseFn,
+      reorderCoursesFn,
       deleteCourseFn,
       saveLessonFn,
       deleteLessonFn,
