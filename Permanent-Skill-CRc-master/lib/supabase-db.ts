@@ -228,9 +228,16 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       createdBy: p.created_by || "u-admin",
     }));
 
-    const mappedEvents: CalendarEvent[] = (events || []).map((e) => {
-      const isCancelled = e.type === "cancelled" || (typeof e.description === "string" && e.description.startsWith("[CANCELLED]")) || !!e.is_cancelled;
-      return {
+    const mappedEvents: CalendarEvent[] = (events || [])
+      .filter((e) => {
+        const isCancelled =
+          e.type === "cancelled" ||
+          (typeof e.description === "string" && e.description.startsWith("[CANCELLED]")) ||
+          !!e.is_cancelled ||
+          e.status === "cancelled";
+        return !isCancelled;
+      })
+      .map((e) => ({
         id: e.id,
         title: e.title,
         start: e.start_time || e.start,
@@ -243,11 +250,10 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
         meetUrl: e.meet_url || e.meetUrl || "https://meet.google.com/new",
         isLocked: e.is_locked !== undefined ? !!e.is_locked : (e.isLocked !== undefined ? !!e.isLocked : (e.type === "premium")),
         hostName: e.host_name || e.hostName || undefined,
-        status: isCancelled ? "cancelled" : (e.status || "scheduled"),
-        isCancelled,
+        status: "scheduled",
+        isCancelled: false,
         deletedAt: e.deleted_at || undefined,
-      };
-    });
+      }));
 
 
     const mappedMessages: Message[] = (messages || []).map((m) => ({
@@ -896,15 +902,22 @@ export async function syncCalendarEventToSupabase(ev: CalendarEvent): Promise<bo
   try {
     const supabase = getAdminSupabase();
     const isCancelled = ev.status === "cancelled" || !!ev.isCancelled;
+    if (isCancelled) {
+      return deleteCalendarEventFromSupabase(ev.id);
+    }
     const basePayload = {
       id: ev.id,
       title: ev.title,
       start_time: ev.start,
       end_time: ev.end,
-      type: isCancelled ? "cancelled" : (ev.type || "live"),
-      description: isCancelled && !ev.description?.startsWith("[CANCELLED]")
-        ? `[CANCELLED] ${ev.description || ""}`.trim()
-        : (ev.description || ""),
+      type: ev.type || "live",
+      description: ev.description || "",
+      banner_text: ev.bannerText || "Q & A",
+      banner_subtitle: ev.bannerSubtitle || null,
+      banner_image: ev.bannerImage || null,
+      meet_url: ev.meetUrl || "https://meet.google.com/new",
+      is_locked: !!ev.isLocked,
+      host_name: ev.hostName || null,
     };
 
     const { error } = await supabase.from("events").upsert(basePayload, { onConflict: "id" });
@@ -920,32 +933,22 @@ export async function syncCalendarEventToSupabase(ev: CalendarEvent): Promise<bo
 }
 
 export async function softDeleteCalendarEventInSupabase(id: string): Promise<boolean> {
-  try {
-    const supabase = getAdminSupabase();
-    const { data: existing } = await supabase.from("events").select("*").eq("id", id).single();
-    if (existing) {
-      const updatedDesc = existing.description?.startsWith("[CANCELLED]")
-        ? existing.description
-        : `[CANCELLED] ${existing.description || ""}`.trim();
-      const { error } = await supabase.from("events").update({
-        type: "cancelled",
-        description: updatedDesc,
-      }).eq("id", id);
-      if (error) {
-        console.error(`Error soft-deleting calendar event (${id}) in Supabase:`, error);
-        return false;
-      }
-      return true;
-    }
-    return true;
-  } catch (err) {
-    console.error(`Exception soft-deleting calendar event (${id}) in Supabase:`, err);
-    return false;
-  }
+  return deleteCalendarEventFromSupabase(id);
 }
 
 export async function deleteCalendarEventFromSupabase(id: string): Promise<boolean> {
-  return softDeleteCalendarEventInSupabase(id);
+  try {
+    const supabase = getAdminSupabase();
+    const { error } = await supabase.from("events").delete().eq("id", id);
+    if (error) {
+      console.error(`Error deleting calendar event (${id}) from Supabase:`, error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`Exception deleting calendar event (${id}) from Supabase:`, err);
+    return false;
+  }
 }
 
 

@@ -2327,18 +2327,8 @@ export async function deleteCalendarEvent(id: string): Promise<ActionResult> {
     return { ok: false, error: "Only admins and managers can delete meetings." };
   }
 
-  const now = new Date().toISOString();
   await updateDb((db) => {
-    db.events = db.events || [];
-    const ev = db.events.find((e) => e.id === id);
-    if (ev) {
-      ev.status = "cancelled";
-      ev.isCancelled = true;
-      ev.deletedAt = now;
-      if (!ev.description?.startsWith("[CANCELLED]")) {
-        ev.description = `[CANCELLED] ${ev.description || ""}`.trim();
-      }
-    }
+    db.events = (db.events || []).filter((e) => e.id !== id);
     // Also remove meeting notifications for this event
     if (db.notifications) {
       db.notifications = db.notifications.filter((n) => !n.link?.includes(`event=${id}`));
@@ -2347,7 +2337,7 @@ export async function deleteCalendarEvent(id: string): Promise<ActionResult> {
 
   const supaOk = await deleteCalendarEventFromSupabase(id);
   if (!supaOk) {
-    console.warn(`Supabase soft-delete returned false for event ${id}.`);
+    console.warn(`Supabase delete returned false for event ${id}.`);
   }
 
   return { ok: true };

@@ -294,6 +294,7 @@ function isServerActionMismatch(err: unknown): boolean {
 
 const ACTIVE_COMMUNITY_KEY = "pss_active_community_id";
 const recentProgressLocks = new Map<string, number>();
+const recentDeletedEventLocks = new Map<string, number>();
 
 function applyNextState(next: AppState, prev: AppState): AppState {
   let activeId = prev.activeCommunityId;
@@ -323,9 +324,24 @@ function applyNextState(next: AppState, prev: AppState): AppState {
     mergedProgress = Array.from(updatedMap.values());
   }
 
+  // Guard recently deleted calendar events against stale in-flight background polling
+  const mergedEvents = (next.events || []).filter((e) => {
+    const lockTime = recentDeletedEventLocks.get(e.id);
+    if (lockTime && now - lockTime < 15000) {
+      return false;
+    }
+    return (
+      e.status !== "cancelled" &&
+      !e.isCancelled &&
+      (e.type as string) !== "cancelled" &&
+      !(typeof e.description === "string" && e.description.startsWith("[CANCELLED]"))
+    );
+  });
+
   return {
     ...next,
     progress: mergedProgress,
+    events: mergedEvents,
     activeCommunityId: finalActiveCommunityId,
   };
 }
@@ -729,8 +745,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         hostName: input.hostName,
       };
 
+      const targetId = input.id || generatedId;
+      recentDeletedEventLocks.delete(targetId);
+
       setState((prev) => {
-        const existingIdx = prev.events.findIndex((e) => e.id === (input.id || generatedId));
+        const existingIdx = prev.events.findIndex((e) => e.id === targetId);
         const nextEvents = [...prev.events];
         if (existingIdx >= 0) {
           nextEvents[existingIdx] = optimisticEv;
@@ -743,22 +762,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         };
       });
 
-      return run(() => saveCalendarEventAction({ ...input, id: input.id || generatedId }));
+      return run(() => saveCalendarEventAction({ ...input, id: targetId }));
     },
     [run],
   );
   const deleteCalendarEventFn = useCallback(
     async (id: string) => {
+      recentDeletedEventLocks.set(id, Date.now());
+      setState((prev) => ({
+        ...prev,
+        events: prev.events.filter((e) => e.id !== id),
+      }));
       const res = await run(() => deleteCalendarEventAction(id));
-      if (res.ok) {
-        setState((prev) => ({
-          ...prev,
-          events: prev.events.filter((e) => e.id !== id),
-        }));
+      if (!res.ok) {
+        recentDeletedEventLocks.delete(id);
+        await refresh();
       }
       return res;
     },
-    [run],
+    [run, refresh],
   );
 
   const updateProjectStatusFn = useCallback(

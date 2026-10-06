@@ -298,7 +298,13 @@ export default function MeetPage() {
 
   // Filter out cancelled/soft-deleted events and remove older/past meetings for non-staff roles
   const visibleEvents = useMemo(() => {
-    const nonCancelled = (events || []).filter((e) => e.status !== "cancelled" && !e.isCancelled);
+    const nonCancelled = (events || []).filter(
+      (e) =>
+        e.status !== "cancelled" &&
+        !e.isCancelled &&
+        (e.type as string) !== "cancelled" &&
+        !(typeof e.description === "string" && e.description.startsWith("[CANCELLED]"))
+    );
     if (isAdminOrManager) return nonCancelled;
     return nonCancelled.filter((e) => !isMeetingOlder(e));
   }, [events, isAdminOrManager]);

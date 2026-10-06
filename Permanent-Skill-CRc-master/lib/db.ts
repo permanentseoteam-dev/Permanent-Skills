@@ -296,6 +296,18 @@ function migrate(db: Database) {
   if (!db.events) {
     db.events = [];
     changed = true;
+  } else if (db.events.length > 0) {
+    const validEvents = db.events.filter(
+      (e) =>
+        e.status !== "cancelled" &&
+        !e.isCancelled &&
+        (e.type as string) !== "cancelled" &&
+        !(typeof e.description === "string" && e.description.startsWith("[CANCELLED]"))
+    );
+    if (validEvents.length !== db.events.length) {
+      db.events = validEvents;
+      changed = true;
+    }
   }
   if (!db.videoResources || db.videoResources.length === 0) {
     db.videoResources = createSeed().videoResources || [];
