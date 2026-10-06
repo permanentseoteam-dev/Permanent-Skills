@@ -26,6 +26,8 @@ import {
   deleteVideoResourceFromSupabase,
   syncCommunityToSupabase,
   deleteCommunityFromSupabase,
+  syncCalendarEventToSupabase,
+  deleteCalendarEventFromSupabase,
 } from "./supabase-db";
 import type { Database, Lesson, User } from "./types";
 
@@ -347,8 +349,8 @@ function migrate(db: Database) {
   }
   if (db.progress && db.progress.length > 0) {
     for (const prog of db.progress) {
-      if (prog.completedLessonIds && prog.completedLessonIds.length === 1 && prog.completedLessonIds[0] === "l-eem-1-1") {
-        prog.completedLessonIds = [];
+      if (prog.completedLessonIds && prog.completedLessonIds.includes("l-eem-1-1")) {
+        prog.completedLessonIds = prog.completedLessonIds.filter((id) => id !== "l-eem-1-1");
         changed = true;
       }
     }
@@ -470,6 +472,7 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
   const prevNotifications = new Map((db.notifications || []).map((n) => [n.id, JSON.stringify(n)]));
   const prevMessages = new Map((db.messages || []).map((m) => [m.id, JSON.stringify(m)]));
   const prevSales = new Map((db.sales || []).map((s) => [s.id, JSON.stringify(s)]));
+  const prevEvents = new Map((db.events || []).map((e) => [e.id, JSON.stringify(e)]));
 
   const result = mutator(db);
   persist(db);
@@ -619,6 +622,20 @@ export async function updateDb<T>(mutator: (db: Database) => T): Promise<T> {
       const prevJson = prevMessages.get(msg.id);
       if (!prevJson || prevJson !== JSON.stringify(msg)) {
         promises.push(syncMessageToSupabase(msg));
+      }
+    }
+
+    // 13. Events
+    const currentEventIds = new Set((db.events || []).map((e) => e.id));
+    for (const ev of db.events || []) {
+      const prevJson = prevEvents.get(ev.id);
+      if (!prevJson || prevJson !== JSON.stringify(ev)) {
+        promises.push(syncCalendarEventToSupabase(ev));
+      }
+    }
+    for (const [prevId] of prevEvents) {
+      if (!currentEventIds.has(prevId)) {
+        promises.push(deleteCalendarEventFromSupabase(prevId));
       }
     }
 
