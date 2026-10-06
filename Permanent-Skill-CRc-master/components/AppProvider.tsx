@@ -293,6 +293,7 @@ function isServerActionMismatch(err: unknown): boolean {
 }
 
 const ACTIVE_COMMUNITY_KEY = "pss_active_community_id";
+const recentProgressLocks = new Map<string, number>();
 
 function applyNextState(next: AppState, prev: AppState): AppState {
   let activeId = prev.activeCommunityId;
@@ -307,8 +308,24 @@ function applyNextState(next: AppState, prev: AppState): AppState {
   const finalActiveCommunityId =
     activeId && activeId !== "comm-pss" ? activeId : next.activeCommunityId || "comm-students";
 
+  // Guard recently toggled course progress against stale in-flight background polling
+  const now = Date.now();
+  let mergedProgress = next.progress || [];
+  if (prev.progress && prev.progress.length > 0) {
+    const updatedMap = new Map(mergedProgress.map((p) => [`${p.userId}:${p.courseId}`, p]));
+    for (const prevRow of prev.progress) {
+      const key = `${prevRow.userId}:${prevRow.courseId}`;
+      const lockTime = recentProgressLocks.get(key);
+      if (lockTime && now - lockTime < 4000) {
+        updatedMap.set(key, prevRow);
+      }
+    }
+    mergedProgress = Array.from(updatedMap.values());
+  }
+
   return {
     ...next,
+    progress: mergedProgress,
     activeCommunityId: finalActiveCommunityId,
   };
 }
@@ -535,12 +552,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [run],
   );
   const completeLessonFn = useCallback(
-    (courseId: string, lessonId: string) => {
+    async (courseId: string, lessonId: string) => {
+      const uid = state.user?.id;
+      if (uid) {
+        const lockKey = `${uid}:${courseId}`;
+        recentProgressLocks.set(lockKey, Date.now());
+      }
+
       setState((prev) => {
         if (!prev.user) return prev;
-        const uid = prev.user.id;
+        const currentUserId = prev.user.id;
         const existingRowIndex = prev.progress.findIndex(
-          (p) => p.userId === uid && p.courseId === courseId,
+          (p) => p.userId === currentUserId && p.courseId === courseId,
         );
         const newProgress = [...prev.progress];
         if (existingRowIndex >= 0) {
@@ -555,7 +578,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
         } else {
           newProgress.push({
-            userId: uid,
+            userId: currentUserId,
             courseId,
             completedLessonIds: [lessonId],
           });
@@ -566,9 +589,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           progress: newProgress,
         };
       });
-      return run(() => completeLessonAction(courseId, lessonId));
+
+      try {
+        const res = await fetch("/api/progress", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ courseId, lessonId }),
+        });
+        const data = await res.json().catch(() => null);
+        if (data?.ok && Array.isArray(data.completedLessonIds) && uid) {
+          setState((prev) => {
+            const rowIdx = prev.progress.findIndex((p) => p.userId === uid && p.courseId === courseId);
+            const copy = [...prev.progress];
+            if (rowIdx >= 0) {
+              copy[rowIdx] = { ...copy[rowIdx], completedLessonIds: data.completedLessonIds };
+            } else {
+              copy.push({ userId: uid, courseId, completedLessonIds: data.completedLessonIds });
+            }
+            return { ...prev, progress: copy };
+          });
+          return { ok: true };
+        }
+        return data || { ok: true };
+      } catch {
+        return completeLessonAction(courseId, lessonId);
+      }
     },
-    [run],
+    [state.user?.id],
   );
   const saveCourseFn = useCallback(
     (input: {

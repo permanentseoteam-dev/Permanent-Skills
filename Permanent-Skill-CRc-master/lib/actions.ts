@@ -1280,7 +1280,7 @@ export async function togglePin(postId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-export async function completeLesson(courseId: string, lessonId: string): Promise<ActionResult> {
+export async function completeLesson(courseId: string, lessonId: string): Promise<ActionResult & { completedLessonIds?: string[] }> {
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in." };
   let updatedRow: Progress | null = null;
@@ -1311,7 +1311,7 @@ export async function completeLesson(courseId: string, lessonId: string): Promis
   if (updatedRow) {
     await syncProgressToSupabase(updatedRow).catch(() => {});
   }
-  return { ok: true };
+  return { ok: true, completedLessonIds: (updatedRow as Progress | null)?.completedLessonIds || [] };
 }
 
 export async function sendMessage(receiverId: string, body: string): Promise<ActionResult> {
