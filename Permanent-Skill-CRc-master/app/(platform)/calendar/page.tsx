@@ -514,8 +514,11 @@ export default function MeetPage() {
     if (res.ok) {
       setEventModalOpen(false);
       setSelectedEvent(null);
+    } else {
+      alert(res.error || "Could not delete meeting from database.");
     }
   }
+
 
   async function handleCopyMeetingLink(url: string) {
     try {

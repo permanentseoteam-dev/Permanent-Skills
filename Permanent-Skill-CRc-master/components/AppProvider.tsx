@@ -749,14 +749,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
   const deleteCalendarEventFn = useCallback(
     async (id: string) => {
-      setState((prev) => ({
-        ...prev,
-        events: prev.events.filter((e) => e.id !== id),
-      }));
-      return run(() => deleteCalendarEventAction(id));
+      const res = await run(() => deleteCalendarEventAction(id));
+      if (res.ok) {
+        setState((prev) => ({
+          ...prev,
+          events: prev.events.filter((e) => e.id !== id),
+        }));
+      }
+      return res;
     },
     [run],
   );
+
   const updateProjectStatusFn = useCallback(
     (projectId: string, status: "active" | "completed" | "paused") =>
       run(() => updateProjectStatusAction(projectId, status)),

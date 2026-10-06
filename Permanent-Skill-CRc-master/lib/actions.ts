@@ -2328,10 +2328,18 @@ export async function deleteCalendarEvent(id: string): Promise<ActionResult> {
 
   await updateDb((db) => {
     db.events = (db.events || []).filter((e) => e.id !== id);
+    // Also remove meeting notifications for this event
+    if (db.notifications) {
+      db.notifications = db.notifications.filter((n) => !n.link?.includes(`event=${id}`));
+    }
   });
 
-  await deleteCalendarEventFromSupabase(id).catch(() => {});
+  const supaOk = await deleteCalendarEventFromSupabase(id);
+  if (!supaOk) {
+    console.warn(`Supabase deletion returned false for event ${id}, check table permissions.`);
+  }
 
   return { ok: true };
 }
+
 

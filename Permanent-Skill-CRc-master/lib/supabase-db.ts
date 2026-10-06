@@ -885,7 +885,7 @@ export async function deleteCommunityFromSupabase(id: string) {
   }
 }
 
-export async function syncCalendarEventToSupabase(ev: CalendarEvent) {
+export async function syncCalendarEventToSupabase(ev: CalendarEvent): Promise<boolean> {
   try {
     const supabase = getAdminSupabase();
     const basePayload = {
@@ -897,34 +897,31 @@ export async function syncCalendarEventToSupabase(ev: CalendarEvent) {
       description: ev.description || "",
     };
 
-    const fullPayload = {
-      ...basePayload,
-      banner_text: ev.bannerText || "Q & A",
-      banner_subtitle: ev.bannerSubtitle || null,
-      banner_image: ev.bannerImage || null,
-      meet_url: ev.meetUrl || "https://meet.google.com/new",
-      is_locked: ev.isLocked ?? (ev.type === "premium"),
-      host_name: ev.hostName || null,
-    };
-
-    const { error: fullErr } = await supabase.from("events").upsert(fullPayload, { onConflict: "id" });
-    if (fullErr) {
-      const { error: baseErr } = await supabase.from("events").upsert(basePayload, { onConflict: "id" });
-      if (baseErr) {
-        console.error("Error syncing calendar event to Supabase:", baseErr);
-      }
+    const { error } = await supabase.from("events").upsert(basePayload, { onConflict: "id" });
+    if (error) {
+      console.error(`Error syncing calendar event (${ev.id}) to Supabase:`, error);
+      return false;
     }
+    return true;
   } catch (err) {
-    console.error("Error syncing calendar event to Supabase:", err);
+    console.error("Exception syncing calendar event to Supabase:", err);
+    return false;
   }
 }
 
-export async function deleteCalendarEventFromSupabase(id: string) {
+export async function deleteCalendarEventFromSupabase(id: string): Promise<boolean> {
   try {
     const supabase = getAdminSupabase();
-    await supabase.from("events").delete().eq("id", id);
+    const { error, count } = await supabase.from("events").delete({ count: "exact" }).eq("id", id);
+    if (error) {
+      console.error(`Error deleting calendar event (${id}) from Supabase:`, error);
+      return false;
+    }
+    return true;
   } catch (err) {
-    console.error("Error deleting calendar event from Supabase:", err);
+    console.error(`Exception deleting calendar event (${id}) from Supabase:`, err);
+    return false;
   }
 }
+
 
