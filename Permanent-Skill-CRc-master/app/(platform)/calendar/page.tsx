@@ -19,6 +19,7 @@ import {
   Layers,
   Link2,
   ListTodo,
+  Lock,
   Minus,
   MoreVertical,
   Pencil,
@@ -62,27 +63,168 @@ function toLocalDatetimeInputString(dateStrOrDate?: string | Date): string {
   return `${YYYY}-${MM}-${DD}T${hh}:${mm}`;
 }
 
+function formatSkoolMeetingTime(startStr: string, endStr?: string) {
+  try {
+    const startDate = new Date(startStr);
+    if (isNaN(startDate.getTime())) return startStr;
+    const endDate = endStr ? new Date(endStr) : null;
+
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    const startOfTomorrow = startOfToday + 24 * 60 * 60 * 1000;
+    const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+
+    const eventDayStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime();
+
+    let dayPrefix = "";
+    if (eventDayStart === startOfToday) {
+      dayPrefix = "Today";
+    } else if (eventDayStart === startOfTomorrow) {
+      dayPrefix = "Tomorrow";
+    } else if (eventDayStart === startOfYesterday) {
+      dayPrefix = "Yesterday";
+    } else {
+      const weekday = startDate.toLocaleDateString("en-US", { weekday: "short" });
+      const month = startDate.toLocaleDateString("en-US", { month: "short" });
+      const day = startDate.getDate();
+      dayPrefix = `${weekday}, ${month} ${day}`;
+    }
+
+    const formatTime = (d: Date) => {
+      const hours = d.getHours();
+      const minutes = d.getMinutes();
+      const ampm = hours >= 12 ? "pm" : "am";
+      const h12 = hours % 12 || 12;
+      return minutes === 0 ? `${h12}${ampm}` : `${h12}:${String(minutes).padStart(2, "0")}${ampm}`;
+    };
+
+    const startTime = formatTime(startDate);
+    const endTime = endDate && !isNaN(endDate.getTime()) ? ` - ${formatTime(endDate)}` : "";
+
+    return `${dayPrefix} @ ${startTime}${endTime}`;
+  } catch {
+    return startStr;
+  }
+}
+
+function getTimezoneCityName(): string {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (!tz) return "Local time";
+    const parts = tz.split("/");
+    const city = parts[parts.length - 1].replace(/_/g, " ");
+    return `${city} time`;
+  } catch {
+    return "Local time";
+  }
+}
+
+function SkoolMeetingWaveBanner({
+  bannerText = "Q & A",
+  bannerSubtitle = "AI Automation Society Plus",
+  bannerImage,
+}: {
+  bannerText?: string;
+  bannerSubtitle?: string;
+  bannerImage?: string;
+}) {
+  if (bannerImage) {
+    return (
+      <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-zinc-950">
+        <img src={bannerImage} alt={bannerText} className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent" />
+        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+          <h2 className="text-3xl sm:text-4xl font-black italic tracking-wider text-white drop-shadow-[0_4px_14px_rgba(0,0,0,0.9)]">
+            {bannerText || "Q & A"}
+          </h2>
+          {bannerSubtitle && (
+            <div className="mt-2.5 inline-flex items-center rounded-full bg-white/95 px-4 py-1 text-[11px] sm:text-xs font-black tracking-tight text-zinc-900 shadow-lg backdrop-blur-xs">
+              {bannerSubtitle}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-[#06080E] select-none">
+      {/* Background radial luminous aura */}
+      <div className="absolute -top-12 left-1/2 -translate-x-1/2 h-40 w-80 rounded-full bg-sky-500/25 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-8 left-1/4 h-28 w-44 rounded-full bg-indigo-500/20 blur-2xl pointer-events-none" />
+      <div className="absolute -bottom-8 right-1/4 h-28 w-44 rounded-full bg-blue-500/25 blur-2xl pointer-events-none" />
+
+      {/* High-res Wave Contour Lines SVG */}
+      <svg
+        className="absolute inset-0 h-full w-full pointer-events-none"
+        viewBox="0 0 500 240"
+        preserveAspectRatio="none"
+        fill="none"
+      >
+        <defs>
+          <linearGradient id="skoolCyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.85" />
+            <stop offset="60%" stopColor="#60a5fa" stopOpacity="0.65" />
+            <stop offset="100%" stopColor="#818cf8" stopOpacity="0.3" />
+          </linearGradient>
+          <linearGradient id="skoolBlueGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="#0284c7" stopOpacity="0.8" />
+            <stop offset="50%" stopColor="#38bdf8" stopOpacity="0.6" />
+            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.25" />
+          </linearGradient>
+        </defs>
+
+        {/* Left flowing contour waves */}
+        <path d="M-40,10 C40,40 80,120 40,240" stroke="url(#skoolCyanGrad)" strokeWidth="1.2" opacity="0.65" />
+        <path d="M-30,0 C60,30 110,110 70,240" stroke="url(#skoolCyanGrad)" strokeWidth="1.2" opacity="0.7" />
+        <path d="M-20,-10 C80,20 140,100 100,240" stroke="url(#skoolCyanGrad)" strokeWidth="1.2" opacity="0.75" />
+        <path d="M-10,-20 C100,10 170,90 130,240" stroke="url(#skoolCyanGrad)" strokeWidth="1.2" opacity="0.8" />
+        <path d="M0,-30 C120,0 200,80 160,240" stroke="url(#skoolCyanGrad)" strokeWidth="1.2" opacity="0.7" />
+        <path d="M10,-40 C140,-10 230,70 190,240" stroke="url(#skoolCyanGrad)" strokeWidth="1.2" opacity="0.6" />
+
+        {/* Right flowing contour waves */}
+        <path d="M540,20 C460,50 420,130 460,240" stroke="url(#skoolBlueGrad)" strokeWidth="1.2" opacity="0.65" />
+        <path d="M530,10 C440,40 390,120 430,240" stroke="url(#skoolBlueGrad)" strokeWidth="1.2" opacity="0.7" />
+        <path d="M520,0 C420,30 360,110 400,240" stroke="url(#skoolBlueGrad)" strokeWidth="1.2" opacity="0.75" />
+        <path d="M510,-10 C400,20 330,100 370,240" stroke="url(#skoolBlueGrad)" strokeWidth="1.2" opacity="0.8" />
+        <path d="M500,-20 C380,10 300,90 340,240" stroke="url(#skoolBlueGrad)" strokeWidth="1.2" opacity="0.7" />
+        <path d="M490,-30 C360,0 270,80 310,240" stroke="url(#skoolBlueGrad)" strokeWidth="1.2" opacity="0.6" />
+
+        {/* Bottom subtle wave curves */}
+        <path d="M-20,180 Q125,230 250,190 T520,200" stroke="#38bdf8" strokeWidth="1.2" opacity="0.5" />
+        <path d="M-20,195 Q125,245 250,205 T520,215" stroke="#60a5fa" strokeWidth="1.2" opacity="0.45" />
+        <path d="M-20,210 Q125,260 250,220 T520,230" stroke="#818cf8" strokeWidth="1.2" opacity="0.4" />
+      </svg>
+
+      {/* Centered Typography Matching Reference Screenshot */}
+      <div className="relative z-10 flex h-full flex-col items-center justify-center p-4 text-center">
+        <h2 className="text-4xl sm:text-5xl font-black italic tracking-wider text-white drop-shadow-[0_0_28px_rgba(56,189,248,0.85)]">
+          {bannerText || "Q & A"}
+        </h2>
+        {bannerSubtitle && (
+          <div className="mt-3 inline-flex items-center rounded-full bg-white px-4 py-1 text-[11px] sm:text-xs font-bold tracking-tight text-zinc-900 shadow-md">
+            {bannerSubtitle}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function isMeetingOlder(event?: CalendarEvent | null): boolean {
   if (!event) return false;
   try {
     const now = new Date();
-    // Normalize today's start of day in local time
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0).getTime();
-    
     const eventDate = new Date(event.start || event.end);
     const startOfEventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate(), 0, 0, 0, 0).getTime();
 
-    // 1. Any date strictly before today is an older ended meeting
     if (startOfEventDay < startOfToday) {
       return true;
     }
-
-    // 2. Future dates are upcoming meetings (not older)
     if (startOfEventDay > startOfToday) {
       return false;
     }
-
-    // 3. Current date meeting (today): older only if its end time has already elapsed
     const eventEnd = new Date(event.end || event.start);
     return eventEnd.getTime() < now.getTime();
   } catch {
@@ -166,15 +308,30 @@ export default function MeetPage() {
     end: string;
     type: EventType;
     description: string;
+    bannerText?: string;
+    bannerSubtitle?: string;
+    bannerImage?: string;
+    meetUrl?: string;
+    isLocked?: boolean;
+    hostName?: string;
   }>({
     title: "",
     start: "",
     end: "",
     type: "live",
     description: "",
+    bannerText: "Q & A",
+    bannerSubtitle: "AI Automation Society Plus",
+    bannerImage: "",
+    meetUrl: "https://meet.google.com/new",
+    isLocked: true,
+    hostName: "",
   });
   const [eventBusy, setEventBusy] = useState(false);
   const [eventError, setEventError] = useState("");
+  const [calDropdownOpen, setCalDropdownOpen] = useState(false);
+  const [copyLinkSuccess, setCopyLinkSuccess] = useState(false);
+  const calDropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
@@ -184,6 +341,19 @@ export default function MeetPage() {
       }
     } catch (e) {}
   }, []);
+
+  // Close calendar dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (calDropdownRef.current && !calDropdownRef.current.contains(e.target as Node)) {
+        setCalDropdownOpen(false);
+      }
+    }
+    if (calDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [calDropdownOpen]);
 
   function toggleRsvp(eventId: string) {
     setRsvpEventIds((prev) => {
@@ -201,28 +371,38 @@ export default function MeetPage() {
     setSelectedEvent(ev);
     setEventModalMode("view");
     setEventError("");
+    setCalDropdownOpen(false);
     setEventModalOpen(true);
   }
 
   function openCreateMeeting(defaultDate?: Date) {
+    if (!isAdminOrManager) return;
     const baseDate = defaultDate ? new Date(defaultDate) : new Date(Date.now() + 24 * 60 * 60 * 1000);
     baseDate.setHours(15, 0, 0, 0);
-    const endBase = new Date(baseDate.getTime() + 90 * 60 * 1000);
+    const endBase = new Date(baseDate.getTime() + 60 * 60 * 1000);
 
     setEventForm({
-      title: "",
+      title: "Q&A w/ Nate",
       start: toLocalDatetimeInputString(baseDate),
       end: toLocalDatetimeInputString(endBase),
       type: "live",
-      description: "",
+      description: "Become a plus member to unlock weekly calls with Nate! (always recorded)",
+      bannerText: "Q & A",
+      bannerSubtitle: "AI Automation Society Plus",
+      bannerImage: "",
+      meetUrl: "https://meet.google.com/new",
+      isLocked: true,
+      hostName: user?.name || "Host",
     });
     setSelectedEvent(null);
     setEventModalMode("create");
     setEventError("");
+    setCalDropdownOpen(false);
     setEventModalOpen(true);
   }
 
   function openEditMeeting(ev: CalendarEvent) {
+    if (!isAdminOrManager) return;
     setEventForm({
       id: ev.id,
       title: ev.title,
@@ -230,14 +410,25 @@ export default function MeetPage() {
       end: toLocalDatetimeInputString(ev.end),
       type: ev.type || "live",
       description: ev.description || "",
+      bannerText: ev.bannerText || "Q & A",
+      bannerSubtitle: ev.bannerSubtitle || "AI Automation Society Plus",
+      bannerImage: ev.bannerImage || "",
+      meetUrl: ev.meetUrl || "https://meet.google.com/new",
+      isLocked: ev.isLocked ?? true,
+      hostName: ev.hostName || "",
     });
     setSelectedEvent(ev);
     setEventModalMode("edit");
     setEventError("");
+    setCalDropdownOpen(false);
     setEventModalOpen(true);
   }
 
   async function onSaveMeeting() {
+    if (!isAdminOrManager) {
+      setEventError("Access denied. Manager or Admin role required.");
+      return;
+    }
     if (!eventForm.title.trim()) {
       setEventError("Please enter a meeting title.");
       return;
@@ -263,6 +454,10 @@ export default function MeetPage() {
   }
 
   async function onDeleteMeeting(id: string) {
+    if (!isAdminOrManager) {
+      alert("Access denied. Manager or Admin role required.");
+      return;
+    }
     if (!confirm("Are you sure you want to delete this meeting?")) return;
     setEventBusy(true);
     const res = await deleteCalendarEvent(id);
@@ -270,6 +465,27 @@ export default function MeetPage() {
     if (res.ok) {
       setEventModalOpen(false);
       setSelectedEvent(null);
+    }
+  }
+
+  async function handleCopyMeetingLink(url: string) {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = url;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopyLinkSuccess(true);
+      setTimeout(() => setCopyLinkSuccess(false), 2200);
+    } catch {
+      // Fallback
     }
   }
 

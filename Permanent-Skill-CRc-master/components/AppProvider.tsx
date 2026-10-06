@@ -198,6 +198,12 @@ type AppContextValue = AppState & {
     end: string;
     type: EventType;
     description: string;
+    bannerText?: string;
+    bannerSubtitle?: string;
+    bannerImage?: string;
+    meetUrl?: string;
+    isLocked?: boolean;
+    hostName?: string;
   }) => Promise<ActionResult>;
   deleteCalendarEvent: (id: string) => Promise<ActionResult>;
   updateProjectStatus: (projectId: string, status: "active" | "completed" | "paused") => Promise<ActionResult>;
@@ -650,6 +656,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       end: string;
       type: EventType;
       description: string;
+      bannerText?: string;
+      bannerSubtitle?: string;
+      bannerImage?: string;
+      meetUrl?: string;
+      isLocked?: boolean;
+      hostName?: string;
     }) => run(() => saveCalendarEventAction(input)),
     [run],
   );

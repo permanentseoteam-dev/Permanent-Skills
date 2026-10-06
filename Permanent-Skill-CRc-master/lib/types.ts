@@ -179,6 +179,12 @@ export interface CalendarEvent {
   end: string;
   type: EventType;
   description: string;
+  bannerText?: string;
+  bannerSubtitle?: string;
+  bannerImage?: string;
+  meetUrl?: string;
+  isLocked?: boolean;
+  hostName?: string;
 }
 
 export interface Message {

@@ -2171,6 +2171,12 @@ export async function saveCalendarEvent(input: {
   end: string;
   type: EventType;
   description: string;
+  bannerText?: string;
+  bannerSubtitle?: string;
+  bannerImage?: string;
+  meetUrl?: string;
+  isLocked?: boolean;
+  hostName?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in first." };
@@ -2195,6 +2201,12 @@ export async function saveCalendarEvent(input: {
       end: input.end,
       type: input.type || "live",
       description: input.description?.trim() || "",
+      bannerText: input.bannerText?.trim() || "Q & A",
+      bannerSubtitle: input.bannerSubtitle?.trim() || undefined,
+      bannerImage: input.bannerImage?.trim() || undefined,
+      meetUrl: input.meetUrl?.trim() || "https://meet.google.com/new",
+      isLocked: input.isLocked ?? (input.type === "premium"),
+      hostName: input.hostName?.trim() || undefined,
     };
 
     if (eventIndex >= 0) {
