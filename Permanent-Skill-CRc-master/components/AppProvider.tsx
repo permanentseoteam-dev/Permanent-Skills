@@ -219,7 +219,7 @@ type AppContextValue = AppState & {
   markNotificationsRead: () => Promise<ActionResult>;
   addReview: (rating: number, body: string) => Promise<ActionResult>;
   deleteReview: (reviewId: string) => Promise<ActionResult>;
-  updateProfile: (input: { name?: string; bio?: string; location?: string; language?: string }) => Promise<ActionResult>;
+  updateProfile: (input: { name?: string; bio?: string; location?: string; language?: string; avatarUrl?: string; avatarColor?: string }) => Promise<ActionResult>;
   changePassword: (current: string, next: string) => Promise<ActionResult>;
   approveUser: (userId: string) => Promise<ActionResult>;
   rejectUser: (userId: string) => Promise<ActionResult>;
@@ -864,7 +864,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const addReviewFn = useCallback((rating: number, body: string) => run(() => addReviewAction(rating, body)), [run]);
   const deleteReviewFn = useCallback((reviewId: string) => run(() => deleteReviewAction(reviewId)), [run]);
   const updateProfileFn = useCallback(
-    (input: { name?: string; bio?: string; location?: string; language?: string }) =>
+    (input: { name?: string; bio?: string; location?: string; language?: string; avatarUrl?: string; avatarColor?: string }) =>
       run(() => updateProfileAction(input)),
     [run],
   );

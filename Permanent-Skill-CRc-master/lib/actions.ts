@@ -71,6 +71,7 @@ function publicUser(user: User, viewer?: User | null, activeUserIds?: Set<string
     points7d: user.points7d,
     points30d: user.points30d,
     avatarColor: user.avatarColor,
+    avatarUrl: user.avatarUrl || undefined,
     location: user.location,
     lat: user.lat,
     lng: user.lng,
@@ -1453,6 +1454,8 @@ export async function updateProfile(input: {
   bio?: string;
   location?: string;
   language?: string;
+  avatarUrl?: string;
+  avatarColor?: string;
 }): Promise<ActionResult> {
   const me = await currentUser();
   if (!me) return { ok: false, error: "Please log in." };
@@ -1463,6 +1466,8 @@ export async function updateProfile(input: {
     if (input.bio !== undefined) user.bio = input.bio.trim();
     if (input.location !== undefined) user.location = input.location.trim();
     if (input.language) user.language = input.language;
+    if (input.avatarUrl !== undefined) user.avatarUrl = input.avatarUrl.trim() || undefined;
+    if (input.avatarColor?.trim()) user.avatarColor = input.avatarColor.trim();
   });
   return { ok: true };
 }

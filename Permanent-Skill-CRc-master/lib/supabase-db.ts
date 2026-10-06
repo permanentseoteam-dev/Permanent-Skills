@@ -97,6 +97,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
       points7d: Number(u.points7d || 0),
       points30d: Number(u.points30d || 0),
       avatarColor: u.avatar_color || "#f59e0b",
+      avatarUrl: u.avatar_url || u.avatar_image || undefined,
       location: u.location || "",
       lat: Number(u.lat || 0),
       lng: Number(u.lng || 0),
@@ -345,7 +346,7 @@ export async function fetchDatabaseFromSupabase(): Promise<Database | null> {
 export async function syncUserToSupabase(u: User) {
   try {
     const supabase = getAdminSupabase();
-    const payload = {
+    const payload: Record<string, any> = {
       id: u.id,
       email: u.email,
       password_hash: u.passwordHash,
@@ -358,6 +359,7 @@ export async function syncUserToSupabase(u: User) {
       points7d: u.points7d || 0,
       points30d: u.points30d || 0,
       avatar_color: u.avatarColor || "#f59e0b",
+      avatar_url: u.avatarUrl || null,
       location: u.location || "",
       lat: u.lat || 0,
       lng: u.lng || 0,
@@ -389,9 +391,16 @@ export async function syncUserToSupabase(u: User) {
       return;
     }
 
+    // Fallback if avatar_url column doesn't exist yet in Supabase schema
+    if (updateErr && (updateErr.message?.includes("avatar_url") || updateErr.code === "PGRST204")) {
+      const { avatar_url: _unused, ...fallbackPayload } = payload;
+      await supabase.from("users").update(fallbackPayload).eq("id", u.id);
+      return;
+    }
+
     // 2. If ID wasn't matched, try updating by email if available
     if (u.email) {
-      const { data: updatedEmail } = await supabase
+      const { data: updatedEmail, error: emailErr } = await supabase
         .from("users")
         .update(payload)
         .eq("email", u.email.trim().toLowerCase())
@@ -399,11 +408,23 @@ export async function syncUserToSupabase(u: User) {
       if (updatedEmail && updatedEmail.length > 0) {
         return;
       }
+      if (emailErr && (emailErr.message?.includes("avatar_url") || emailErr.code === "PGRST204")) {
+        const { avatar_url: _unused, ...fallbackPayload } = payload;
+        await supabase.from("users").update(fallbackPayload).eq("email", u.email.trim().toLowerCase());
+        return;
+      }
     }
 
     // 3. If user doesn't exist yet, insert / upsert
     const { error: upsertErr } = await supabase.from("users").upsert(payload, { onConflict: "id" });
-    if (upsertErr) console.error("Error upserting user to Supabase:", upsertErr);
+    if (upsertErr) {
+      if (upsertErr.message?.includes("avatar_url") || upsertErr.code === "PGRST204") {
+        const { avatar_url: _unused, ...fallbackPayload } = payload;
+        await supabase.from("users").upsert(fallbackPayload, { onConflict: "id" });
+      } else {
+        console.error("Error upserting user to Supabase:", upsertErr);
+      }
+    }
   } catch (err) {
     console.error("Error syncing user to Supabase:", err);
   }

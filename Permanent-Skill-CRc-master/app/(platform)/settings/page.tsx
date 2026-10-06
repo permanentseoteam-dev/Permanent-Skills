@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   AlertCircle,
   Bell,
+  Camera,
   Check,
   CheckCircle2,
   Copy,
@@ -13,14 +14,18 @@ import {
   Eye,
   EyeOff,
   Globe,
+  Image as ImageIcon,
   Key,
   Lock,
   Mail,
   MapPin,
+  Palette,
   RefreshCw,
   Shield,
   ShieldCheck,
   Sparkles,
+  Trash2,
+  Upload,
   User,
   UserCheck,
   Users,
@@ -39,6 +44,55 @@ import {
   inputClass,
 } from "@/components/ui";
 import { formatMoney, timeAgo } from "@/lib/format";
+
+async function resizeImageFile(file: File, maxDim = 360): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.88));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const AVATAR_COLORS = [
+  "#5051F9", // Indigo Primary
+  "#3B82F6", // Blue
+  "#06B6D4", // Cyan
+  "#10B981", // Emerald
+  "#84CC16", // Lime
+  "#F59E0B", // Amber
+  "#F97316", // Orange
+  "#EF4444", // Red
+  "#EC4899", // Pink
+  "#8B5CF6", // Purple
+  "#18181B", // Zinc Dark
+];
 
 const LANGUAGES = [
   "English",
@@ -66,6 +120,9 @@ export default function SettingsPage() {
   const [bio, setBio] = useState(user?.bio || "");
   const [location, setLocation] = useState(user?.location || "");
   const [language, setLanguage] = useState(user?.language || "English");
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatarUrl || "");
+  const [avatarColor, setAvatarColor] = useState(user?.avatarColor || "#5051F9");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [profileBusy, setProfileBusy] = useState(false);
 
   // Password Form State
@@ -89,6 +146,8 @@ export default function SettingsPage() {
     setBio(user.bio || "");
     setLocation(user.location || "");
     setLanguage(user.language || "English");
+    setAvatarUrl(user.avatarUrl || "");
+    setAvatarColor(user.avatarColor || "#5051F9");
   }, [user]);
 
   // Auto-dismiss feedback message
@@ -99,6 +158,26 @@ export default function SettingsPage() {
     }, 4500);
     return () => clearTimeout(timer);
   }, [feedback]);
+
+  async function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setFeedback({ type: "error", text: "Please select a valid image file (PNG, JPG, WebP)." });
+      return;
+    }
+    try {
+      setUploadingPhoto(true);
+      const dataUrl = await resizeImageFile(file, 360);
+      setAvatarUrl(dataUrl);
+      setFeedback({ type: "success", text: "Photo selected! Click 'Save Profile Changes' to apply." });
+    } catch {
+      setFeedback({ type: "error", text: "Failed to process image file. Please try another image." });
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -115,12 +194,14 @@ export default function SettingsPage() {
       bio: bio.trim(),
       location: location.trim(),
       language,
+      avatarUrl: avatarUrl.trim(),
+      avatarColor: avatarColor.trim(),
     });
 
     setProfileBusy(false);
 
     if (res.ok) {
-      setFeedback({ type: "success", text: "✓ Your profile information has been saved." });
+      setFeedback({ type: "success", text: "✓ Your profile information and picture have been saved." });
     } else {
       setFeedback({ type: "error", text: res.error || "Failed to update profile." });
     }
@@ -326,6 +407,114 @@ export default function SettingsPage() {
           </div>
 
           <form onSubmit={handleSaveProfile} className="space-y-4">
+            {/* PROFILE PICTURE & AVATAR SECTION */}
+            <div className="rounded-2xl border border-zinc-200/80 bg-zinc-50/60 p-4 sm:p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6">
+                {/* Avatar Preview */}
+                <div className="relative group shrink-0">
+                  <Avatar
+                    user={{
+                      name: name || user?.name || "User",
+                      avatarColor: avatarColor,
+                      avatarUrl: avatarUrl || undefined,
+                      isOnline: true,
+                    }}
+                    size={72}
+                    className="border-3 border-white shadow-md ring-1 ring-zinc-200"
+                  />
+                  <label
+                    htmlFor="settings-avatar-file"
+                    className="absolute inset-0 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                    title="Change Photo"
+                  >
+                    <Camera size={18} />
+                    <span className="text-[9px] font-bold mt-0.5">Upload</span>
+                  </label>
+                  <input
+                    id="settings-avatar-file"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelected}
+                    className="hidden"
+                  />
+                </div>
+
+                {/* Upload & Controls */}
+                <div className="flex-1 space-y-2.5 min-w-0 w-full">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <label
+                      htmlFor="settings-avatar-file-btn"
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3.5 py-2 text-xs font-bold text-white hover:bg-zinc-800 transition cursor-pointer shadow-2xs active:scale-95"
+                    >
+                      <Upload size={13} />
+                      {uploadingPhoto ? "Processing..." : "Upload New Photo"}
+                    </label>
+                    <input
+                      id="settings-avatar-file-btn"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileSelected}
+                      className="hidden"
+                    />
+
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAvatarUrl("");
+                          setFeedback({ type: "success", text: "Photo removed. Save to apply changes." });
+                        }}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 py-2 text-xs font-bold text-red-600 hover:bg-red-50 transition cursor-pointer active:scale-95 shadow-2xs"
+                      >
+                        <Trash2 size={13} /> Remove Photo
+                      </button>
+                    )}
+                  </div>
+
+                  <p className="text-[11px] text-zinc-500">
+                    Supports JPG, PNG, GIF, or WebP. Images are optimized automatically.
+                  </p>
+
+                  {/* Direct Image URL input */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <div className="relative flex-1">
+                      <ImageIcon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        className={`${inputClass} pl-8 py-1.5 text-xs`}
+                        placeholder="Or paste an image URL (e.g. https://...)"
+                        value={avatarUrl}
+                        onChange={(e) => setAvatarUrl(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Initials Color Picker */}
+              <div className="pt-3 border-t border-zinc-200/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700">
+                  <Palette size={13} className="text-zinc-500" />
+                  <span>Avatar Accent Color (for initials fallback)</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {AVATAR_COLORS.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setAvatarColor(c)}
+                      className={`h-6 w-6 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
+                        avatarColor === c ? "scale-110 ring-2 ring-zinc-900 ring-offset-2" : "hover:scale-105"
+                      }`}
+                      style={{ backgroundColor: c }}
+                      title={c}
+                    >
+                      {avatarColor === c && <Check size={11} className="text-white drop-shadow" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Full Name *">
                 <input

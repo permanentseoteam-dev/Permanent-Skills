@@ -11,21 +11,34 @@ export function Avatar({
   className = "",
   showOnline = false,
 }: {
-  user?: Pick<PublicUser, "name" | "avatarColor" | "isOnline"> | null;
+  user?: Pick<PublicUser, "name" | "avatarColor" | "avatarUrl" | "isOnline"> | null;
   size?: number;
   className?: string;
   showOnline?: boolean;
 }) {
+  const [imgError, setImgError] = useState(false);
   const color = user?.avatarColor || "#5051F9";
+  const showImage = Boolean(user?.avatarUrl) && !imgError;
+
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white ${className}`}
+      className={`relative inline-flex shrink-0 items-center justify-center rounded-full font-semibold text-white select-none ${className}`}
       style={{ width: size, height: size, background: color, fontSize: size * 0.36 }}
     >
-      {user ? initials(user.name) : "?"}
+      {showImage ? (
+        <img
+          key={user?.avatarUrl}
+          src={user?.avatarUrl}
+          alt={user?.name || "Avatar"}
+          className="h-full w-full rounded-full object-cover"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        user ? initials(user.name) : "?"
+      )}
       {showOnline && user?.isOnline && (
         <span
-          className="absolute rounded-full border-2 border-white bg-emerald-500"
+          className="absolute rounded-full border-2 border-white bg-emerald-500 shadow-xs z-10"
           style={{ width: size * 0.28, height: size * 0.28, right: 0, bottom: 0 }}
         />
       )}

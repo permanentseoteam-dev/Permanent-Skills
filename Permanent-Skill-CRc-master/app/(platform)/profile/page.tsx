@@ -4,27 +4,89 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  Camera,
+  Check,
   ChevronLeft,
+  Image as ImageIcon,
   Lock,
   MapPin,
   MessageCircle,
+  Palette,
   Settings,
   Sparkles,
   ThumbsUp,
+  Trash2,
   Trophy,
+  Upload,
+  X,
 } from "lucide-react";
 import { useApp } from "@/components/AppProvider";
-import { Avatar, Card, PrimaryButton, StaffRoleFavicon, UserRoleBadge } from "@/components/ui";
+import { Avatar, Card, Modal, PrimaryButton, StaffRoleFavicon, UserRoleBadge, inputClass } from "@/components/ui";
 import { ChatDrawer } from "@/components/ChatDrawer";
 import { getLevel } from "@/lib/levels";
 import { timeAgo } from "@/lib/format";
 
+async function resizeImageFile(file: File, maxDim = 360): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = reject;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(reader.result as string);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL("image/jpeg", 0.88));
+      };
+      img.src = reader.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+const AVATAR_COLORS = [
+  "#5051F9", // Indigo Primary
+  "#3B82F6", // Blue
+  "#06B6D4", // Cyan
+  "#10B981", // Emerald
+  "#84CC16", // Lime
+  "#F59E0B", // Amber
+  "#F97316", // Orange
+  "#EF4444", // Red
+  "#EC4899", // Pink
+  "#8B5CF6", // Purple
+  "#18181B", // Zinc Dark
+];
+
 function ProfileView() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { userById, user, posts, comments } = useApp();
+  const { userById, user, posts, comments, updateProfile } = useApp();
   const [chatId, setChatId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"posts" | "comments" | "level">("posts");
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [modalAvatarUrl, setModalAvatarUrl] = useState(user?.avatarUrl || "");
+  const [modalAvatarColor, setModalAvatarColor] = useState(user?.avatarColor || "#5051F9");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [savingPhoto, setSavingPhoto] = useState(false);
+  const [photoFeedback, setPhotoFeedback] = useState<string | null>(null);
   const queryId = searchParams.get("id");
   const targetId = queryId || user?.id || "";
   const person = userById(targetId) || user;
@@ -37,6 +99,49 @@ function ProfileView() {
     () => (comments || []).filter((c) => c.authorId === person?.id),
     [comments, person?.id]
   );
+
+  function openPhotoModal() {
+    if (!user) return;
+    setModalAvatarUrl(user.avatarUrl || "");
+    setModalAvatarColor(user.avatarColor || "#5051F9");
+    setPhotoFeedback(null);
+    setPhotoModalOpen(true);
+  }
+
+  async function handleModalFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setPhotoFeedback("Please select a valid image file (PNG, JPG, WebP).");
+      return;
+    }
+    try {
+      setUploadingPhoto(true);
+      setPhotoFeedback(null);
+      const dataUrl = await resizeImageFile(file, 360);
+      setModalAvatarUrl(dataUrl);
+    } catch {
+      setPhotoFeedback("Failed to process image file. Please try another image.");
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  }
+
+  async function handleSavePhoto() {
+    setSavingPhoto(true);
+    setPhotoFeedback(null);
+    const res = await updateProfile({
+      avatarUrl: modalAvatarUrl.trim(),
+      avatarColor: modalAvatarColor.trim(),
+    });
+    setSavingPhoto(false);
+    if (res.ok) {
+      setPhotoModalOpen(false);
+    } else {
+      setPhotoFeedback(res.error || "Failed to update profile photo.");
+    }
+  }
 
   if (!person) {
     return (
@@ -82,11 +187,35 @@ function ProfileView() {
         <div className="absolute top-0 inset-x-0 h-20 sm:h-24 bg-gradient-to-r from-primary/10 via-[#6366f1]/10 to-[#7c83ff]/10" />
 
         <div className="relative z-10 pt-2 sm:pt-4">
-          <Avatar
-            user={person}
-            size={84}
-            className="mx-auto border-4 border-white shadow-md ring-1 ring-zinc-200 sm:w-24 sm:h-24"
-          />
+          <div className="relative inline-block mx-auto">
+            {isMe ? (
+              <button
+                type="button"
+                onClick={openPhotoModal}
+                className="relative group block rounded-full focus:outline-hidden cursor-pointer"
+                title="Change Profile Picture"
+              >
+                <Avatar
+                  user={person}
+                  size={88}
+                  className="mx-auto border-4 border-white shadow-md ring-1 ring-zinc-200 sm:w-24 sm:h-24 transition group-hover:brightness-90"
+                />
+                <div className="absolute inset-0 rounded-full bg-black/40 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition">
+                  <Camera size={20} />
+                  <span className="text-[10px] font-bold mt-0.5">Edit</span>
+                </div>
+                <span className="absolute bottom-0 right-0 rounded-full bg-zinc-900 border-2 border-white text-white p-1.5 shadow-xs group-hover:scale-110 transition">
+                  <Camera size={13} />
+                </span>
+              </button>
+            ) : (
+              <Avatar
+                user={person}
+                size={88}
+                className="mx-auto border-4 border-white shadow-md ring-1 ring-zinc-200 sm:w-24 sm:h-24"
+              />
+            )}
+          </div>
 
           <div className="mt-3.5 sm:mt-4 flex items-center justify-center gap-2 flex-wrap">
             <h1 className="text-xl sm:text-2xl font-black text-zinc-900">{person.name}</h1>
@@ -328,6 +457,118 @@ function ProfileView() {
       </Card>
 
       <ChatDrawer userId={chatId} onClose={() => setChatId(null)} />
+
+      {/* Profile Picture Change Modal */}
+      <Modal open={photoModalOpen} onClose={() => setPhotoModalOpen(false)} title="Update Profile Picture">
+        <div className="space-y-4 pt-1">
+          <div className="flex flex-col items-center justify-center text-center space-y-3">
+            <div className="relative">
+              <Avatar
+                user={{
+                  name: user?.name || "User",
+                  avatarColor: modalAvatarColor,
+                  avatarUrl: modalAvatarUrl || undefined,
+                  isOnline: true,
+                }}
+                size={96}
+                className="border-4 border-white shadow-lg ring-1 ring-zinc-200"
+              />
+            </div>
+            <p className="text-xs text-zinc-500">Preview of your profile photo</p>
+          </div>
+
+          {photoFeedback && (
+            <div className="rounded-xl bg-red-50 border border-red-200 p-2.5 text-xs text-red-700 font-medium text-center">
+              {photoFeedback}
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {/* File Upload Button */}
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="profile-modal-file"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition cursor-pointer active:scale-95 shadow-2xs"
+              >
+                <Upload size={14} />
+                {uploadingPhoto ? "Processing Image..." : "Upload from Device"}
+              </label>
+              <input
+                id="profile-modal-file"
+                type="file"
+                accept="image/*"
+                onChange={handleModalFileSelected}
+                className="hidden"
+              />
+
+              {modalAvatarUrl && (
+                <button
+                  type="button"
+                  onClick={() => setModalAvatarUrl("")}
+                  className="inline-flex items-center gap-1 rounded-xl border border-red-200 bg-white px-3 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 transition cursor-pointer active:scale-95"
+                  title="Remove Picture"
+                >
+                  <Trash2 size={14} /> Remove
+                </button>
+              )}
+            </div>
+
+            {/* Direct Image URL */}
+            <div className="relative">
+              <ImageIcon size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400" />
+              <input
+                className={`${inputClass} pl-9 py-2 text-xs`}
+                placeholder="Or paste an image URL..."
+                value={modalAvatarUrl}
+                onChange={(e) => setModalAvatarUrl(e.target.value)}
+              />
+            </div>
+
+            {/* Initials Accent Color Selection */}
+            <div className="pt-2 border-t border-zinc-100 space-y-2">
+              <div className="flex items-center justify-between text-xs text-zinc-600 font-semibold">
+                <span className="flex items-center gap-1">
+                  <Palette size={13} className="text-zinc-400" /> Initials Accent Color
+                </span>
+              </div>
+              <div className="flex items-center justify-center gap-2 flex-wrap pt-1">
+                {AVATAR_COLORS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setModalAvatarColor(c)}
+                    className={`h-6 w-6 rounded-full transition-transform cursor-pointer flex items-center justify-center ${
+                      modalAvatarColor === c ? "scale-115 ring-2 ring-zinc-900 ring-offset-2" : "hover:scale-105"
+                    }`}
+                    style={{ backgroundColor: c }}
+                    title={c}
+                  >
+                    {modalAvatarColor === c && <Check size={11} className="text-white drop-shadow" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-zinc-100">
+            <button
+              type="button"
+              onClick={() => setPhotoModalOpen(false)}
+              className="rounded-xl border border-zinc-200 px-4 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 transition cursor-pointer"
+            >
+              Cancel
+            </button>
+            <PrimaryButton
+              type="button"
+              disabled={savingPhoto || uploadingPhoto}
+              onClick={handleSavePhoto}
+              className="px-5 py-2 text-xs font-bold"
+            >
+              {savingPhoto ? "Saving..." : "Save Picture"}
+            </PrimaryButton>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

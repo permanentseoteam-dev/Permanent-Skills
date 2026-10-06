@@ -29,6 +29,7 @@ export interface User {
   points7d: number;
   points30d: number;
   avatarColor: string;
+  avatarUrl?: string;
   location: string;
   lat: number;
   lng: number;
@@ -63,6 +64,7 @@ export interface PublicUser {
   points7d: number;
   points30d: number;
   avatarColor: string;
+  avatarUrl?: string;
   location: string;
   lat: number;
   lng: number;
