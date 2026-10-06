@@ -76,29 +76,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-[#f6f6f3] text-zinc-900 overflow-x-hidden selection:bg-primary/20">
-      {/* Top Banner when Signed In */}
-      {user && (
-        <div className="bg-gradient-to-r from-primary/10 via-indigo-50/70 to-primary/10 border-b border-primary/20 px-3 sm:px-4 py-2 text-center text-[11px] sm:text-xs font-medium text-zinc-800 flex items-center justify-center gap-2 sm:gap-3 flex-wrap">
-          <span className="truncate max-w-[200px] sm:max-w-none">
-            Signed in as <strong>{user.name}</strong> ({user.role})
-          </span>
-          <Link
-            href={user.role === "admin" ? "/admin" : "/community"}
-            className="font-bold text-primary hover:underline inline-flex items-center gap-1 shrink-0"
-          >
-            <span>Open Platform</span>
-            <ArrowRight size={12} />
-          </Link>
-          <span className="text-zinc-300 hidden xs:inline">|</span>
-          <Link
-            href="/login"
-            className="text-zinc-600 hover:text-zinc-900 underline shrink-0"
-          >
-            Switch Account / Role
-          </Link>
-        </div>
-      )}
-
       {/* Main Header / Navigation */}
       <header className="sticky top-0 z-30 border-b border-zinc-200/70 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
@@ -133,15 +110,15 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="/login"
-                  className="hidden md:inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition shadow-2xs"
+                  className="inline-flex items-center rounded-xl border border-zinc-200 bg-white px-3 py-2 text-xs font-semibold text-zinc-700 hover:bg-zinc-50 hover:border-zinc-300 transition shadow-2xs"
                 >
-                  Switch Role
+                  Login
                 </Link>
               </div>
             ) : (
               <>
                 <Link href="/login" className="hidden text-sm font-semibold text-zinc-700 hover:text-primary sm:inline px-2 py-1">
-                  Log in
+                  Login
                 </Link>
                 <Link href="/register" className="hidden sm:inline">
                   <PrimaryButton className="text-xs sm:text-sm py-2 px-3.5 sm:px-4">Apply to join</PrimaryButton>
@@ -187,10 +164,10 @@ export default function LandingPage() {
                     </Link>
                     <Link
                       href="/login"
-                      className="rounded-xl px-3.5 py-2 text-xs text-zinc-600 hover:bg-zinc-50"
+                      className="rounded-xl px-3.5 py-2 text-xs font-semibold text-zinc-600 hover:bg-zinc-50"
                       onClick={closeMenu}
                     >
-                      Switch Account / Role
+                      Login
                     </Link>
                   </>
                 ) : (
@@ -200,7 +177,7 @@ export default function LandingPage() {
                       className="rounded-xl px-3.5 py-2.5 hover:bg-primary/5 hover:text-primary font-semibold"
                       onClick={closeMenu}
                     >
-                      Log in
+                      Login
                     </Link>
                     <Link href="/register" className="mt-1" onClick={closeMenu}>
                       <PrimaryButton className="w-full py-2.5 justify-center">Apply to join</PrimaryButton>
